@@ -1,0 +1,17 @@
+Package: study.wrangler
+Title: Wrangle (Tidy) Study Data
+Version: 0.0.0.9000
+Authors@R:
+    c(person(given = "John",
+           family = "Brestelli",
+           role = c("aut", "cre"),
+           email = "jbrestel@upenn.edu"),
+      person(given = "Jay",
+           family = "Humphrey",
+           role = "aut",
+           email = "jaycolin@uga.edu"))
+Description: Wrangle (Tidy) Study Data
+License: Apache License (= 2.0)
+Encoding: UTF-8
+Roxygen: list(markdown = TRUE)
+RoxygenNote: 7.2.1

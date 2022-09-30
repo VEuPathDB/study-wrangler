@@ -1,0 +1,34 @@
+#+TITLE: README
+
+study.wranger R package for tidying data in a way compatible with VEuPathDB workflows for EDA loading.
+
+To build a docker image:
+#+begin_example
+docker build -t study-wrangler .
+#+end_example
+
+To run in docker:
+#+begin_example
+docker run --rm -ti -e PASSWORD=somepassword -p 8787:8787 study-wrangler
+# Then in your web browser navigate to localhost:8787 and login with "rstudio" and "somepassword"
+#+end_example
+
+To add R functions to the repo (using docker):
+#+begin_example
+docker run --rm -ti -v /home/$user/project_home/study-wrangler:/study.wrangler -e PASSWORD=somepassword -p 8787:8787 jbrestel/study-wrangler
+# Then in your web browser navigate to localhost:8787 and login with "rstudio" and "somepassword"
+
+# at the RStudio prompt
+> library(devtools)
+> load_all("/study.wrangler")
+
+# add functions to R directory in this repo and then:
+> document("/study.wrangler")
+
+
+# see devtools documentation on best practices for making functions and documentation
+#+end_example
+
+
+Alternatively, should also be able to install into local RStudio using "remotes" package
+> remotes::install_github('VEuPathDB/study-wrangler','0.0.0.9000')
