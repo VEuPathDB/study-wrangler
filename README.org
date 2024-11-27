@@ -9,26 +9,30 @@ docker build -t study-wrangler .
 
 To run in docker:
 #+begin_example
-docker run --rm -ti -e PASSWORD=somepassword -p 8787:8787 study-wrangler
-# Then in your web browser navigate to localhost:8787 and login with "rstudio" and "somepassword"
+docker run --rm -ti -e PASSWORD=password -p 8989:8787 study-wrangler
+# Then in your web browser navigate to localhost:8888 and login with "rstudio" and "password"
 #+end_example
 
 To add R functions to the repo (using docker):
 #+begin_example
-docker run --rm -ti -v /home/$user/project_home/study-wrangler:/study.wrangler -e PASSWORD=somepassword -p 8787:8787 jbrestel/study-wrangler
-# Then in your web browser navigate to localhost:8787 and login with "rstudio" and "somepassword"
+docker run --rm -ti -v $PWD:/study.wrangler -e PASSWORD=password -p 8888:8787 study-wrangler
+# Then in your web browser navigate to localhost:8888 and login with "rstudio" and "password"
 
 # at the RStudio prompt
 > library(devtools)
 > load_all("/study.wrangler")
+# or via the symlink
+# load_all("./study.wrangler")
 
-# add functions to R directory in this repo and then:
-> document("/study.wrangler")
-
+# add functions to R directory with roxygen2-style comments/documentation
+# in this repo and then do
+> document("./study.wrangler")
+# (this will update the NAMESPACE file)
 
 # see devtools documentation on best practices for making functions and documentation
 #+end_example
 
 
-Alternatively, should also be able to install into local RStudio using "remotes" package
-> remotes::install_github('VEuPathDB/study-wrangler','0.0.0.9000')
+Alternatively, should also be able to install into local RStudio using "remotes" package (where `v0.0.0.9000` is a version tag in the repo`)
+
+> remotes::install_github('VEuPathDB/study-wrangler@v0.0.0.9000')

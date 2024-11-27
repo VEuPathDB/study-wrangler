@@ -10,6 +10,9 @@ RUN apt-get update && apt-get install -y \
 COPY . /study.wrangler
 WORKDIR /study.wrangler
 
+## Make a symlink in the rstudio homedir
+RUN ln -s /study.wrangler /home/rstudio/study.wrangler
+
 ### CRAN
 RUN R -e "install.packages('rdflib')"
 RUN R -e "install.packages('/study.wrangler', repos=NULL , type='source')"
