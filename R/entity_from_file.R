@@ -5,7 +5,62 @@ entity_from_file <- function(file_path) {
   if (!file.exists(file_path)) {
     stop("File does not exist: ", file_path)
   }
-  data <- readr::read_tsv(file_path, col_types = readr::cols(.default = "c"))
-  metadata <- tibble(variable = colnames(data), provider_label = colnames(data))
+  
+  # Read the data with minimal column name repair and no type detection
+  data <- readr::read_tsv(file_path,
+                          name_repair = 'minimal',
+                          col_types = readr::cols(.default = "c")
+                          )
+  
+  # Original column names
+  provider_labels <- colnames(data)
+  
+  # Generate unique, R-friendly names
+  clean_names <- make.names(provider_labels, unique = TRUE)
+  colnames(data) <- clean_names
+  
+  # Warn if duplicates exist in provider labels
+  if (anyDuplicated(provider_labels)) {
+    duplicates <- provider_labels[duplicated(provider_labels) | duplicated(provider_labels, fromLast = TRUE)]
+    renamed <- tibble(
+      original = provider_labels,
+      renamed = clean_names
+    ) %>% 
+      filter(original %in% duplicates)
+    
+    warning(
+      paste(
+        "Duplicate column names detected in input file. Renamed as follows:\n",
+        paste(renamed$original, "->", renamed$renamed, collapse = "\n"),
+        sep=""
+      )
+    )
+  }
+  
+  # Detect column types (initially all read in as `chr`)
+  data <- suppressMessages(readr::type_convert(data, guess_integer = TRUE))
+
+
+  # Convert R column types to EDA annotations
+  detect_column_type <- function(column) {
+    if (inherits(column, "Date") || inherits(column, "POSIXct")) {
+      return("date")
+    } else if (is.integer(column)) { 
+      return("integer")
+    } else if (is.numeric(column)) {
+      return("number")
+    } else {
+      return("string")
+    }
+  }
+  
+  metadata <- tibble(
+    variable = clean_names,
+    provider_label = provider_labels,
+    data_type = unname(map_chr(data, detect_column_type)),
+    data_shape = "continuous" # Placeholder for now, could be refined later
+  )
+  
+  # Return an Entity object
   entity(data = data, metadata = metadata)
 }

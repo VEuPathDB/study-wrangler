@@ -22,11 +22,16 @@ docker run --rm -ti -v $PWD:/study.wrangler -e PASSWORD=password -p 8888:8787 st
 > library(devtools)
 > load_all("/study.wrangler")
 # or via the symlink
-# load_all("./study.wrangler")
+#> load_all("./study.wrangler")
+# or set the working directory to "study.wrangler" in the file browser and then just do
+#> load_all()
+
 
 # add functions to R directory with roxygen2-style comments/documentation
 # in this repo and then do
 > document("./study.wrangler")
+# or
+#> document() # if you've changed the working directory
 # (this will update the NAMESPACE file)
 
 # see devtools documentation on best practices for making functions and documentation
