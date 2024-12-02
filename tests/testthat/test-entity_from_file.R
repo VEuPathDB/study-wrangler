@@ -45,6 +45,21 @@ test_that("entity_from_file detects column types correctly", {
   expect_equal(result@metadata$data_shape, expected_shapes)
 })
 
+test_that("entity_from_file detects invalid dates", {
+  file_path <- testthat::test_path("fixtures/households.tsv")
+  
+  # Modify the data to introduce an invalid date
+  modify_fn <- function(data) {
+    data$`Enrollment date`[2] <- "2021-02-29" # Invalid date
+    return(data)
+  }
+  
+  expect_warning(
+    result <- entity_from_file(file_path, preprocess_fn = modify_fn),
+    "expected valid date, but got" # Expected error message from readr
+  )
+})
+
 
 
 
