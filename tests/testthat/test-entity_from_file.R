@@ -37,11 +37,12 @@ test_that("entity_from_file detects column types correctly", {
   result <- entity_from_file(file_path)
   
   # Check metadata data_type
-  expected_types <- c("string", "integer", "string", "date")
+  expected_types <- c("id", "integer", "string", "date")
   expect_equal(result@metadata$data_type, expected_types)
   
-  # Check the data_shape is set (placeholder for now)
-  expect_equal(result@metadata$data_shape, rep("continuous", 4))
+  # Check the data_shape has been inferred correctly
+  expected_shapes <- c("categorical", "continuous", "categorical", "continuous")
+  expect_equal(result@metadata$data_shape, expected_shapes)
 })
 
 
