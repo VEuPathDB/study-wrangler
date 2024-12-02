@@ -40,11 +40,12 @@ entity_from_file <- function(file_path) {
   # Detect column types (initially all read in as `chr`)
   data <- suppressMessages(readr::type_convert(data, guess_integer = TRUE))
 
-
   # Convert R column types to EDA annotations
   detect_column_type <- function(column) {
     if (inherits(column, "Date") || inherits(column, "POSIXct")) {
       return("date")
+    } else if (n_distinct(column) == length(column)) {
+      return("id") # guess ID type only works for primary keys  
     } else if (is.integer(column)) { 
       return("integer")
     } else if (is.numeric(column)) {
@@ -57,8 +58,16 @@ entity_from_file <- function(file_path) {
   metadata <- tibble(
     variable = clean_names,
     provider_label = provider_labels,
-    data_type = unname(map_chr(data, detect_column_type)),
-    data_shape = "continuous" # Placeholder for now, could be refined later
+    data_type = unname(map_chr(data, detect_column_type))
+  )
+  
+  # infer data_shape as continuous or categorical
+  # (further refinement to 'ordinal' will require user-input)
+  metadata <- metadata %>% mutate(
+    data_shape = case_when(
+      data_type %in% c('number', 'integer', 'date') ~ 'continuous',
+      .default = 'categorical'
+    )
   )
   
   # Return an Entity object
