@@ -6,12 +6,17 @@ Authors@R:
            family = "Brestelli",
            role = c("aut", "cre"),
            email = "jbrestel@upenn.edu"),
-      person(given = "Jay",
-           family = "Humphrey",
+      person(given = "Bob",
+           family = "MacCallum",
            role = "aut",
-           email = "jaycolin@uga.edu"))
+           email = "uncoolbob@gmail.com"))
 Description: Wrangle (Tidy) Study Data
 License: Apache License (= 2.0)
 Encoding: UTF-8
 Roxygen: list(markdown = TRUE)
-RoxygenNote: 7.2.1
+RoxygenNote: 7.3.2
+Imports:
+    tidyverse (>= 2.0.0)
+Suggests: 
+    testthat (>= 3.0.0)
+Config/testthat/edition: 3
