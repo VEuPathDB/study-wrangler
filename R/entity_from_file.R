@@ -1,6 +1,45 @@
 library(tidyverse)
 
-# R/entity_from_file.R
+#' Create an Entity Object from a Tabular Data File
+#'
+#' @description
+#' Reads a tabular data file (e.g., TSV) and converts it into an Entity object.
+#' This function infers column metadata, including data types and shapes,
+#' and allows for pre-processing of the raw data before type inference.
+#'
+#' @param file_path A string specifying the path to the input file.
+#' @param preprocess_fn An optional function to modify the raw data
+#'   before type inference. This can be used for tasks such as correcting
+#'   invalid dates or other data cleanup. The function should accept a tibble
+#'   and return a modified tibble. Default is `NULL`.
+#'
+#' @return An Entity object with two main components:
+#' \itemize{
+#'   \item `data`: A tibble containing the processed tabular data.
+#'   \item `metadata`: A tibble describing the columns, including:
+#'     \itemize{
+#'       \item `variable`: Unique, R-friendly column names.
+#'       \item `provider_label`: Original column names from the input file.
+#'       \item `data_type`: Inferred type of each column (e.g., `id`, `number`, `date`).
+#'       \item `data_shape`: Shape of the data (e.g., `continuous` or `categorical`).
+#'     }
+#' }
+#'
+#' @examples
+#' # Load an entity from a file
+#' households <- entity_from_file('households.tsv')
+#'
+#' # Inspect the entity
+#' glimpse(households)
+#'
+#' # Make fixes and validate
+#' validate(households)
+#'
+#' # Create another entity and combine into a study
+#' participants <- entity_from_file('participants.tsv')
+#' study <- study_from_entities(households, participants)
+#'
+#' @export
 entity_from_file <- function(file_path, preprocess_fn = NULL) {
   if (!file.exists(file_path)) {
     stop("File does not exist: ", file_path)

@@ -20,24 +20,25 @@ docker run --rm -ti -v $PWD:/study.wrangler -e PASSWORD=password -p 8888:8787 st
 
 # at the RStudio prompt
 > library(devtools)
-> load_all("/study.wrangler")
-# or via the symlink
-#> load_all("./study.wrangler")
-# or set the working directory to "study.wrangler" in the file browser and then just do
-#> load_all()
+# then in the file browser:
+# 1. navigate into ./study.wrangler directory
+# 2. Set As Working Directory (gear icon in file browser)
+> devtools::test()
+# actually just `test()` will work
 
+# If running commands in console, you will need to do
+> load_all()
+# after making changes in the code.
 
-# add functions to R directory with roxygen2-style comments/documentation
-# in this repo and then do
-> document("./study.wrangler")
-# or
-#> document() # if you've changed the working directory
-# (this will update the NAMESPACE file)
-
-# see devtools documentation on best practices for making functions and documentation
+# To update the documentation and/or NAMESPACE file
+> document()
+# Note that we are not committing the man/*.Rd files to the repo at the moment
 #+end_example
 
 
 Alternatively, should also be able to install into local RStudio using "remotes" package (where `v0.0.0.9000` is a version tag in the repo`)
 
+#+begin_example
 > remotes::install_github('VEuPathDB/study-wrangler@v0.0.0.9000')
+#+end_example
+

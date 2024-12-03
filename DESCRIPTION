@@ -18,5 +18,6 @@ RoxygenNote: 7.3.2
 Imports:
     tidyverse (>= 2.0.0)
 Suggests: 
-    testthat (>= 3.0.0)
+    testthat (>= 3.0.0),
+    roxygen2
 Config/testthat/edition: 3
