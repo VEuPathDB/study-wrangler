@@ -14,5 +14,5 @@ WORKDIR /study.wrangler
 RUN ln -s /study.wrangler /home/rstudio/study.wrangler
 
 ### CRAN
-RUN R -e "install.packages('rdflib')"
+RUN R -e "install.packages('skimr')"
 RUN R -e "install.packages('/study.wrangler', repos=NULL , type='source')"
