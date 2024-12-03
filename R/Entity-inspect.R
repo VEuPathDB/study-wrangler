@@ -1,5 +1,3 @@
-library(skimr, include.only = c("skim"))
-
 #' Inspect Generic
 #'
 #' Defines the S4 generic for the inspect function.

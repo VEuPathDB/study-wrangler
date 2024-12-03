@@ -132,6 +132,11 @@ entity_from_file <- function(file_path, preprocess_fn = NULL) {
     )
   )
   
+  # Mutate categorical columns into factors
+  categorical_vars <- metadata$variable[metadata$data_shape == "categorical"]
+  data <- data %>%
+    mutate(across(all_of(categorical_vars), as.factor))
+  
   # Return an Entity object
   entity(data = data, metadata = metadata)
 }
