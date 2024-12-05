@@ -8,8 +8,11 @@ setGeneric("inspect", function(object) standardGeneric("inspect"))
 
 #' Inspect an Entity Object
 #'
-#' Provides a compact view of the Entity, showing the data table and replacing
-#' R column types with `data_type` and `data_shape` from the Entity metadata.
+#' Provides a summary view of the entity's
+#' 1. metadata
+#' 2. ID columns
+#' 3. variable columns and metadata
+#' 4. variable data
 #'
 #' @param object An Entity object to inspect.
 #' @export
