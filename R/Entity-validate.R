@@ -5,7 +5,7 @@
 #' @param object The object to validate.
 #' @returns a Boolean indicating success or failure
 #' @export
-setGeneric("validate", function(object) standardGeneric("validate"))
+setGeneric("validate", function(object, ...) standardGeneric("validate"))
 
 #' Validate an Entity Object
 #'
@@ -15,11 +15,11 @@ setGeneric("validate", function(object) standardGeneric("validate"))
 #' @param object An Entity object to validate.
 #' @returns a Boolean indicating success or failure
 #' @export
-setMethod("validate", "Entity", function(object) {
+setMethod("validate", "Entity", function(object, quiet = FALSE) {
   # Extract data and metadata
   data <- object@data
   metadata <- object@metadata
-  
+
   # Initialize validation results and messages
   is_valid <- TRUE
   feedback <- character()
@@ -31,6 +31,7 @@ setMethod("validate", "Entity", function(object) {
   }
     
   give_feedback <- function(fatal_message = NULL) {
+    if (quiet) return()
     if (length(feedback) > 0) {
       message("Validation issues found:\n", paste(feedback, collapse = "\n"))
     }
