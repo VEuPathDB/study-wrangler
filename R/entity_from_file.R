@@ -11,7 +11,8 @@ library(tidyverse)
 #' @param preprocess_fn An optional function to modify the raw data
 #'   before type inference. This can be used for tasks such as correcting
 #'   invalid dates or other data cleanup. The function should accept a tibble
-#'   and return a modified tibble. Default is `NULL`.
+#'   and return a modified tibble. All columns in the input tibble will be
+#'   character type (aka strings). Default is `NULL`.
 #'
 #' @return An Entity object with two main components:
 #' \itemize{
