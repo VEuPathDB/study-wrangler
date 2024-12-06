@@ -37,7 +37,7 @@ setMethod("infer_missing_data_types", "Entity", function(object) {
 #' infer_missing_data_shapes
 #' 
 #' Infers `data_shape` metadata for columns where this is currently `NA`
-#' Also converts 
+#' Also converts non-continuous columns to factors
 #' 
 #' @param object an Entity object
 #' @returns modified entity
@@ -46,7 +46,12 @@ setMethod("infer_missing_data_shapes", "Entity", function(object) {
   data <- object@data
   metadata <- object@metadata
   
-  cols_to_infer <- metadata %>% filter(is.na(data_shape)) %>% pull(variable)
+  # only infer for data_shape == NA and non-ID cols
+  cols_to_infer <- metadata %>%
+    filter(is.na(data_shape)) %>%
+    filter(!is.na(data_type)) %>%
+    filter(data_type != 'id') %>%
+    pull(variable)
   
   # infer data_shape as continuous or categorical
   # (further refinement to 'ordinal' will require user-input)
@@ -61,10 +66,14 @@ setMethod("infer_missing_data_shapes", "Entity", function(object) {
     )
   )
 
-  # mutate categorical columns into factors only for `cols_to_infer`
-  categorical_vars <- metadata %>% filter(data_shape == "categorical") %>% pull(variable)
+  # mutate non-continuous columns into factors only for
+  # columns that we previously inferred (`cols_to_infer`)
+  factor_vars <- metadata %>%
+    filter(variable %in% cols_to_infer) %>%
+    filter(data_shape != "continuous") %>% pull(variable)
+
   data <- data %>%
-    mutate(across(all_of(categorical_vars), as.factor))
+    mutate(across(all_of(factor_vars), as.factor))
   
   # clone and modify original entity argument
   entity <- initialize(object, data=data, metadata=metadata)

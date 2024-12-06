@@ -29,7 +29,10 @@ setMethod("inspect_variable", "Entity", function(object, variable_name) {
   
   # Print detailed metadata
   cat("Metadata for variable:", variable_name, "\n")
-  print(variable_metadata %>% pivot_longer(cols = everything(), names_to = "Field", values_to = "Value"))
+  print(n=50, variable_metadata %>% 
+          select(-starts_with("entity_")) %>%            # Exclude columns that start with "entity_"
+          mutate(across(everything(), as.character)) %>% # Convert all columns to character
+          pivot_longer(cols = everything(), names_to = "Field", values_to = "Value"))
   
   # Print summary of data
   cat("\nSummary of data:\n")

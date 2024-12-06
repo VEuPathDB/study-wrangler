@@ -23,6 +23,7 @@ library(tidyverse)
 #'       \item `provider_label`: Original column names from the input file.
 #'       \item `data_type`: Inferred type of each column (e.g., `id`, `number`, `date`).
 #'       \item `data_shape`: Shape of the data (e.g., `continuous` or `categorical`).
+#'       \item and many many more (MOST IMPORTANT ONES TO BE DOCUMENTED)
 #'     }
 #' }
 #'
@@ -31,7 +32,9 @@ library(tidyverse)
 #' households <- entity_from_file('households.tsv')
 #'
 #' # Inspect the entity
-#' glimpse(households)
+#' inspect(households)
+#' # Dive deeper into a specific variable (using the R-friendly tibble column name)
+#' inspect_variable(households, 'Number.of.animals')
 #'
 #' # Make fixes and validate
 #' validate(households)
@@ -84,6 +87,7 @@ entity_from_file <- function(file_path, preprocess_fn = NULL) {
     )
   }
   
+  # do R-based type inference on character data tibble
   # Detect column types (initially all read in as `chr`)
   # Suppress messages but intercept warnings about dates
   data <- withCallingHandlers(
@@ -103,41 +107,21 @@ entity_from_file <- function(file_path, preprocess_fn = NULL) {
     }
   )
 
-  # Convert R column types to EDA annotations
-  detect_column_type <- function(column) {
-    if (inherits(column, "Date") || inherits(column, "POSIXct")) {
-      return("date")
-    } else if (n_distinct(column) == length(column)) {
-      return("id") # guess ID type only works for primary keys  
-    } else if (is.integer(column)) { 
-      return("integer")
-    } else if (is.numeric(column)) {
-      return("number")
-    } else {
-      return("string")
-    }
-  }
+  # create `metadata` with default values for every column
+  # (from Entity-metadata-defaults.R)
+  metadata <- tibble(variable=clean_names) %>% expand_grid(variable_metadata_defaults)
+
+  # add `provider_labels` to metadata
+  metadata <- metadata %>% mutate(provider_label = provider_labels)
+    
+  # create entity object
+  entity <- entity(data = data, metadata = metadata)
+
+  # auto-detect the basic data types
+  entity <- entity %>%
+    infer_missing_data_types() %>%
+    infer_missing_data_shapes()
   
-  metadata <- tibble(
-    variable = clean_names,
-    provider_label = provider_labels,
-    data_type = unname(map_chr(data, detect_column_type))
-  )
-  
-  # infer data_shape as continuous or categorical
-  # (further refinement to 'ordinal' will require user-input)
-  metadata <- metadata %>% mutate(
-    data_shape = case_when(
-      data_type %in% c('number', 'integer', 'date') ~ 'continuous',
-      .default = 'categorical'
-    )
-  )
-  
-  # Mutate categorical columns into factors
-  categorical_vars <- metadata$variable[metadata$data_shape == "categorical"]
-  data <- data %>%
-    mutate(across(all_of(categorical_vars), as.factor))
-  
-  # Return an Entity object
-  entity(data = data, metadata = metadata)
+    # Return an Entity object
+  return(entity)
 }
