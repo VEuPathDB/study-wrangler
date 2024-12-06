@@ -41,7 +41,7 @@ test_that("entity_from_file detects column types correctly", {
   expect_equal(result@metadata$data_type, expected_types)
   
   # Check the data_shape has been inferred correctly
-  expected_shapes <- c("categorical", "continuous", "categorical", "continuous", "categorical")
+  expected_shapes <- c(NA, "continuous", "categorical", "continuous", "categorical")
   expect_equal(result@metadata$data_shape, expected_shapes)
 })
 

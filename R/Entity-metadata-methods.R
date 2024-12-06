@@ -37,7 +37,7 @@ setMethod("infer_missing_data_types", "Entity", function(object) {
 #' infer_missing_data_shapes
 #' 
 #' Infers `data_shape` metadata for columns where this is currently `NA`
-#' Also converts non-continuous columns to factors
+#' Also converts non-continuous columns to factors and sets their `vocabulary`
 #' 
 #' @param object an Entity object
 #' @returns modified entity
@@ -57,7 +57,7 @@ setMethod("infer_missing_data_shapes", "Entity", function(object) {
   # (further refinement to 'ordinal' will require user-input)
   metadata <- metadata %>% mutate(
     data_shape = if_else(
-      is.na(data_shape) & !is.na(data_type),
+      variable %in% cols_to_infer,
       case_when(
         data_type %in% c('number', 'integer', 'date') ~ 'continuous',
         .default = 'categorical'
@@ -74,6 +74,18 @@ setMethod("infer_missing_data_shapes", "Entity", function(object) {
 
   data <- data %>%
     mutate(across(all_of(factor_vars), as.factor))
+  
+  # Set the vocabulary metadata for the factor variables
+  metadata <- metadata %>%
+    rowwise() %>% # for simplicity, not speed
+    mutate(vocabulary = list(
+      if (variable %in% factor_vars) {
+        levels(data[[variable]])
+      } else {
+        vocabulary
+      }
+    )) %>%
+    ungroup()
   
   # clone and modify original entity argument
   entity <- initialize(object, data=data, metadata=metadata)

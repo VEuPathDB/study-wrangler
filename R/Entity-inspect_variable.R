@@ -1,3 +1,5 @@
+library(glue)
+
 #' Inspect Variable Generic
 #'
 #' Defines the S4 generic for inspecting a specific variable in an Entity.
@@ -28,14 +30,15 @@ setMethod("inspect_variable", "Entity", function(object, variable_name) {
   variable_data <- object@data[[variable_name]]
   
   # Print detailed metadata
-  cat("Metadata for variable:", variable_name, "\n")
+  cat(glue("Metadata for {variable_name}\n", .trim = FALSE))
   print(n=50, variable_metadata %>% 
           select(-starts_with("entity_")) %>%            # Exclude columns that start with "entity_"
+          mutate(across(where(is.list), ~ map_chr(.x, ~ paste(.x, collapse = ", ")))) %>% # Format list columns as comma-separated strings
           mutate(across(everything(), as.character)) %>% # Convert all columns to character
           pivot_longer(cols = everything(), names_to = "Field", values_to = "Value"))
   
   # Print summary of data
-  cat("\nSummary of data:\n")
+  cat(glue("\nSummary of data for {variable_name}:\n", .trim = FALSE))
 
   skim_summary <- skim(variable_data) %>%
     as_tibble() %>%
