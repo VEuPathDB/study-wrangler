@@ -23,6 +23,7 @@ docker run --rm -ti -v $PWD:/study.wrangler -e PASSWORD=password -p 8888:8787 st
 # then in the file browser:
 # 1. navigate into ./study.wrangler directory
 # 2. Set As Working Directory (gear icon in file browser)
+# 3. (or do `setwd("~/study.wrangler")` in console)
 > devtools::test()
 # actually just `test()` will work
 
