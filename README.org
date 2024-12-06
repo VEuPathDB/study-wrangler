@@ -10,7 +10,7 @@ docker build -t study-wrangler .
 To run in docker:
 #+begin_example
 docker run --rm -ti -e PASSWORD=password -p 8989:8787 study-wrangler
-# Then in your web browser navigate to localhost:8888 and login with "rstudio" and "password"
+# Then in your web browser navigate to localhost:8989 and login with "rstudio" and "password"
 #+end_example
 
 To add R functions to the repo (using docker):
