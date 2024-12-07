@@ -46,9 +46,17 @@ library(tidyverse)
 #'
 #' @export
 entity_from_file <- function(file_path, preprocess_fn = NULL, ...) {
-  
   if (!file.exists(file_path)) {
     stop("File does not exist: ", file_path)
+  }
+
+  # check extra args are valid slots
+  metadata = list(...)
+  disallowed_keys <- c("data", "variables")
+  valid_keys <- setdiff(slotNames("Entity"), disallowed_keys)
+  invalid_keys <- setdiff(names(metadata), valid_keys)
+  if (length(invalid_keys) > 0) {
+    stop("These entity_from_file() args are not valid Entity metadata names: ", toString(invalid_keys))
   }
   
   # Read the data with minimal column name repair and no type detection
@@ -116,8 +124,11 @@ entity_from_file <- function(file_path, preprocess_fn = NULL, ...) {
   # add `provider_labels` to variables
   variables <- variables %>% mutate(provider_label = provider_labels)
     
-  # create entity object
-  entity <- entity(data = data, variables = variables)
+  # create entity object using `do.call()` because there is no JavaScript-like
+  # spread operator in R ;-)
+  constructor_args <- c(list(data = data, variables = variables), metadata)
+  entity <- do.call(entity, constructor_args)
+
 
   # auto-detect the basic data types
   entity <- entity %>%

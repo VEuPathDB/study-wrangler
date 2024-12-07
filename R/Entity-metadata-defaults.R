@@ -1,3 +1,6 @@
+# These are the columns needed in the `Entity@variables` tibble.
+# It also has `variable` column which is the "primary key" column containing
+# the column's name in the `Entity@data` tibble.
 variable_metadata_defaults <- tibble(
   # wrangler-specific
   entity_name = NA_character_,

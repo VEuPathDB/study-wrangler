@@ -60,6 +60,20 @@ test_that("entity_from_file detects invalid dates", {
   )
 })
 
+test_that("entity_from_file rejects unknown ... metadata arguments", {
+  file_path <- testthat::test_path("fixtures/households.tsv")
+  
+  expect_error(
+    result <- entity_from_file(file_path, does_not_exist = "at all"),
+    "not valid Entity metadata names"
+  )  
+})
 
+test_that("entity_from_file sets metadata from ... args", {
+  file_path <- testthat::test_path("fixtures/households.tsv")
+  
+  result <- entity_from_file(file_path, name = "household")
 
+  expect_equal(result@name, 'household')
+})
 
