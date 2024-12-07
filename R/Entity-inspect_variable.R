@@ -19,12 +19,12 @@ setGeneric("inspect_variable", function(object, variable_name) standardGeneric("
 #' @export
 setMethod("inspect_variable", "Entity", function(object, variable_name) {
   # Validate input
-  if (!variable_name %in% object@metadata$variable) {
-    stop("Variable name not found in Entity metadata.")
+  if (!variable_name %in% object@variables$variable) {
+    stop("Variable name not found in Entity variables' metadata.")
   }
   
   # Extract metadata for the specified variable
-  variable_metadata <- object@metadata %>% filter(variable == variable_name)
+  variable_metadata <- object@variables %>% filter(variable == variable_name)
   
   # Extract data for the specified variable
   variable_data <- object@data[[variable_name]]

@@ -4,7 +4,7 @@ library(tidyverse)
 #'
 #' @description
 #' Reads a tabular data file (e.g., TSV) and converts it into an Entity object.
-#' This function infers column metadata, including data types and shapes,
+#' This function infers variables' metadata, including data types and shapes,
 #' and allows for pre-processing of the raw data before type inference.
 #'
 #' @param file_path A string specifying the path to the input file.
@@ -18,7 +18,7 @@ library(tidyverse)
 #' @return An Entity object with two main components:
 #' \itemize{
 #'   \item `data`: A tibble containing the processed tabular data.
-#'   \item `metadata`: A tibble describing the columns, including:
+#'   \item `variables`: A tibble describing the columns, including:
 #'     \itemize{
 #'       \item `variable`: Unique, R-friendly column names.
 #'       \item `provider_label`: Original column names from the input file.
@@ -109,15 +109,15 @@ entity_from_file <- function(file_path, preprocess_fn = NULL, ...) {
     }
   )
 
-  # create `metadata` with default values for every column
+  # create `variables` with default values for every column
   # (from Entity-metadata-defaults.R)
-  metadata <- tibble(variable=clean_names) %>% expand_grid(variable_metadata_defaults)
+  variables <- tibble(variable=clean_names) %>% expand_grid(variable_metadata_defaults)
 
-  # add `provider_labels` to metadata
-  metadata <- metadata %>% mutate(provider_label = provider_labels)
+  # add `provider_labels` to variables
+  variables <- variables %>% mutate(provider_label = provider_labels)
     
   # create entity object
-  entity <- entity(data = data, metadata = metadata)
+  entity <- entity(data = data, variables = variables)
 
   # auto-detect the basic data types
   entity <- entity %>%

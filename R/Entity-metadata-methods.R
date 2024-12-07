@@ -20,17 +20,17 @@ setGeneric("infer_missing_data_shapes", function(object) standardGeneric("infer_
 #' @export
 setMethod("infer_missing_data_types", "Entity", function(object) {
 
-  metadata <- object@metadata
+  variables <- object@variables
   data <- object@data
 
-  # use infer_column_data_type(data_column) to fill in NAs in metadata$data_type column
-  metadata <- metadata %>%
+  # use infer_column_data_type(data_column) to fill in NAs in variables$data_type column
+  variables <- variables %>%
     rowwise() %>% # performance is not critical here
     mutate(data_type = if_else(is.na(data_type), infer_data_type(data, variable), data_type)) %>%
     ungroup() # remove special rowwise grouping
 
   # clone and modify original entity argument
-  entity <- initialize(object, metadata=metadata)
+  entity <- initialize(object, variables=variables)
   return(entity)
 })
 
@@ -44,10 +44,10 @@ setMethod("infer_missing_data_types", "Entity", function(object) {
 #' @export
 setMethod("infer_missing_data_shapes", "Entity", function(object) {
   data <- object@data
-  metadata <- object@metadata
+  variables <- object@variables
   
   # only infer for data_shape == NA and non-ID cols
-  cols_to_infer <- metadata %>%
+  cols_to_infer <- variables %>%
     filter(is.na(data_shape)) %>%
     filter(!is.na(data_type)) %>%
     filter(data_type != 'id') %>%
@@ -55,7 +55,7 @@ setMethod("infer_missing_data_shapes", "Entity", function(object) {
   
   # infer data_shape as continuous or categorical
   # (further refinement to 'ordinal' will require user-input)
-  metadata <- metadata %>% mutate(
+  variables <- variables %>% mutate(
     data_shape = if_else(
       variable %in% cols_to_infer,
       case_when(
@@ -68,7 +68,7 @@ setMethod("infer_missing_data_shapes", "Entity", function(object) {
 
   # mutate non-continuous columns into factors only for
   # columns that we previously inferred (`cols_to_infer`)
-  factor_vars <- metadata %>%
+  factor_vars <- variables %>%
     filter(variable %in% cols_to_infer) %>%
     filter(data_shape != "continuous") %>% pull(variable)
 
@@ -76,7 +76,7 @@ setMethod("infer_missing_data_shapes", "Entity", function(object) {
     mutate(across(all_of(factor_vars), as.factor))
   
   # Set the vocabulary metadata for the factor variables
-  metadata <- metadata %>%
+  variables <- variables %>%
     rowwise() %>% # for simplicity, not speed
     mutate(vocabulary = list(
       if (variable %in% factor_vars) {
@@ -88,7 +88,7 @@ setMethod("infer_missing_data_shapes", "Entity", function(object) {
     ungroup()
   
   # clone and modify original entity argument
-  entity <- initialize(object, data=data, metadata=metadata)
+  entity <- initialize(object, data=data, variables=variables)
   return(entity)
 })
 

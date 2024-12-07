@@ -11,23 +11,23 @@ setGeneric("inspect", function(object) standardGeneric("inspect"))
 #' Provides a summary view of the entity's
 #' 1. metadata
 #' 2. ID columns
-#' 3. variable columns and metadata
+#' 3. variables' metadata
 #' 4. variable data
 #'
 #' @param object An Entity object to inspect.
 #' @export
 setMethod("inspect", "Entity", function(object) {
-  # Extract data and metadata
+  # Extract data and variables
   data <- object@data
-  metadata <- object@metadata
+  variables <- object@variables
   
-  # Ensure metadata has `data_type` and `data_shape`
-  if (!all(c("data_type", "data_shape") %in% colnames(metadata))) {
-    stop("Metadata must contain `data_type` and `data_shape` columns.")
+  # Ensure variables has `data_type` and `data_shape`
+  if (!all(c("data_type", "data_shape") %in% colnames(variables))) {
+    stop("Variables metadata must contain `data_type` and `data_shape` columns.")
   }
   
-  ids_metadata <- metadata %>% filter(data_type == 'id')
-  variables_metadata <- metadata %>%
+  ids_metadata <- variables %>% filter(data_type == 'id')
+  variables_metadata <- variables %>%
     filter(data_type != 'id') %>%
     select(-starts_with('entity_')) %>%
     arrange(display_order)

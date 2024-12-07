@@ -19,7 +19,7 @@ test_that("validate() fails and warns about missing metadata", {
       mutate(newColumn = 42)
     
   # validate
-  expect_message(is_valid <- validate(households), 'Data columns missing in metadata: newColumn')
+  expect_message(is_valid <- validate(households), "Data columns missing in variables' metadata: newColumn")
   expect_false(is_valid)
 })
 
@@ -34,6 +34,6 @@ test_that("validate() fails and warns about extra metadata", {
     select(-c('Owns.property'))
   
   # validate
-  expect_message(is_valid <- validate(households), 'Metadata rows missing in data columns: Owns.property')
+  expect_message(is_valid <- validate(households), "Variables' metadata rows missing in data columns: Owns.property")
   expect_false(is_valid)
 })

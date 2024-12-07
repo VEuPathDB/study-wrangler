@@ -5,7 +5,7 @@ setClass(
   "Entity",
   slots = list(
     data = "tbl_df", # The tibble containing the entity data
-    metadata = "tbl_df", # Metadata for variables
+    variables = "tbl_df", # Metadata for variables (and ID columns) in the data tibble
 
     # entity metadata
     name = "character", # Internal entity name, e.g. "household"
@@ -20,7 +20,7 @@ setClass(
 
 # Constructor function
 entity <- function(data,
-                   metadata = tibble(),
+                   variables = tibble(),
                    name = "",
                    description = "",
                    display_name = "",
@@ -29,7 +29,7 @@ entity <- function(data,
                    ) {
   new("Entity", 
       data = data,
-      metadata = metadata,
+      variables = variables,
       name = name,
       description = description,
       display_name = display_name,

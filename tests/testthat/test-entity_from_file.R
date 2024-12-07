@@ -12,10 +12,10 @@ test_that("entity_from_file works as expected", {
   expect_s3_class(result@data, "tbl_df")
   
   # Check that the metadata is a tibble
-  expect_s3_class(result@metadata, "tbl_df")
+  expect_s3_class(result@variables, "tbl_df")
 
   # Check that metadata variable names match the data tibble column names
-  expect_equal(colnames(result@data), result@metadata$variable)
+  expect_equal(colnames(result@data), result@variables$variable)
 })
 
 test_that("entity_from_file warns about duplicate column names in input file", {
@@ -27,9 +27,9 @@ test_that("entity_from_file warns about duplicate column names in input file", {
     "Duplicate column names detected in input file."
   )
   
-  expect_true(any(duplicated(result@metadata$provider_label)))
+  expect_true(any(duplicated(result@variables$provider_label)))
 
-  expect_true(n_distinct(result@metadata$variable) == nrow(result@metadata))
+  expect_true(n_distinct(result@variables$variable) == nrow(result@variables))
 })
 
 test_that("entity_from_file detects column types correctly", {
@@ -38,11 +38,11 @@ test_that("entity_from_file detects column types correctly", {
   
   # Check metadata data_type
   expected_types <- c("id", "integer", "string", "date", "string")
-  expect_equal(result@metadata$data_type, expected_types)
+  expect_equal(result@variables$data_type, expected_types)
   
   # Check the data_shape has been inferred correctly
   expected_shapes <- c(NA, "continuous", "categorical", "continuous", "categorical")
-  expect_equal(result@metadata$data_shape, expected_shapes)
+  expect_equal(result@variables$data_shape, expected_shapes)
 })
 
 test_that("entity_from_file detects invalid dates", {

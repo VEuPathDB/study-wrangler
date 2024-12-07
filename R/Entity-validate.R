@@ -16,9 +16,9 @@ setGeneric("validate", function(object, ...) standardGeneric("validate"))
 #' @returns a Boolean indicating success or failure
 #' @export
 setMethod("validate", "Entity", function(object, quiet = FALSE) {
-  # Extract data and metadata
+  # Extract data and variables
   data <- object@data
-  metadata <- object@metadata
+  variables <- object@variables
 
   # Initialize validation results and messages
   is_valid <- TRUE
@@ -43,8 +43,8 @@ setMethod("validate", "Entity", function(object, quiet = FALSE) {
   }
   
   # Fatal Validation 1: Check if metadata is empty
-  if (nrow(metadata) == 0) {
-    give_feedback(fatal_message = "Metadata is empty. Ensure metadata is correctly populated.")
+  if (nrow(variables) == 0) {
+    give_feedback(fatal_message = "Variables' metadata is empty. Ensure metadata is correctly populated.")
     return(FALSE)
   }
   
@@ -55,19 +55,20 @@ setMethod("validate", "Entity", function(object, quiet = FALSE) {
   }
   
   # Validation 3: Check column alignment
-  missing_columns <- setdiff(colnames(data), metadata$variable)
-  extra_metadata <- setdiff(metadata$variable, colnames(data))
+  missing_columns <- setdiff(colnames(data), variables$variable)
+  extra_variables <- setdiff(variables$variable, colnames(data))
   
   if (length(missing_columns) > 0) {
-    add_feedback(paste("Data columns missing in metadata:", paste(missing_columns, collapse = ", ")))
+    add_feedback(paste("Data columns missing in variables' metadata:", paste(missing_columns, collapse = ", ")))
   }
   
-  if (length(extra_metadata) > 0) {
-    add_feedback(paste("Metadata rows missing in data columns:", paste(extra_metadata, collapse = ", ")))
+  if (length(extra_variables) > 0) {
+    add_feedback(paste("Variables' metadata rows missing in data columns:", paste(extra_variables, collapse = ", ")))
   }
+  # TO DO: provide advice on how to fix and implement fixing function if needed
   
   # Validation 4: Check for NA values in 'id' columns
-  id_columns <- metadata$variable[metadata$data_type == "id"]
+  id_columns <- variables$variable[variables$data_type == "id"]
   na_in_ids <- sapply(data[id_columns], function(col) sum(is.na(col)))
   
   if (any(na_in_ids > 0)) {
