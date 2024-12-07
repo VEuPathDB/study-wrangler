@@ -2,9 +2,9 @@
 #'
 #' Defines the S4 generic for the inspect function.
 #' 
-#' @param object The object to inspect.
+#' @param entity The object to inspect.
 #' @export
-setGeneric("inspect", function(object) standardGeneric("inspect"))
+setGeneric("inspect", function(entity) standardGeneric("inspect"))
 
 #' Inspect an Entity Object
 #'
@@ -14,12 +14,12 @@ setGeneric("inspect", function(object) standardGeneric("inspect"))
 #' 3. variables' metadata
 #' 4. variable data
 #'
-#' @param object An Entity object to inspect.
+#' @param entity An Entity object to inspect.
 #' @export
-setMethod("inspect", "Entity", function(object) {
+setMethod("inspect", "Entity", function(entity) {
   # Extract data and variables
-  data <- object@data
-  variables <- object@variables
+  data <- entity@data
+  variables <- entity@variables
   
   # Ensure variables has `data_type` and `data_shape`
   if (!all(c("data_type", "data_shape") %in% colnames(variables))) {

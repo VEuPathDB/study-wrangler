@@ -82,25 +82,19 @@ entity <- function(data,
                    display_name = NA_character_,
                    display_name_plural = NA_character_,
                    parent_name = NA_character_
-                   ) {
-
-  # Default display_name to name if not provided
-  if (is.na(display_name)) {
-    display_name <- name
-  }
+) {
   
-  # Default display_name_plural to display_name + "s" if not provided
-  if (is.na(display_name_plural)) {
-    display_name_plural <- paste0(display_name, "s")
-  }
-  
-  new("Entity", 
-      data = data,
-      variables = variables,
-      name = name,
-      description = description,
-      display_name = display_name,
-      display_name_plural = display_name_plural,
-      parent_name = parent_name
+  metadata <- list(
+    data = data,
+    variables = variables,
+    name = name,
+    description = description,
+    display_name = display_name,
+    display_name_plural = display_name_plural,
+    parent_name = parent_name
   )
+  
+  metadata <- apply_entity_metadata_defaults(metadata)
+  
+  do.call(new, c("Entity", metadata))
 }

@@ -1,4 +1,3 @@
-# tests/testthat/test-entity_from_file.R
 test_that("entity_from_file works as expected", {
   # Example file path
   file_path <- testthat::test_path("fixtures/households.tsv")

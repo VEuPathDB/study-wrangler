@@ -52,12 +52,7 @@ entity_from_file <- function(file_path, preprocess_fn = NULL, ...) {
 
   # check extra args are valid slots
   metadata = list(...)
-  disallowed_keys <- c("data", "variables")
-  valid_keys <- setdiff(slotNames("Entity"), disallowed_keys)
-  invalid_keys <- setdiff(names(metadata), valid_keys)
-  if (length(invalid_keys) > 0) {
-    stop("These entity_from_file() args are not valid Entity metadata names: ", toString(invalid_keys))
-  }
+  validate_entity_metadata_names(metadata)
   
   # Read the data with minimal column name repair and no type detection
   data <- readr::read_tsv(file_path,

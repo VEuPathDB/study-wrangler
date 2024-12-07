@@ -3,11 +3,11 @@
 #' Generics (attempting to remove redundancy from documentation)
 #' 
 #' @export
-setGeneric("infer_missing_data_types", function(object) standardGeneric("infer_missing_data_types"))
+setGeneric("infer_missing_data_types", function(entity) standardGeneric("infer_missing_data_types"))
 #' @export
-setGeneric("infer_missing_data_shapes", function(object) standardGeneric("infer_missing_data_shapes"))
+setGeneric("infer_missing_data_shapes", function(entity) standardGeneric("infer_missing_data_shapes"))
 #' @export
-setGeneric("infer_missing_data_shapes", function(object) standardGeneric("infer_missing_data_shapes"))
+setGeneric("set_entity_metadata", function(entity, ...) standardGeneric("set_entity_metadata"))
 
 
 
@@ -15,13 +15,13 @@ setGeneric("infer_missing_data_shapes", function(object) standardGeneric("infer_
 #' 
 #' Infers `data_type` metadata for columns where this is currently `NA`.
 #' 
-#' @param object an Entity object
+#' @param entity an Entity object
 #' @returns modified entity
 #' @export
-setMethod("infer_missing_data_types", "Entity", function(object) {
+setMethod("infer_missing_data_types", "Entity", function(entity) {
 
-  variables <- object@variables
-  data <- object@data
+  variables <- entity@variables
+  data <- entity@data
 
   # use infer_column_data_type(data_column) to fill in NAs in variables$data_type column
   variables <- variables %>%
@@ -30,7 +30,7 @@ setMethod("infer_missing_data_types", "Entity", function(object) {
     ungroup() # remove special rowwise grouping
 
   # clone and modify original entity argument
-  entity <- initialize(object, variables=variables)
+  entity <- initialize(entity, variables=variables)
   return(entity)
 })
 
@@ -39,12 +39,12 @@ setMethod("infer_missing_data_types", "Entity", function(object) {
 #' Infers `data_shape` metadata for columns where this is currently `NA`
 #' Also converts non-continuous columns to factors and sets their `vocabulary`
 #' 
-#' @param object an Entity object
+#' @param entity an Entity object
 #' @returns modified entity
 #' @export
-setMethod("infer_missing_data_shapes", "Entity", function(object) {
-  data <- object@data
-  variables <- object@variables
+setMethod("infer_missing_data_shapes", "Entity", function(entity) {
+  data <- entity@data
+  variables <- entity@variables
   
   # only infer for data_shape == NA and non-ID cols
   cols_to_infer <- variables %>%
@@ -88,7 +88,33 @@ setMethod("infer_missing_data_shapes", "Entity", function(object) {
     ungroup()
   
   # clone and modify original entity argument
-  entity <- initialize(object, data=data, variables=variables)
+  entity <- initialize(entity, data=data, variables=variables)
   return(entity)
 })
 
+
+
+#' set_entity_metadata
+#' 
+#' Sets metadata such as `name`, `display_name`, etc (see "Entity-class.R")
+#' 
+#' @param entity an Entity object
+#' @param ... key = value pairs for setting metadata
+#' @returns modified entity
+#' @export
+setMethod("set_entity_metadata", "Entity", function(entity, ...) {
+  metadata <- list(...)
+  
+  # Validate metadata keys
+  validate_entity_metadata_names(metadata)
+  
+  # Merge new metadata with the existing entity slots
+  current_metadata <- as_list(entity)
+  updated_metadata <- modifyList(current_metadata, metadata)
+  
+  # Apply defaults
+  updated_metadata <- apply_entity_metadata_defaults(updated_metadata)
+  
+  # Re-initialize the entity
+  do.call(initialize, c(entity, updated_metadata))
+})

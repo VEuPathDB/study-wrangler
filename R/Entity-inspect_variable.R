@@ -4,30 +4,30 @@ library(glue)
 #'
 #' Defines the S4 generic for inspecting a specific variable in an Entity.
 #' 
-#' @param object The object to inspect.
+#' @param entity The object to inspect.
 #' @param variable_name The name of the variable to inspect.
 #' @export
-setGeneric("inspect_variable", function(object, variable_name) standardGeneric("inspect_variable"))
+setGeneric("inspect_variable", function(entity, variable_name) standardGeneric("inspect_variable"))
 
 
 #' Inspect a Specific Variable in an Entity
 #'
 #' Provides detailed metadata and a summary for a specified variable in an Entity object.
 #'
-#' @param object An Entity object containing the variable.
+#' @param entity An Entity object containing the variable.
 #' @param variable_name The name of the variable to inspect, as a character string.
 #' @export
-setMethod("inspect_variable", "Entity", function(object, variable_name) {
+setMethod("inspect_variable", "Entity", function(entity, variable_name) {
   # Validate input
-  if (!variable_name %in% object@variables$variable) {
+  if (!variable_name %in% entity@variables$variable) {
     stop("Variable name not found in Entity variables' metadata.")
   }
   
   # Extract metadata for the specified variable
-  variable_metadata <- object@variables %>% filter(variable == variable_name)
+  variable_metadata <- entity@variables %>% filter(variable == variable_name)
   
   # Extract data for the specified variable
-  variable_data <- object@data[[variable_name]]
+  variable_data <- entity@data[[variable_name]]
   
   # Print detailed metadata
   cat(glue("Metadata for {variable_name}\n", .trim = FALSE))
