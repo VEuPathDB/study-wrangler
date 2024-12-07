@@ -1,4 +1,5 @@
 library(glue)
+library(knitr)
 
 #' Inspect Variable Generic
 #'
@@ -30,15 +31,17 @@ setMethod("inspect_variable", "Entity", function(entity, variable_name) {
   variable_data <- entity@data[[variable_name]]
   
   # Print detailed metadata
-  cat(glue("Metadata for {variable_name}\n", .trim = FALSE))
-  print(n=50, variable_metadata %>% 
-          select(-starts_with("entity_")) %>%            # Exclude columns that start with "entity_"
-          mutate(across(where(is.list), ~ map_chr(.x, ~ paste(.x, collapse = ", ")))) %>% # Format list columns as comma-separated strings
-          mutate(across(everything(), as.character)) %>% # Convert all columns to character
-          pivot_longer(cols = everything(), names_to = "Field", values_to = "Value"))
+  cat(glue("Metadata for {variable_name}"))
+  print(kable(
+    variable_metadata %>% 
+      select(-starts_with("entity_")) %>%            # Exclude columns that start with "entity_"
+      mutate(across(where(is.list), ~ map_chr(.x, ~ paste(.x, collapse = ", ")))) %>% # Format list columns as comma-separated strings
+      mutate(across(everything(), as.character)) %>% # Convert all columns to character
+      pivot_longer(cols = everything(), names_to = "Field", values_to = "Value")
+  ))
   
   # Print summary of data
-  cat(glue("\nSummary of data for {variable_name}:\n", .trim = FALSE))
+  cat(glue("\nSummary of data for {variable_name}:", .trim = FALSE))
 
   skim_summary <- skim(variable_data) %>%
     as_tibble() %>%
@@ -50,5 +53,5 @@ setMethod("inspect_variable", "Entity", function(entity, variable_name) {
     ) %>%
     select(Metric, Value) # Keep only relevant columns
   
-  print(skim_summary)
+  print(kable(skim_summary))
 })

@@ -1,3 +1,5 @@
+library(knitr)
+
 #' Inspect Generic
 #'
 #' Defines the S4 generic for the inspect function.
@@ -32,15 +34,36 @@ setMethod("inspect", "Entity", function(entity) {
     select(-starts_with('entity_')) %>%
     arrange(display_order)
   
-  cat("TBC: entity-level metadata summarised here.\n")
+  cat("Entity-level metadata:")
+  slots_list <- as_list(entity)
+  character_slots <- slots_list[lapply(slots_list, class) == "character"]
+  print(kable(tibble(
+    Field = names(character_slots),
+    Value = unlist(character_slots)
+  )))
   
-  cat("\nID columns:\n")
-  print(ids_metadata %>% select(variable, entity_name, entity_level))
+  # some row count stats
+  cat("\nRow counts:")
+  print(kable(tibble(
+    Type = c(
+      "Total",
+      "No missing values"
+    ),
+    Count = c(
+      nrow(data),
+      data %>% filter(if_all(everything(), ~ !is.na(.))) %>% nrow()
+    )
+  )))
+
+  cat("\n\nID columns:")
+  print(kable(ids_metadata %>% select(variable, entity_name, entity_level)))
   
-  cat("\nVariable columns:\n")
-  print(variables_metadata)
+  cat("\nKey variable metadata:\n(use `inspect_variable(entity, 'variable.name')` for more detail)")
+  print(kable(variables_metadata %>%
+    select(variable, provider_label, data_type, data_shape, display_name, stable_id)
+  ))
   
-  cat("\nskim() summary of variable data:\n")
+  cat("\nSummary of variable values and distributions:\n")
   
   skim_data <- data %>% select(-all_of(ids_metadata$variable)) %>% skim()
   print(skim_data, include_summary = FALSE)
