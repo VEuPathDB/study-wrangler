@@ -113,7 +113,7 @@ setMethod("set_entity_metadata", "Entity", function(entity, ...) {
   updated_metadata <- modifyList(current_metadata, metadata)
   
   # Apply defaults
-  updated_metadata <- apply_entity_metadata_defaults(updated_metadata)
+  updated_metadata <- apply_entity_metadata_defaults(updated_metadata, verbose = TRUE)
   
   # Re-initialize the entity
   do.call(initialize, c(entity, updated_metadata))
