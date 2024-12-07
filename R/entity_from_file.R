@@ -13,7 +13,8 @@ library(tidyverse)
 #'   invalid dates or other data cleanup. The function should accept a tibble
 #'   and return a modified tibble. All columns in the input tibble will be
 #'   character type (aka strings). Default is `NULL`.
-#'
+#' @param ... Additional named parameters to set entity metadata (see Entity class),
+#'   e.g. name="household", display_name="Household"   
 #' @return An Entity object with two main components:
 #' \itemize{
 #'   \item `data`: A tibble containing the processed tabular data.
@@ -29,7 +30,7 @@ library(tidyverse)
 #'
 #' @examples
 #' # Load an entity from a file
-#' households <- entity_from_file('households.tsv')
+#' households <- entity_from_file('households.tsv', name='household')
 #'
 #' # Inspect the entity
 #' inspect(households)
@@ -44,7 +45,8 @@ library(tidyverse)
 #' study <- study_from_entities(households, participants)
 #'
 #' @export
-entity_from_file <- function(file_path, preprocess_fn = NULL) {
+entity_from_file <- function(file_path, preprocess_fn = NULL, ...) {
+  
   if (!file.exists(file_path)) {
     stop("File does not exist: ", file_path)
   }
