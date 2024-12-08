@@ -135,9 +135,22 @@ setMethod("set_entity_metadata", "Entity", function(entity, ...) {
 #' @export
 setMethod("set_entity_name", "Entity", function(entity, name) {
   if (validate_entity_name(name)) {
-    entity <- entity %>%
-      initialize(name=name)
-    message(glue("Entity name '{name}' added"))
+    
+    message(glue("Adding entity name '{name}'..."))
+    # set it with the general purpose method that also
+    # sets display_name* with sensible fallbacks
+    entity <- entity %>% set_entity_metadata(name = name)
+    
+    # set entity_name for all level 0 columns
+    variables <- entity@variables %>%
+      mutate(
+        entity_name = case_when(
+          entity_level == 0 ~ name,
+          TRUE ~ entity_name
+        )
+      )
+    
+    entity <- entity %>% initialize(variables=variables)
   } else {
     warning(glue("Warning: Entity name is missing or not plain alphanumeric"))
   }
@@ -180,8 +193,10 @@ setMethod("sync_variable_metadata", "Entity", function(entity) {
       ) %>%
       expand_grid(variable_metadata_defaults) %>%
       # and we'll set the provider_label to the same name because that's all we have
+      # and the entity@name if we have it
       mutate(
-        provider_label = missing_variables
+        provider_label = missing_variables,
+        entity_name = entity@name,
       )
 
     variables <- bind_rows(variables, missing_metadata)

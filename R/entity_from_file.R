@@ -118,7 +118,11 @@ entity_from_file <- function(file_path, preprocess_fn = NULL, ...) {
 
   # add `provider_labels` to variables
   variables <- variables %>% mutate(provider_label = provider_labels)
-    
+
+  if (!is.null(metadata$name)) {
+    variables <- variables %>% mutate(entity_name = metadata$name)
+  }
+      
   # create entity object using `do.call()` because there is no JavaScript-like
   # spread operator in R ;-)
   constructor_args <- c(list(data = data, variables = variables), metadata)
@@ -129,6 +133,7 @@ entity_from_file <- function(file_path, preprocess_fn = NULL, ...) {
   entity <- entity %>%
     infer_missing_data_types() %>%
     infer_missing_data_shapes()
+    
   
     # Return an Entity object
   return(entity)

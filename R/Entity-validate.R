@@ -90,8 +90,8 @@ setMethod("validate", "Entity", function(entity, quiet = FALSE) {
                        paste(names(id_columns)[dupes_in_ids > 0], collapse = ", ")))
   }
   
-  # Validation: Check entity@name is defined
-  if (is.na(entity@name)) {
+  # Validation: Check entity@name is defined and non-empty
+  if (is.na(entity@name) || entity@name == '') {
     add_feedback(paste0(
       c(
         "Entity is missing required 'name' metadata",
@@ -124,9 +124,24 @@ setMethod("validate", "Entity", function(entity, quiet = FALSE) {
 
   # Validation: If there's an entity@name, and only one ID column at entity_level == 0,
   # check the latter's entity_name is correct
-  if (!is.na(entity@name)) {
+  if (!is.na(entity@name) &&
+      entity@name != "" &&
+      all(id_col_contraventions$entity_level != 0)) {
     
-    # TO DO
+    id_variable <- variables %>%
+      filter(data_type == 'id') %>%
+      filter(entity_level == 0)
+
+    if (id_variable %>% pull(entity_name) %>% coalesce("") != entity@name) {
+      add_feedback(glue(paste0(
+        c(
+          "ID column '{id_variable %>% pull(variable)}' has incorrect `entity_name`.",
+          "It is '{id_variable %>% pull(entity_name)}' and should be '{entity@name}'",
+          "[You can fix this with `set_variable_metadata('{id_variable %>% pull(variable)}', entity_name='{entity@name}')`]"
+        ),
+        collapse="\n"
+      )))
+    }
   }
   
   
