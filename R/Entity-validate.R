@@ -55,18 +55,25 @@ setMethod("validate", "Entity", function(entity, quiet = FALSE) {
   }
   
   # Validation 3: Check column alignment
-  missing_columns <- setdiff(colnames(data), variables$variable)
+  missing_variables <- setdiff(colnames(data), variables$variable)
   extra_variables <- setdiff(variables$variable, colnames(data))
   
-  if (length(missing_columns) > 0) {
-    add_feedback(paste("Data columns missing in variables' metadata:", paste(missing_columns, collapse = ", ")))
+  if (length(missing_variables) > 0) {
+    add_feedback(paste(
+      "Variable metadata is missing for these data columns:",
+       paste(missing_variables, collapse = ", "),
+      "\n[add default metadata with `sync_variable_metadata(entity)`]"
+    ))
   }
   
   if (length(extra_variables) > 0) {
-    add_feedback(paste("Variables' metadata rows missing in data columns:", paste(extra_variables, collapse = ", ")))
+    add_feedback(paste(
+      "These variables have metadata but no data columns:",
+      paste(extra_variables, collapse = ", "),
+      "\n[remove the metadata with `sync_variable_metadata(entity)`]"
+    ))
   }
-  # TO DO: provide advice on how to fix and implement fixing function if needed
-  
+
   # Validation 4: Check for NA values in 'id' columns
   id_columns <- variables$variable[variables$data_type == "id"]
   na_in_ids <- sapply(data[id_columns], function(col) sum(is.na(col)))
