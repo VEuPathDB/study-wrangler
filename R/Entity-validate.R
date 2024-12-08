@@ -113,7 +113,8 @@ setMethod("validate", "Entity", function(entity, quiet = FALSE) {
       c(
         "There are multiple ID columns per entity level:",
         kable(id_col_contraventions),
-        "You can fix this by removing the data column or setting the data_type, e.g.",
+        "Entity level 0 is this entity. Level -1 is the parent entity, -2 is the grandparent, etc.",
+        "You can fix this by removing the data columns or changing ID columns into regular variables, e.g.",
         "entity <- entity %>% set_variable_metadata('column.name', data_type='string')"
       ),
       collapse="\n"
