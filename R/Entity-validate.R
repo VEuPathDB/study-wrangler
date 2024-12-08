@@ -42,19 +42,19 @@ setMethod("validate", "Entity", function(entity, quiet = FALSE) {
     }
   }
   
-  # Fatal Validation 1: Check if metadata is empty
+  # Fatal Validation: Check if metadata is empty
   if (nrow(variables) == 0) {
     give_feedback(fatal_message = "Variables' metadata is empty. Ensure metadata is correctly populated.")
     return(FALSE)
   }
   
-  # Fatal Validation 2: Check if data has no columns
+  # Fatal Validation: Check if data has no columns
   if (ncol(data) == 0) {
     give_feedback(fatal_message = "Data contains no columns. Ensure data is correctly formatted.")
     return(FALSE)
   }
   
-  # Validation 3: Check column alignment
+  # Validation: Check column alignment
   missing_variables <- setdiff(colnames(data), variables$variable)
   extra_variables <- setdiff(variables$variable, colnames(data))
   
@@ -74,7 +74,7 @@ setMethod("validate", "Entity", function(entity, quiet = FALSE) {
     ))
   }
 
-  # Validation 4: Check for NA values in 'id' columns
+  # Validation: Check for NA values in 'id' columns
   id_columns <- variables$variable[variables$data_type == "id"]
   na_in_ids <- sapply(data[id_columns], function(col) sum(is.na(col)))
   
@@ -83,12 +83,51 @@ setMethod("validate", "Entity", function(entity, quiet = FALSE) {
                        paste(names(id_columns)[na_in_ids > 0], collapse = ", ")))
   }
   
-  # Validation 5: Check for duplicated values in 'id' columns
+  # Validation: Check for duplicated values in 'id' columns
   dupes_in_ids <- sapply(data[id_columns], anyDuplicated)
   if (any(dupes_in_ids)) {
     add_feedback(paste("ID columns contain duplicates:", 
                        paste(names(id_columns)[dupes_in_ids > 0], collapse = ", ")))
   }
+  
+  # Validation: Check entity@name is defined
+  if (is.na(entity@name)) {
+    add_feedback(paste0(
+      c(
+        "Entity is missing required 'name' metadata",
+        "[You can fix this with `set_entity_name('...')` or `entity_from_file(file, name='...')]"
+      ),
+      collapse="\n"
+    ))
+  }
+  
+  # Validation: there should only be one ID column per entity_level
+  id_col_contraventions <- variables %>%
+    filter(data_type == "id") %>%
+    group_by(entity_level) %>%
+    filter(n() > 1) %>%
+    summarise(id_columns = paste0(variable, collapse = ", "), .groups = "drop")
+  
+  if (nrow(id_col_contraventions)) {
+    add_feedback(paste0(
+      c(
+        "There are multiple ID columns per entity level:",
+        kable(id_col_contraventions),
+        "You can fix this by removing the data column or setting the data_type, e.g.",
+        "entity <- entity %>% set_variable_metadata('column.name', data_type='string')"
+      ),
+      collapse="\n"
+    ))
+  }
+  
+
+  # Validation: If there's an entity@name, and only one ID column at entity_level == 0,
+  # check the latter's entity_name is correct
+  if (!is.na(entity@name)) {
+    
+    # TO DO
+  }
+  
   
   # Output feedback to the user
   give_feedback()  

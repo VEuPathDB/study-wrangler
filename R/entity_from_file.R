@@ -47,7 +47,7 @@ library(tidyverse)
 #' @export
 entity_from_file <- function(file_path, preprocess_fn = NULL, ...) {
   if (!file.exists(file_path)) {
-    stop("File does not exist: ", file_path)
+    stop("Error: file does not exist: ", file_path)
   }
 
   # check extra args are valid slots

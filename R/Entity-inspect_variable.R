@@ -21,7 +21,7 @@ setGeneric("inspect_variable", function(entity, variable_name) standardGeneric("
 setMethod("inspect_variable", "Entity", function(entity, variable_name) {
   # Validate input
   if (!variable_name %in% entity@variables$variable) {
-    stop("Variable name not found in Entity variables' metadata.")
+    stop(glue("Error: variable name '{variable_name}' not found in Entity variables' metadata."))
   }
   
   # Extract metadata for the specified variable
@@ -34,7 +34,7 @@ setMethod("inspect_variable", "Entity", function(entity, variable_name) {
   cat(glue("Metadata for {variable_name}"))
   print(kable(
     variable_metadata %>% 
-      select(-starts_with("entity_")) %>%            # Exclude columns that start with "entity_"
+      # select(-starts_with("entity_")) %>%            # Exclude columns that start with "entity_"
       mutate(across(where(is.list), ~ map_chr(.x, ~ paste(.x, collapse = ", ")))) %>% # Format list columns as comma-separated strings
       mutate(across(everything(), as.character)) %>% # Convert all columns to character
       pivot_longer(cols = everything(), names_to = "Field", values_to = "Value")

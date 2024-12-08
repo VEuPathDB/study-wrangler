@@ -1,3 +1,5 @@
+library(glue)
+
 #' File: Entity metadata management methods
 #'
 #' Generics (attempting to remove redundancy from documentation)
@@ -9,8 +11,11 @@ setGeneric("infer_missing_data_shapes", function(entity) standardGeneric("infer_
 #' @export
 setGeneric("set_entity_metadata", function(entity, ...) standardGeneric("set_entity_metadata"))
 #' @export
-setGeneric("sync_variable_metadata", function(entity, ...) standardGeneric("sync_variable_metadata"))
-
+setGeneric("set_entity_name", function(entity, name) standardGeneric("set_entity_name"))
+#' @export
+setGeneric("sync_variable_metadata", function(entity) standardGeneric("sync_variable_metadata"))
+#' @export
+setGeneric("set_variable_metadata", function(entity, ...) standardGeneric("set_variable_metadata"))
 
 
 #' infer_missing_data_types
@@ -119,6 +124,27 @@ setMethod("set_entity_metadata", "Entity", function(entity, ...) {
   return(do.call(initialize, c(entity, updated_metadata)))
 })
 
+#' set_entity_name
+#' 
+#' Sets `name` metadata AND SHOULD PROBABLY SET entity_name metadata for
+#' id columns at entity_level == 0
+#' 
+#' @param entity an Entity object
+#' @param name a string value to set the name to
+#' @returns modified entity
+#' @export
+setMethod("set_entity_name", "Entity", function(entity, name) {
+  if (validate_entity_name(name)) {
+    entity <- entity %>%
+      initialize(name=name)
+    message(glue("Entity name '{name}' added"))
+  } else {
+    warning(glue("Warning: Entity name is missing or not plain alphanumeric"))
+  }
+  return(entity)
+})
+
+
 #' sync_variable_metadata
 #' 
 #' Fixes `data` and `variables` metadata if they aren't aligned with each other.
@@ -130,10 +156,9 @@ setMethod("set_entity_metadata", "Entity", function(entity, ...) {
 #' 
 #' 
 #' @param entity an Entity object
-#' @param ... additional args TBD
 #' @returns modified entity
 #' @export
-setMethod("sync_variable_metadata", "Entity", function(entity, ...) {
+setMethod("sync_variable_metadata", "Entity", function(entity) {
   data <- entity@data
   variables <- entity@variables
   
@@ -184,3 +209,48 @@ setMethod("sync_variable_metadata", "Entity", function(entity, ...) {
 })
 
   
+#' set_variable_metadata
+#' 
+#' Sets metadata for a named variable
+#' 
+#' @param entity an Entity object
+#' @param variable_name a string value of the column name in `entity@data`
+#' @param ... key=value arguments where key is a variable metadata column name
+#'        e.g. `data_shape='ordinal'`
+#' @returns modified entity
+#' @export
+setMethod("set_variable_metadata", "Entity", function(entity, variable_name, ...) {
+  updates <- list(...)
+  variables <- entity@variables
+  
+  # Ensure all keys are valid column names
+  invalid_keys <- setdiff(names(updates), names(variables))
+  if (length(invalid_keys) > 0) {
+    stop(glue("Error: invalid column(s): {toString(invalid_keys)}"))
+  }
+  
+  # Locate the rows (hopefully just one) for the variable_name
+  # (using tidyverse style here on purpose)
+  row_number <- variables %>%
+    mutate(row_num = row_number()) %>%
+    filter(variable == variable_name) %>%
+    pull(row_num)
+  
+  if (length(row_number) == 0) {
+    stop(glue("Error: metadata not found for variable '{variable_name}'"))
+  }
+  if (length(row_number) > 1) {
+    stop(glue("Error: multiple metadata rows found for variable '{variable_name}'"))
+  }
+    
+  # Update the specified row and columns
+  walk2(
+    names(updates), 
+    updates,
+    \(x, y) variables[row_number, x] <<- y
+  )
+  message(glue("Made metadata update(s) to '{names(updates)}' for '{variable_name}'"))
+
+  # return modified entity
+  return(entity %>% initialize(variables=variables))
+})

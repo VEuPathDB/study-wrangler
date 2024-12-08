@@ -52,7 +52,7 @@ validate_entity_metadata_names <- function(metadata) {
   valid_keys <- setdiff(slotNames("Entity"), disallowed_keys)
   invalid_keys <- setdiff(names(metadata), valid_keys)
   if (length(invalid_keys) > 0) {
-    stop("These entity_from_file() args are not valid Entity metadata names: ", toString(invalid_keys))
+    stop("Error: these entity_from_file() args are not valid Entity metadata names: ", toString(invalid_keys))
   }
 }
 
@@ -82,10 +82,20 @@ setGeneric("as_list", function(object) standardGeneric("as_list"))
 # Define the method for S4 objects
 setMethod("as_list", "ANY", function(object) {
   if (!isS4(object)) {
-    stop("The input is not an S4 object.")
+    stop("Error: the input is not an S4 object.")
   }
   slots <- slotNames(object)
   setNames(lapply(slots, function(slot_name) slot(object, slot_name)), slots)
 })
 
+#'
+#' validate_entity_name
+#' 
+#' returns TRUE/FALSE
+#'
+validate_entity_name <- function(name) {
+  is.character(name) && 
+    length(name) > 0 && 
+    grepl("^[a-zA-Z0-9]+$", name)
+}
 

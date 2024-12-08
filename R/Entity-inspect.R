@@ -25,7 +25,7 @@ setMethod("inspect", "Entity", function(entity) {
   
   # Ensure variables has `data_type` and `data_shape`
   if (!all(c("data_type", "data_shape") %in% colnames(variables))) {
-    stop("Variables metadata must contain `data_type` and `data_shape` columns.")
+    stop("Error: variables metadata must contain `data_type` and `data_shape` columns.")
   }
   
   ids_metadata <- variables %>% filter(data_type == 'id')

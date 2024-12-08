@@ -1,18 +1,52 @@
-test_that("validate(households) returns TRUE for original households fixture data", {
+test_that("validate(households) warns about missing entity name and returns FALSE", {
   # Example file path
   file_path <- testthat::test_path("fixtures/households.tsv")
   # Create an Entity object
   households <- entity_from_file(file_path)
+
+  # validate
+  expect_message(
+    is_valid <- validate(households),
+    "Entity is missing required 'name' metadata"
+  )
+  
+  # fix it erroneously
+  expect_warning(
+    households <- households %>% set_entity_name(''),
+    "Warning: Entity name is missing or not plain alphanumeric"
+  )
+  
+  # fix it erroneously
+  expect_warning(
+    households <- households %>% set_entity_name("a bad-name$"),
+    "Warning: Entity name is missing or not plain alphanumeric"
+  )
+  
+  # fix it
+  expect_message(
+    households <- households %>% set_entity_name('household'),
+    "Entity name 'household' added"
+  )
+  
+  # should be OK now
+  expect_true(validate(households, quiet=TRUE))
+})
+
+
+test_that("validate(households) returns TRUE for original households fixture data, given a name", {
+  # Example file path
+  file_path <- testthat::test_path("fixtures/households.tsv")
+  # Create an Entity object
+  households <- entity_from_file(file_path, name="household")
   # validate it
-  is_valid <- validate(households, quiet=TRUE)
-  expect_true(is_valid)
+  expect_true(validate(households, quiet=TRUE))
 })
 
 test_that("validate() fails and warns about missing metadata", {
   # Example file path
   file_path <- testthat::test_path("fixtures/households.tsv")
   # Create an Entity object
-  households <- entity_from_file(file_path)
+  households <- entity_from_file(file_path, name="household")
   # add a new data column
   households@data <-
     households@data %>%
@@ -37,7 +71,7 @@ test_that("validate() fails and warns about extra metadata", {
   # Example file path
   file_path <- testthat::test_path("fixtures/households.tsv")
   # Create an Entity object
-  households <- entity_from_file(file_path)
+  households <- entity_from_file(file_path, name="household")
   # remove a new data column
   households@data <-
     households@data %>%
@@ -56,4 +90,37 @@ test_that("validate() fails and warns about extra metadata", {
   
   # now it should be valid
   expect_true(validate(households, quiet=TRUE))
+})
+
+test_that("validate(households) warns about multiple ID columns per entity_level", {
+  # Example file path
+  file_path <- testthat::test_path("fixtures/households.tsv")
+  # Create an Entity object
+  households <- entity_from_file(file_path, name='household')
+
+  # fake a new ID column
+  households@data <- households@data %>%
+    mutate(dupeId = Household.Id)
+  expect_message(
+    households <- households %>%
+      sync_variable_metadata(),
+    "adding.+dupeId"
+  )
+  
+  expect_message(
+    is_valid <- validate(households),
+    "There are multiple ID columns per entity level"
+  )
+  expect_false(is_valid)
+  
+  # fix it
+  expect_message(
+    households <- households %>%
+      set_variable_metadata('dupeId', data_type='string'),
+    "Made metadata update"
+  )
+  
+  # it should now be fixed
+  expect_true(validate(households, quiet=TRUE))
+  
 })
