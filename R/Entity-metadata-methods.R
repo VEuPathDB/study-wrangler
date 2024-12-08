@@ -16,6 +16,10 @@ setGeneric("set_entity_name", function(entity, name) standardGeneric("set_entity
 setGeneric("sync_variable_metadata", function(entity) standardGeneric("sync_variable_metadata"))
 #' @export
 setGeneric("set_variable_metadata", function(entity, ...) standardGeneric("set_variable_metadata"))
+#' @export
+setGeneric("set_variable_display_names_from_provider_labels", function(entity) standardGeneric("set_variable_display_names_from_provider_labels"))
+
+
 
 
 #' infer_missing_data_types
@@ -112,6 +116,9 @@ setMethod("set_entity_metadata", "Entity", function(entity, ...) {
   
   # Validate metadata keys
   validate_entity_metadata_names(metadata)
+  
+  if (length(metadata) == 0)
+    return(entity)
   
   # Merge new metadata with the existing entity slots
   current_metadata <- as_list(entity)
@@ -267,5 +274,28 @@ setMethod("set_variable_metadata", "Entity", function(entity, variable_name, ...
   message(glue("Made metadata update(s) to '{names(updates)}' for '{variable_name}'"))
 
   # return modified entity
+  return(entity %>% initialize(variables=variables))
+})
+
+
+#'
+#' set_variable_display_names_from_provider_labels
+#' 
+#' copies provider_labels into any unset variable display_names 
+#' 
+#' @param entity an Entity object
+#' @returns modified entity
+#' @export
+setMethod("set_variable_display_names_from_provider_labels", "Entity", function(entity) {
+  variables <- entity@variables
+  
+  # Define the logical mask for rows that need updating
+  mask <- variables$data_type != 'id' & is.na(variables$display_name)
+
+  # Update the display_name for rows matching the mask
+  variables <- variables %>%
+    mutate(display_name = if_else(mask, provider_label, display_name))
+  
+  message(glue("Copied provider_label over to display_name for {sum(mask, na.rm = TRUE)} variables"))
   return(entity %>% initialize(variables=variables))
 })

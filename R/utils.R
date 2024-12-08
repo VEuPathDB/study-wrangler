@@ -63,11 +63,11 @@ validate_entity_metadata_names <- function(metadata) {
 apply_entity_metadata_defaults <- function(metadata, verbose = FALSE) {
   if (!is.na(metadata$name) && is.na(metadata$display_name)) {
     metadata$display_name <- metadata$name
-    if (verbose) message(glue("Added default display_name, '{metadata$display_name}', for entity"))
+    if (verbose) message(glue("Note: added default display_name, '{metadata$display_name}', for entity"))
   }
   if (!is.na(metadata$display_name) && is.na(metadata$display_name_plural)) {
     metadata$display_name_plural <- paste0(metadata$display_name, "s")
-    if (verbose) message(glue("Added default display_name_plural, '{metadata$display_name_plural}', for entity"))
+    if (verbose) message(glue("Note: added default display_name_plural, '{metadata$display_name_plural}', for entity"))
   }
   metadata
 }

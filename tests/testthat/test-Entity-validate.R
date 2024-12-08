@@ -23,12 +23,16 @@ test_that("validate(households) warns about missing entity name and returns FALS
   )
   
   # fix it
-  messages <- capture_messages(
-    households <- households %>% set_entity_name('household')
+  expect_message(
+    expect_message(
+      expect_message(
+        households <- households %>% set_entity_name('household'),
+        "Adding entity name 'household'..."
+      ),
+      "Note: added default display_name,"
+    ),
+    "Note: added default display_name_plural,"
   )
-  expect_true(any(grepl("Adding entity name 'household'...", messages)))
-  expect_true(any(grepl("Added default display_name,", messages)))
-  expect_true(any(grepl("Added default display_name_plural,", messages)))
   
   # should be OK now
   expect_true(validate(households, quiet=TRUE))

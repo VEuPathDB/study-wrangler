@@ -63,6 +63,21 @@ setMethod("inspect", "Entity", function(entity) {
     select(variable, provider_label, data_type, data_shape, display_name, stable_id)
   ))
   
+  cat("\nVariable annotation summary:")
+  print(kable(tibble(
+    Type = c(
+      "Total number of variables",
+      "display_name provided*",
+      "definition provided"
+    ),
+    Count = c(
+      nrow(variables_metadata),
+      variables_metadata %>% filter(!is.na(display_name)) %>% nrow(),
+      variables_metadata %>% filter(!is.na(definition)) %>% nrow()
+    )
+  )))
+  cat("* use `set_variable_display_names_from_provider_labels()` to use original column headings as-is.\n")
+  
   cat("\nSummary of variable values and distributions:\n")
   
   skim_data <- data %>% select(-all_of(ids_metadata$variable)) %>% skim()
