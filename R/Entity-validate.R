@@ -62,7 +62,7 @@ setMethod("validate", "Entity", function(entity, quiet = FALSE) {
     add_feedback(paste(
       "Variable metadata is missing for these data columns:",
        paste(missing_variables, collapse = ", "),
-      "\n[add default metadata with `sync_variable_metadata(entity)`]"
+      "\n[add default metadata with `entity <- entity %>% sync_variable_metadata()`]"
     ))
   }
   
@@ -70,7 +70,7 @@ setMethod("validate", "Entity", function(entity, quiet = FALSE) {
     add_feedback(paste(
       "These variables have metadata but no data columns:",
       paste(extra_variables, collapse = ", "),
-      "\n[remove the metadata with `sync_variable_metadata(entity)`]"
+      "\n[remove the metadata with `entity <- entity %>% sync_variable_metadata()`]"
     ))
   }
 

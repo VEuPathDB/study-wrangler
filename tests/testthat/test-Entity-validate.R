@@ -21,6 +21,16 @@ test_that("validate() fails and warns about missing metadata", {
   # validate
   expect_message(is_valid <- validate(households), "Variable metadata is missing for these data columns: newColumn")
   expect_false(is_valid)
+  
+  # we then fix the issue
+  expect_message(
+    households <- households %>%
+      sync_variable_metadata(),
+    "Synced variables metadata by adding defaults for: newColumn"
+  )
+  
+  # now it should be valid
+  expect_true(validate(households, quiet=TRUE))
 })
 
 test_that("validate() fails and warns about extra metadata", {
@@ -36,4 +46,14 @@ test_that("validate() fails and warns about extra metadata", {
   # validate
   expect_message(is_valid <- validate(households), "These variables have metadata but no data columns: Owns.property")
   expect_false(is_valid)
+
+  # we then fix the issue
+  expect_message(
+    households <- households %>%
+      sync_variable_metadata(),
+    "Synced metadata by removing these variables with no data: Owns.property"
+  )
+  
+  # now it should be valid
+  expect_true(validate(households, quiet=TRUE))
 })

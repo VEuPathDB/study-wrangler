@@ -8,6 +8,8 @@ setGeneric("infer_missing_data_types", function(entity) standardGeneric("infer_m
 setGeneric("infer_missing_data_shapes", function(entity) standardGeneric("infer_missing_data_shapes"))
 #' @export
 setGeneric("set_entity_metadata", function(entity, ...) standardGeneric("set_entity_metadata"))
+#' @export
+setGeneric("sync_variable_metadata", function(entity, ...) standardGeneric("sync_variable_metadata"))
 
 
 
@@ -30,8 +32,7 @@ setMethod("infer_missing_data_types", "Entity", function(entity) {
     ungroup() # remove special rowwise grouping
 
   # clone and modify original entity argument
-  entity <- initialize(entity, variables=variables)
-  return(entity)
+  return(entity %>% initialize(variables=variables))
 })
 
 #' infer_missing_data_shapes
@@ -88,8 +89,7 @@ setMethod("infer_missing_data_shapes", "Entity", function(entity) {
     ungroup()
   
   # clone and modify original entity argument
-  entity <- initialize(entity, data=data, variables=variables)
-  return(entity)
+  return(entity %>% initialize(data=data, variables=variables))
 })
 
 
@@ -115,6 +115,72 @@ setMethod("set_entity_metadata", "Entity", function(entity, ...) {
   # Apply defaults
   updated_metadata <- apply_entity_metadata_defaults(updated_metadata, verbose = TRUE)
   
-  # Re-initialize the entity
-  do.call(initialize, c(entity, updated_metadata))
+  # Clone and modify the entity
+  return(do.call(initialize, c(entity, updated_metadata)))
 })
+
+#' sync_variable_metadata
+#' 
+#' Fixes `data` and `variables` metadata if they aren't aligned with each other.
+#' 
+#' 1. If there are data column(s) with no metadata, add metadata rows with default values
+#' 2. If there are metadata row(s) with no data, remove those rows
+#' 
+#' `data` is not touched!
+#' 
+#' 
+#' @param entity an Entity object
+#' @param ... additional args TBD
+#' @returns modified entity
+#' @export
+setMethod("sync_variable_metadata", "Entity", function(entity, ...) {
+  data <- entity@data
+  variables <- entity@variables
+  
+  missing_variables <- setdiff(colnames(data), variables$variable)
+  extra_variables <- setdiff(variables$variable, colnames(data))
+
+  # Early return if no mismatches
+  if (length(missing_variables) == 0 && length(extra_variables) == 0) {
+    message("No metadata synchronization needed.")
+    return(entity)
+  }
+  
+  if (length(missing_variables)) {
+    # create new row(s) in variables for these newly appeared data columns
+    # we will assume that the column names are "clean"
+    missing_metadata <-
+      tibble(
+        variable=missing_variables,
+      ) %>%
+      expand_grid(variable_metadata_defaults) %>%
+      # and we'll set the provider_label to the same name because that's all we have
+      mutate(
+        provider_label = missing_variables
+      )
+
+    variables <- bind_rows(variables, missing_metadata)
+    message(paste(
+      "Synced variables metadata by adding defaults for:",
+      paste(missing_variables, collapse = ", ")
+    ))
+  }
+    
+  if (length(extra_variables)) {
+    variables <- variables %>%
+      filter(!variable %in% extra_variables)
+    message(paste(
+      "Synced metadata by removing these variables with no data:",
+      paste(extra_variables, collapse = ", ")
+    ))
+  }
+  
+  return(
+    entity %>%
+      initialize(variables=variables) %>%
+      infer_missing_data_types() %>%
+      infer_missing_data_shapes()
+  )
+})
+
+  
