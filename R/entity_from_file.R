@@ -117,7 +117,10 @@ entity_from_file <- function(file_path, preprocess_fn = NULL, ...) {
   variables <- tibble(variable=clean_names) %>% expand_grid(variable_metadata_defaults)
 
   # add `provider_labels` to variables
-  variables <- variables %>% mutate(provider_label = provider_labels)
+  variables <- variables %>% mutate(
+    provider_label = provider_labels,
+    display_name = provider_labels,
+  )
 
   if (!is.null(metadata$name)) {
     variables <- variables %>% mutate(entity_name = metadata$name)
