@@ -1,5 +1,3 @@
-skip()
-
 test_that("validate(households) alerts to categorical variables with non-factor data columns", {
   # Example file path
   file_path <- testthat::test_path("fixtures/households.tsv")
@@ -13,7 +11,7 @@ test_that("validate(households) alerts to categorical variables with non-factor 
   # validate again
   expect_message(
     expect_false(validate(households)),
-    "Categorical column(s) are not R factors:"
+    "Categorical column.+are not R factors.+Owns.property"
   )
 
   # now mutate it back to a factor

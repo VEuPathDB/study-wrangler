@@ -59,7 +59,10 @@ test_that("validate() fails and warns about missing metadata", {
       mutate(newColumn = 42)
     
   # validate
-  expect_message(is_valid <- validate(households), "Variable metadata is missing for these data columns: newColumn")
+  expect_warning(
+    is_valid <- validate(households),
+    "Variable metadata is missing for these data columns: newColumn"
+  )
   expect_false(is_valid)
   
   # we then fix the issue
@@ -84,7 +87,10 @@ test_that("validate() fails and warns about extra metadata", {
     select(-c('Owns.property'))
   
   # validate
-  expect_message(is_valid <- validate(households), "These variables have metadata but no data columns: Owns.property")
+  expect_warning(
+    is_valid <- validate(households),
+    "These variables have metadata but no data columns: Owns.property"
+  )
   expect_false(is_valid)
 
   # we then fix the issue

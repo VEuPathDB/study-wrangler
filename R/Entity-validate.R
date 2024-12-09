@@ -59,19 +59,21 @@ setMethod("validate", "Entity", function(entity, quiet = FALSE) {
   extra_variables <- setdiff(variables$variable, colnames(data))
   
   if (length(missing_variables) > 0) {
-    add_feedback(paste(
+    give_feedback(fatal_message=paste(
       "Variable metadata is missing for these data columns:",
        paste(missing_variables, collapse = ", "),
       "\n[add default metadata with `entity <- entity %>% sync_variable_metadata()`]"
     ))
+    return(FALSE)
   }
   
   if (length(extra_variables) > 0) {
-    add_feedback(paste(
+    give_feedback(fatal_message=paste(
       "These variables have metadata but no data columns:",
       paste(extra_variables, collapse = ", "),
       "\n[remove the metadata with `entity <- entity %>% sync_variable_metadata()`]"
     ))
+    return(FALSE)
   }
 
   # Validation: Check for NA values in 'id' columns
@@ -158,8 +160,21 @@ setMethod("validate", "Entity", function(entity, quiet = FALSE) {
   
   # Validation: check that categorical columns are factors
   
+  factor_columns <- variables %>%
+    filter(data_shape != "continuous") %>% pull(variable)
   
-  
+  not_factors <- data %>%
+    select(all_of(factor_columns)) %>%
+    summarise(across(everything(), ~ !is.factor(.))) %>%
+    unlist() %>% as.logical()
+
+  if (any(not_factors)) {
+    add_feedback(paste(
+      "Categorical column(s) are not R factors:", 
+      paste(factor_columns[not_factors], collapse = ", ")
+    ))
+  }
+    
   # Output feedback to the user
   give_feedback()  
   
