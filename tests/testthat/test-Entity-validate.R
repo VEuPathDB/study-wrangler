@@ -130,3 +130,35 @@ test_that("validate(households) warns about multiple ID columns per entity_level
   expect_true(validate(households, quiet=TRUE))
   
 })
+
+
+test_that("validate(households) warns about NAs in ID columns", {
+  # Example file path
+  file_path <- testthat::test_path("fixtures/households.tsv")
+  # Create an Entity object
+  households <- entity_from_file(file_path, name='household')
+  expect_true(validate(households, quiet=TRUE))
+
+  households@data[2,'Household.Id'] <- NA
+  
+  expect_message(
+    expect_false(validate(households)),
+    "ID columns contain NA values"
+  )
+})
+
+test_that("validate(households) warns about duplicates in ID columns", {
+  # Example file path
+  file_path <- testthat::test_path("fixtures/households.tsv")
+  # Create an Entity object
+  households <- entity_from_file(file_path, name='household')
+  expect_true(validate(households, quiet=TRUE))
+  
+  households@data[2,'Household.Id'] <- 'H001'
+  
+  expect_message(
+    expect_false(validate(households)),
+    "ID columns contain duplicates"
+  )
+})
+

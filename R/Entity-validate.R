@@ -75,7 +75,8 @@ setMethod("validate", "Entity", function(entity, quiet = FALSE) {
   }
 
   # Validation: Check for NA values in 'id' columns
-  id_columns <- variables$variable[variables$data_type == "id"]
+  id_columns <- variables %>% filter(data_type == "id") %>% pull(variable)
+  
   na_in_ids <- sapply(data[id_columns], function(col) sum(is.na(col)))
   
   if (any(na_in_ids > 0)) {
@@ -143,6 +144,9 @@ setMethod("validate", "Entity", function(entity, quiet = FALSE) {
       )))
     }
   }
+  
+  # Validation: check that categorical columns are factors
+  
   
   
   # Output feedback to the user
