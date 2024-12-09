@@ -12,7 +12,8 @@ variable_metadata_defaults <- tibble(
   stable_id = NA_character_,
   data_type = factor(NA, levels = c("string", "number", "date", "longitude", "integer", "category")),
   data_shape = factor(NA, levels = c("continuous", "categorical", "ordinal", "binary")),
-  vocabulary = list(character(0)),
+  # remember when dumping metadata for factor columns (data_shape != "continuous")
+  # that we need to dump the levels of the factor as "vocabulary"
   display_order = NA_integer_, # for some reason this is NUMBER(3,0) on the database side, so integers -999 to 999
   display_type = factor("default", levels = c("default", "multifilter", "geoaggregator", "latitude", "longitude")),
   scale = factor(NA, levels = c("log", "log2", "ln")),

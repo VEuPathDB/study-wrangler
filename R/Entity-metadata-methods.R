@@ -85,17 +85,17 @@ setMethod("infer_missing_data_shapes", "Entity", function(entity) {
   data <- data %>%
     mutate(across(all_of(factor_vars), as.factor))
   
-  # Set the vocabulary metadata for the factor variables
-  variables <- variables %>%
-    rowwise() %>% # for simplicity, not speed
-    mutate(vocabulary = list(
-      if (variable %in% factor_vars) {
-        levels(data[[variable]])
-      } else {
-        vocabulary
-      }
-    )) %>%
-    ungroup()
+  # # Set the vocabulary metadata for the factor variables
+  # variables <- variables %>%
+  #   rowwise() %>% # for simplicity, not speed
+  #   mutate(vocabulary = list(
+  #     if (variable %in% factor_vars) {
+  #       levels(data[[variable]])
+  #     } else {
+  #       vocabulary
+  #     }
+  #   )) %>%
+  #   ungroup()
   
   # clone and modify original entity argument
   return(entity %>% initialize(data=data, variables=variables))
