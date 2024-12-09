@@ -169,9 +169,13 @@ setMethod("validate", "Entity", function(entity, quiet = FALSE) {
     unlist() %>% as.logical()
 
   if (any(not_factors)) {
-    add_feedback(paste(
-      "Categorical column(s) are not R factors:", 
-      paste(factor_columns[not_factors], collapse = ", ")
+    add_feedback(paste0(
+      c(
+        glue("Categorical column(s) are not R factors: {paste(factor_columns[not_factors], collapse = ', ')}"),
+        "To fix this, either mutate the data column back into a factor: `entity@data <- entity@data %>% mutate(col_name = factor(col_name)`",
+        "Or you can manipulate factors using the `forcats` library: `entity@data <- entity@data %>% mutate(col_name = fct_recode(col_name, 'newVal' = 'oldVal'))`"
+      ),
+      collapse = "\n"
     ))
   }
     
