@@ -143,7 +143,7 @@ test_that("validate(households) warns about NAs in ID columns", {
   
   expect_message(
     expect_false(validate(households)),
-    "ID columns contain NA values"
+    "ID columns contain NA values.+Household.Id"
   )
 })
 
@@ -158,7 +158,7 @@ test_that("validate(households) warns about duplicates in ID columns", {
   
   expect_message(
     expect_false(validate(households)),
-    "ID columns contain duplicates"
+    "ID columns contain duplicates.+Household.Id"
   )
 })
 

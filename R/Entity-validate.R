@@ -77,18 +77,29 @@ setMethod("validate", "Entity", function(entity, quiet = FALSE) {
   # Validation: Check for NA values in 'id' columns
   id_columns <- variables %>% filter(data_type == "id") %>% pull(variable)
   
-  na_in_ids <- sapply(data[id_columns], function(col) sum(is.na(col)))
+  na_in_ids <- data %>%
+    select(all_of(id_columns)) %>%
+    summarise(across(everything(), ~ any(is.na(.)))) %>%
+    unlist() %>% as.logical()
   
-  if (any(na_in_ids > 0)) {
-    add_feedback(paste("ID columns contain NA values:", 
-                       paste(names(id_columns)[na_in_ids > 0], collapse = ", ")))
+  if (any(na_in_ids)) {
+    add_feedback(paste(
+      "ID columns contain NA values:", 
+      paste(id_columns[na_in_ids], collapse = ", ")
+    ))
   }
   
   # Validation: Check for duplicated values in 'id' columns
-  dupes_in_ids <- sapply(data[id_columns], anyDuplicated)
+  dupes_in_ids <- data %>%
+    select(all_of(id_columns)) %>%
+    summarise(across(everything(), anyDuplicated)) %>%
+    unlist() %>% as.logical()
+  
   if (any(dupes_in_ids)) {
-    add_feedback(paste("ID columns contain duplicates:", 
-                       paste(names(id_columns)[dupes_in_ids > 0], collapse = ", ")))
+    add_feedback(paste(
+      "ID columns contain duplicates:", 
+      paste(id_columns[dupes_in_ids], collapse = ", ")
+    ))
   }
   
   # Validation: Check entity@name is defined and non-empty
