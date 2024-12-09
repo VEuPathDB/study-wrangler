@@ -37,11 +37,11 @@ test_that("entity_from_file detects column types correctly", {
   
   # Check metadata data_type
   expected_types <- c("id", "integer", "string", "date", "string")
-  expect_equal(result@variables$data_type, expected_types)
+  expect_equal(as.vector(result@variables$data_type), expected_types)
   
   # Check the data_shape has been inferred correctly
   expected_shapes <- c(NA, "continuous", "categorical", "continuous", "categorical")
-  expect_equal(result@variables$data_shape, expected_shapes)
+  expect_equal(as.vector(result@variables$data_shape), expected_shapes)
 })
 
 test_that("entity_from_file detects invalid dates", {

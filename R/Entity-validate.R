@@ -36,7 +36,7 @@ setMethod("validate", "Entity", function(entity, quiet = FALSE) {
       message("Validation issues found:\n", paste(feedback, collapse = "\n"))
     }
     if (is.character(fatal_message)) {
-      warning("Fatal issue encountered:\n", fatal_message)
+      warning("Fatal issue encountered:\n", fatal_message, call.=FALSE)
     } else if (length(feedback) == 0) {
       message("Entity is valid.")
     }
@@ -76,6 +76,64 @@ setMethod("validate", "Entity", function(entity, quiet = FALSE) {
     return(FALSE)
   }
 
+  # Validation: Check that all metadata values respect the types and factor
+  # levels in `variable_metadata_defaults`. We do not expect the factor columns
+  # to be actual factors, but the values in them should respect the factors in
+  # the defaults.
+  issues <- names(variable_metadata_defaults) %>%
+    map(function(col_name) {
+      col_values <- variables[[col_name]]
+      default_val <- variable_metadata_defaults[[col_name]]
+      
+      if (is.integer(default_val)) {
+        # Integer validation
+        invalid_values <- col_values[!is.na(col_values) & !is.integer(col_values)]
+        if (length(invalid_values) > 0) {
+          tibble(Column = col_name, Issue = "Not all values are integers", Values = paste(unique(invalid_values), collapse = ", "))
+        } else {
+          NULL
+        }
+      } else if (is.character(default_val)) {
+        # Character validation
+        invalid_values <- col_values[!is.na(col_values) & !is.character(col_values)]
+        if (length(invalid_values) > 0) {
+          tibble(Column = col_name, Issue = "Not all values are character/string type", Values = paste(unique(invalid_values), collapse = ", "))
+        } else {
+          NULL
+        }
+      } else if (is.logical(default_val)) {
+        # Logical validation
+        invalid_values <- col_values[!is.na(col_values) & !(col_values %in% c(TRUE, FALSE))]
+        if (length(invalid_values) > 0) {
+          tibble(Column = col_name, Issue = "Not all values are logical (TRUE/FALSE)", Values = paste(unique(invalid_values), collapse = ", "))
+        } else {
+          NULL
+        }
+      } else if (is.factor(default_val)) {
+        # Factor validation
+        default_levels <- levels(default_val)
+        invalid_values <- col_values[!is.na(col_values) & !(col_values %in% default_levels)]
+        if (length(invalid_values) > 0) {
+          tibble(Column = col_name, Issue = "Contains values outside factor levels", Values = paste(unique(invalid_values), collapse = ", "))
+        } else {
+          NULL
+        }
+      } else {
+        NULL
+      }
+    }) %>%
+    bind_rows()
+  
+  if (nrow(issues) > 0) {
+    give_feedback(
+      fatal_message = paste0(
+        "Variable metadata contains illegal values:\n",
+        paste(kable(issues), collapse = "\n")
+      )
+    )
+    return(FALSE)
+  }
+  
   # Validation: Check for NA values in 'id' columns
   id_columns <- variables %>% filter(data_type == "id") %>% pull(variable)
   

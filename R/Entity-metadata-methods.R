@@ -37,8 +37,17 @@ setMethod("infer_missing_data_types", "Entity", function(entity) {
   # use infer_column_data_type(data_column) to fill in NAs in variables$data_type column
   variables <- variables %>%
     rowwise() %>% # performance is not critical here
-    mutate(data_type = if_else(is.na(data_type), infer_data_type(data, variable), data_type)) %>%
-    ungroup() # remove special rowwise grouping
+    mutate(
+      data_type = factor(
+        if_else(
+          is.na(data_type),
+          infer_data_type(data, variable),
+          data_type
+        ),
+        levels=levels(variable_metadata_defaults$data_type)
+      )
+    ) %>%
+    ungroup() # remove special row-wise grouping
 
   # clone and modify original entity argument
   return(entity %>% initialize(variables=variables))

@@ -10,7 +10,7 @@ variable_metadata_defaults <- tibble(
   display_name = NA_character_,
   definition = NA_character_,
   stable_id = NA_character_,
-  data_type = factor(NA, levels = c("string", "number", "date", "longitude", "integer", "category")),
+  data_type = factor(NA, levels = c("id", "string", "number", "date", "longitude", "integer", "category")),
   data_shape = factor(NA, levels = c("continuous", "categorical", "ordinal", "binary")),
   # remember when dumping metadata for factor columns (data_shape != "continuous")
   # that we need to dump the levels of the factor as "vocabulary"
