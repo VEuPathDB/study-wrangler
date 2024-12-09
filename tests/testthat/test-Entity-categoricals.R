@@ -31,7 +31,6 @@ test_that("Using forcats manipulations on categoricals does not break validation
   # validate it
   expect_true(validate(households, quiet=TRUE))
   
-  # mutate a column naively (not wrapped in `factor()`)
   households@data <- households@data %>%
     mutate(Owns.property = fct_expand(Owns.property, "It's complicated"))
   
@@ -42,3 +41,18 @@ test_that("Using forcats manipulations on categoricals does not break validation
   )
 })
 
+test_that("Even very large vocabularies are reported in inspect_variable", {
+  file_path <- testthat::test_path("fixtures/households.tsv")
+  households <- entity_from_file(file_path, name="household")
+  expect_true(validate(households, quiet=TRUE))
+
+  # add new factor levels, "aaa":"zzz"
+  households@data <- households@data %>%
+    mutate(Owns.property = fct_expand(Owns.property, paste0(letters, letters, letters)))
+  
+  expect_true(validate(households, quiet=TRUE))
+  expect_output(
+    inspect_variable(households, "Owns.property"),
+    "zzz"
+  )
+})

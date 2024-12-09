@@ -54,4 +54,15 @@ setMethod("inspect_variable", "Entity", function(entity, variable_name) {
     select(Metric, Value) # Keep only relevant columns
   
   print(kable(skim_summary))
+  
+  # If the variable is a factor and has more than 5 levels, show all levels with counts
+  if (is.factor(variable_data) && nlevels(variable_data) > 5) {
+    level_counts <- tibble(
+      Value = levels(variable_data),
+      Count = as.numeric(table(variable_data))
+    )
+    cat(glue("\nFull factor levels (aka vocabulary) with counts for {variable_name}:", .trim=FALSE))
+    print(kable(level_counts))
+  }
+  
 })
