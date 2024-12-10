@@ -18,7 +18,10 @@ setGeneric("sync_variable_metadata", function(entity) standardGeneric("sync_vari
 setGeneric("set_variable_metadata", function(entity, ...) standardGeneric("set_variable_metadata"))
 #' @export
 setGeneric("set_variable_display_names_from_provider_labels", function(entity) standardGeneric("set_variable_display_names_from_provider_labels"))
-
+#' @export
+setGeneric("set_parent", function(entity, name, id) standardGeneric("set_parent"))
+#' @export
+setGeneric("set_parents", function(entity, names, ids) standardGeneric("set_parents"))
 
 
 
@@ -307,4 +310,69 @@ setMethod("set_variable_display_names_from_provider_labels", "Entity", function(
   
   message(glue("Copied provider_label over to display_name for {sum(mask, na.rm = TRUE)} variables"))
   return(entity %>% initialize(variables=variables))
+})
+
+#' set_parent
+#'
+#' Sets metadata for a single parent ID column of this entity by delegating to set_parents.
+#'
+#' @param entity An Entity object.
+#' @param name A character string specifying the entity name of the parent.
+#' @param id A character string specifying the column name containing the parent_id.
+#' @returns Modified entity.
+#' @export
+setMethod("set_parent", "Entity", function(entity, name, id) {
+  # Call set_parents with single-element vectors
+  set_parents(entity, names = c(name), ids = c(id))
+})
+
+
+#' set_parents
+#' 
+#' Sets metadata for parent ID columns of this entity
+#' 
+#' @param entity an Entity object
+#' @param names a character vector of the entity names of parent, grandparent, etc
+#' @param ids a character vector of the column names containing parent_id, grandparent_id, etc
+#' @returns modified entity
+#' @export
+setMethod("set_parents", "Entity", function(entity, names, ids) {
+  data <- entity@data
+  variables <- entity@variables
+
+  # Early return if `names` and `ids` are empty
+  if (length(names) == 0 && length(ids) == 0) {
+    message("No parent entity relationships provided. No changes made.")
+    return(entity)
+  }
+
+  # Check that length of `names` and `ids` are the same
+  if (length(names) != length(ids)) {
+    stop("Error: 'names' and 'ids' must have the same length.")
+  }
+  
+  # Check that all `ids` column names exist as columns in `data`
+  missing_ids <- setdiff(ids, colnames(data))
+  if (length(missing_ids) > 0) {
+    stop(glue("Error: the following data columns do not exist in this entity: {paste(missing_ids, collapse = ', ')}"))
+  }
+  
+  # Check that all `ids` exist as rows in `variables` metadata
+  missing_metadata <- setdiff(ids, variables$variable)
+  if (length(missing_metadata) > 0) {
+    stop(glue("Error: the following columns are missing from entity metadata: {paste(missing_metadata, collapse = ', ')}"))
+  }
+  
+  # Generalized mutation to update `variables`
+  variables <- variables %>%
+    mutate(
+      data_type = fct_mutate(data_type, variable %in% ids, 'id'),
+      entity_name = if_else(variable %in% ids, names[match(variable, ids)], entity_name),
+      entity_level = if_else(variable %in% ids, -match(variable, ids), entity_level)
+    )
+  
+  message("Parent entity relationships and columns have been set")
+  
+  # Return modified entity
+  return(entity %>% initialize(variables = variables))
 })

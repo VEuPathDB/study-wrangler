@@ -149,16 +149,22 @@ setMethod("validate", "Entity", function(entity, quiet = FALSE) {
     ))
   }
   
-  # Validation: Check for duplicated values in 'id' columns
+  # Validation: Check for duplicated values in this entity's id column(s)
+  # check for duplicate cols will be done later
+  my_id_columns <- variables %>% 
+    filter(data_type == "id") %>% 
+    filter(entity_level == 0) %>% 
+    pull(variable)
+  
   dupes_in_ids <- data %>%
-    select(all_of(id_columns)) %>%
+    select(all_of(my_id_columns)) %>%
     summarise(across(everything(), anyDuplicated)) %>%
     unlist() %>% as.logical()
   
   if (any(dupes_in_ids)) {
     add_feedback(paste(
       "ID columns contain duplicates:", 
-      paste(id_columns[dupes_in_ids], collapse = ", ")
+      paste(my_id_columns[dupes_in_ids], collapse = ", ")
     ))
   }
   
