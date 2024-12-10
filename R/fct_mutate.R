@@ -53,6 +53,16 @@
 fct_mutate <- function(factor, condition, true_value, false_value = NULL, .auto_expand = FALSE) {
   if (!is.factor(factor)) stop("Error: 'factor' must be a factor.")
   
+  # handle two-anonymous argument call: fct_mutate(factor, value)
+  if (missing(true_value)) {
+    true_value <- condition
+    condition <- TRUE
+  }
+  # handle case where true_value is named
+  if (missing(condition)) {
+    condition <- TRUE
+  }
+  
   # Check if condition is logical and handle recycling
   if (!is.logical(condition)) {
     stop("Error: 'condition' must be a logical vector or a single logical value.")
