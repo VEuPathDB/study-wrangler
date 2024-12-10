@@ -63,7 +63,7 @@ setMethod("inspect", "Entity", function(entity, variable_name = NULL) {
   cat("\n\nID columns:")
   print(kable(ids_metadata %>% select(variable, entity_name, entity_level)))
   
-  cat("\nKey variable metadata:\n(use `inspect_variable(entity, 'variable.name')` for more detail)")
+  cat("\nKey variable metadata:\n(use `inspect(entity, 'variable.name')` for more detail)")
   print(kable(variables_metadata %>%
     select(variable, provider_label, data_type, data_shape, display_name, stable_id)
   ))
