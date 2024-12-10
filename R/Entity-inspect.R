@@ -52,7 +52,7 @@ setMethod("inspect", "Entity", function(entity, variable_name = NULL) {
   print(kable(tibble(
     Type = c(
       "Total",
-      "No missing values"
+      "Complete data (no missing values)"
     ),
     Count = c(
       nrow(data),
@@ -62,6 +62,11 @@ setMethod("inspect", "Entity", function(entity, variable_name = NULL) {
 
   cat("\n\nID columns:")
   print(kable(ids_metadata %>% select(variable, entity_name, entity_level)))
+  cat(glue("
+~~~~
+If you see variables in the table above that should not be handled as IDs
+then please use the function blah_blah()...
+"),"\n")
   
   cat("\nKey variable metadata:\n(use `inspect(entity, 'variable.name')` for more detail)")
   print(kable(variables_metadata %>%
@@ -81,7 +86,7 @@ setMethod("inspect", "Entity", function(entity, variable_name = NULL) {
       variables_metadata %>% filter(!is.na(definition)) %>% nrow()
     )
   )))
-  cat("* use `set_variable_display_names_from_provider_labels()` to use original column headings as-is.\n")
+  cat("~~~~\n* use `set_variable_display_names_from_provider_labels()` to use original column headings as-is.\n")
   
   cat("\nSummary of variable values and distributions:\n")
   

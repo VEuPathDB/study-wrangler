@@ -55,10 +55,25 @@ entity_from_file <- function(file_path, preprocess_fn = NULL, ...) {
   validate_entity_metadata_names(metadata)
   
   # Read the data with minimal column name repair and no type detection
-  data <- readr::read_tsv(file_path,
-                          name_repair = 'minimal',
-                          col_types = readr::cols(.default = "c")
-                          )
+  data <- suppressWarnings(
+    readr::read_tsv(
+      file_path,
+      name_repair = 'minimal',
+      col_types = readr::cols(.default = "c")
+    )
+  )
+
+  # Bail if there are parsing problems
+  problems <- readr::problems(data)
+  if (nrow(problems) > 0) {
+    stop(paste0(
+      c(
+        "Error: Issues were encountered while parsing the file:",
+        kable(problems)
+      ),
+      collapse="\n"
+    ))
+  }
 
   # Apply the pre-processing function, if provided.
   # Mainly useful for fixing dates before they are auto-detected and validated.

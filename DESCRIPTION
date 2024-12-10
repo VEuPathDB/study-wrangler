@@ -18,7 +18,8 @@ RoxygenNote: 7.3.2
 Imports:
     tidyverse (>= 2.0.0),
     skimr,
-    glue
+    glue,
+    knitr
 Suggests: 
     testthat (>= 3.0.0),
     roxygen2

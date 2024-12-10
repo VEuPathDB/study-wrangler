@@ -10,7 +10,8 @@
 #'
 #' @param factor A factor to be updated.
 #' @param condition A logical vector of the same length as `factor`, indicating
-#'   which rows should be updated.
+#'   which rows should be updated. In a \emph{special two argument form}, it can be
+#'   omitted. See Example 4.
 #' @param true_value A character string specifying the new value to assign to
 #'   rows where `condition` is `TRUE`. By default, this value must already be a
 #'   valid level in `factor` unless `.auto_expand = TRUE`.
@@ -49,6 +50,11 @@
 #' f <- factor(c("numeric", "character"))
 #' fct_mutate(f, condition = f == "numeric", true_value = "id", .auto_expand = TRUE)
 #'
+#' # Example 4: Two argument form
+#' 
+#' # For the simple case where you just want to change all values in a factor vector,
+#' # you can omit the condition (which will default to TRUE), e.g.
+#' exam_results <- exam_results %>% mutate(marked = fct_mutate(marked, "no"))
 #'
 fct_mutate <- function(factor, condition, true_value, false_value = NULL, .auto_expand = FALSE) {
   if (!is.factor(factor)) stop("Error: 'factor' must be a factor.")
