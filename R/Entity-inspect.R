@@ -5,20 +5,25 @@ library(knitr)
 #' Defines the S4 generic for the inspect function.
 #' 
 #' @param entity The object to inspect.
+#' @param ... Additional arguments for customization.
 #' @export
-setGeneric("inspect", function(entity) standardGeneric("inspect"))
+setGeneric("inspect", function(entity, ...) standardGeneric("inspect"))
 
 #' Inspect an Entity Object
 #'
-#' Provides a summary view of the entity's
-#' 1. metadata
-#' 2. ID columns
-#' 3. variables' metadata
-#' 4. variable data
+#' Provides a summary view of the entity's variables and data or redirects
+#' to inspect a specific variable if a variable name is provided.
 #'
 #' @param entity An Entity object to inspect.
+#' @param variable_name An optional character string specifying a variable to inspect.
 #' @export
-setMethod("inspect", "Entity", function(entity) {
+setMethod("inspect", "Entity", function(entity, variable_name = NULL) {
+  if (!is.null(variable_name)) {
+    # Delegate to inspect_variable and return early
+    inspect_variable(entity, variable_name)
+    return()
+  }
+
   # Extract data and variables
   data <- entity@data
   variables <- entity@variables
