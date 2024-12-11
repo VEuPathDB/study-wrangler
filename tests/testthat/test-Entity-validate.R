@@ -1,6 +1,6 @@
 test_that("validate(households) warns about missing entity name and returns FALSE", {
   # Example file path
-  file_path <- testthat::test_path("fixtures/households.tsv")
+  file_path <- system.file("extdata", "toy_example/households.tsv", package = 'study.wrangler')
   # Create an Entity object
   households <- entity_from_file(file_path)
 
@@ -41,7 +41,7 @@ test_that("validate(households) warns about missing entity name and returns FALS
 
 test_that("validate(households) returns TRUE for original households fixture data, given a name", {
   # Example file path
-  file_path <- testthat::test_path("fixtures/households.tsv")
+  file_path <- system.file("extdata", "toy_example/households.tsv", package = 'study.wrangler')
   # Create an Entity object
   households <- entity_from_file(file_path, name="household")
   # validate it
@@ -50,7 +50,7 @@ test_that("validate(households) returns TRUE for original households fixture dat
 
 test_that("validate() fails and warns about missing metadata", {
   # Example file path
-  file_path <- testthat::test_path("fixtures/households.tsv")
+  file_path <- system.file("extdata", "toy_example/households.tsv", package = 'study.wrangler')
   # Create an Entity object
   households <- entity_from_file(file_path, name="household")
   # add a new data column
@@ -78,7 +78,7 @@ test_that("validate() fails and warns about missing metadata", {
 
 test_that("validate() fails and warns about extra metadata", {
   # Example file path
-  file_path <- testthat::test_path("fixtures/households.tsv")
+  file_path <- system.file("extdata", "toy_example/households.tsv", package = 'study.wrangler')
   # Create an Entity object
   households <- entity_from_file(file_path, name="household")
   # remove a new data column
@@ -106,7 +106,7 @@ test_that("validate() fails and warns about extra metadata", {
 
 test_that("validate(households) warns about multiple ID columns per entity_level", {
   # Example file path
-  file_path <- testthat::test_path("fixtures/households.tsv")
+  file_path <- system.file("extdata", "toy_example/households.tsv", package = 'study.wrangler')
   # Create an Entity object
   households <- entity_from_file(file_path, name='household')
 
@@ -140,7 +140,7 @@ test_that("validate(households) warns about multiple ID columns per entity_level
 
 test_that("validate(households) warns about NAs in ID columns", {
   # Example file path
-  file_path <- testthat::test_path("fixtures/households.tsv")
+  file_path <- system.file("extdata", "toy_example/households.tsv", package = 'study.wrangler')
   # Create an Entity object
   households <- entity_from_file(file_path, name='household')
   expect_true(validate(households, quiet=TRUE))
@@ -155,7 +155,7 @@ test_that("validate(households) warns about NAs in ID columns", {
 
 test_that("validate(households) warns about duplicates in ID columns", {
   # Example file path
-  file_path <- testthat::test_path("fixtures/households.tsv")
+  file_path <- system.file("extdata", "toy_example/households.tsv", package = 'study.wrangler')
   # Create an Entity object
   households <- entity_from_file(file_path, name='household')
   expect_true(validate(households, quiet=TRUE))
@@ -169,7 +169,7 @@ test_that("validate(households) warns about duplicates in ID columns", {
 })
 
 test_that("validate() warns about mangled variable metadata columns", {
-  file_path <- testthat::test_path("fixtures/households.tsv")
+  file_path <- system.file("extdata", "toy_example/households.tsv", package = 'study.wrangler')
   households <- entity_from_file(file_path, name='household')
   expect_true(validate(households, quiet=TRUE))
 

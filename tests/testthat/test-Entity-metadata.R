@@ -1,5 +1,5 @@
 test_that("set_entity_metadata() works", {
-  file_path <- testthat::test_path("fixtures/households.tsv")
+  file_path <- system.file("extdata", "toy_example/households.tsv", package = 'study.wrangler')
     
   households <- entity_from_file(file_path)
 
@@ -20,7 +20,7 @@ test_that("set_entity_metadata() works", {
 })
 
 test_that("set_variable_display_names_from_provider_labels() works", {
-  file_path <- testthat::test_path("fixtures/households.tsv")
+  file_path <- system.file("extdata", "toy_example/households.tsv", package = 'study.wrangler')
   
   households <- entity_from_file(file_path, name='household')
   

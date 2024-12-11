@@ -1,6 +1,6 @@
 test_that("validate(households) alerts to categorical variables with non-factor data columns", {
   # Example file path
-  file_path <- testthat::test_path("fixtures/households.tsv")
+  file_path <- system.file("extdata", "toy_example/households.tsv", package = 'study.wrangler')
   # Create an Entity object
   households <- entity_from_file(file_path, name="household")
   # validate it
@@ -25,7 +25,7 @@ test_that("validate(households) alerts to categorical variables with non-factor 
 
 test_that("Using forcats manipulations on categoricals does not break validation", {
   # Example file path
-  file_path <- testthat::test_path("fixtures/households.tsv")
+  file_path <- system.file("extdata", "toy_example/households.tsv", package = 'study.wrangler')
   # Create an Entity object
   households <- entity_from_file(file_path, name="household")
   # validate it
@@ -42,7 +42,7 @@ test_that("Using forcats manipulations on categoricals does not break validation
 })
 
 test_that("Even very large vocabularies are reported in inspect_variable", {
-  file_path <- testthat::test_path("fixtures/households.tsv")
+  file_path <- system.file("extdata", "toy_example/households.tsv", package = 'study.wrangler')
   households <- entity_from_file(file_path, name="household")
   expect_true(validate(households, quiet=TRUE))
 

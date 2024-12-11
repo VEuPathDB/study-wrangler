@@ -2,7 +2,7 @@
 # We have overridden that behaviour.
 test_that("inspect_variable(entity, variable_name) outputs categorical values in full", {
   # Example file path
-  file_path <- testthat::test_path("fixtures/households.tsv")
+  file_path <- system.file("extdata", "toy_example/households.tsv", package = 'study.wrangler')
   # Create an Entity object
   households <- entity_from_file(file_path)
   # inspect it and grab the output

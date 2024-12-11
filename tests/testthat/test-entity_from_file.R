@@ -1,6 +1,6 @@
 test_that("entity_from_file works as expected", {
   # Example file path
-  file_path <- testthat::test_path("fixtures/households.tsv")
+  file_path <- system.file("extdata", "toy_example/households.tsv", package = 'study.wrangler')
   # Create an Entity object
   result <- entity_from_file(file_path)
   
@@ -19,8 +19,8 @@ test_that("entity_from_file works as expected", {
 
 test_that("entity_from_file warns about duplicate column names in input file", {
   # File with duplicate "Animal" column
-  file_path <- testthat::test_path("fixtures/duplicateColumns.tsv")
-  
+  file_path <- system.file("extdata", "toy_example/duplicateColumns.tsv", package = 'study.wrangler')
+
   expect_warning(
     result <- entity_from_file(file_path),
     "Duplicate column names detected in input file."
@@ -29,10 +29,17 @@ test_that("entity_from_file warns about duplicate column names in input file", {
   expect_true(any(duplicated(result@variables$provider_label)))
 
   expect_true(n_distinct(result@variables$variable) == nrow(result@variables))
+  
+  expect_no_error(
+    expect_output(
+      inspect(result),
+      "Entity-level metadata"
+    )
+  )
 })
 
 test_that("entity_from_file detects column types correctly", {
-  file_path <- testthat::test_path("fixtures/households.tsv")
+  file_path <- system.file("extdata", "toy_example/households.tsv", package = 'study.wrangler')
   result <- entity_from_file(file_path)
   
   # Check metadata data_type
@@ -45,7 +52,7 @@ test_that("entity_from_file detects column types correctly", {
 })
 
 test_that("entity_from_file detects invalid dates", {
-  file_path <- testthat::test_path("fixtures/households.tsv")
+  file_path <- system.file("extdata", "toy_example/households.tsv", package = 'study.wrangler')
   
   # Modify the data to introduce an invalid date
   modify_fn <- function(data) {
@@ -60,7 +67,7 @@ test_that("entity_from_file detects invalid dates", {
 })
 
 test_that("entity_from_file rejects unknown ... metadata arguments", {
-  file_path <- testthat::test_path("fixtures/households.tsv")
+  file_path <- system.file("extdata", "toy_example/households.tsv", package = 'study.wrangler')
   
   expect_error(
     result <- entity_from_file(file_path, does_not_exist = "at all"),
@@ -69,7 +76,7 @@ test_that("entity_from_file rejects unknown ... metadata arguments", {
 })
 
 test_that("entity_from_file sets metadata from ... args", {
-  file_path <- testthat::test_path("fixtures/households.tsv")
+  file_path <- system.file("extdata", "toy_example/households.tsv", package = 'study.wrangler')
   
   result <- entity_from_file(file_path, name = "household")
 
