@@ -92,8 +92,10 @@ If there are ID columns missing above, you may need to use:
   )))
   cat("~~~~\n* use `set_variable_display_names_from_provider_labels()` to use original column headings as-is.\n")
   
-  cat("\nSummary of variable values and distributions:\n")
+  if (nrow(variables_metadata)) {
+    cat("\nSummary of variable values and distributions:\n")
   
-  skim_data <- data %>% select(-all_of(ids_metadata$variable)) %>% skim()
-  print(skim_data, include_summary = FALSE)
+    skim_data <- data %>% select(-all_of(ids_metadata$variable)) %>% skim()
+    print(skim_data, include_summary = FALSE)
+  }
 })
