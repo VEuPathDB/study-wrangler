@@ -1,4 +1,5 @@
 library(glue)
+library(knitr)
 
 # skimr shortens all factor names to three characters by default.
 # Create a custom skimmer that doesn't do this and trims top counts to 5.
@@ -106,3 +107,54 @@ validate_entity_name <- function(name) {
     grepl("^[a-zA-Z0-9]+$", name)
 }
 
+
+#' Custom function to force plain text output from skim()
+#'
+#' usage: `capture_skim(skim(tbl))`
+#' 
+capture_skim <- function(x, include_summary = TRUE, ...) {
+  output <- character(0)
+
+  if (skimr::is_skim_df(x) && nrow(x) > 0) {
+    if (include_summary) {
+      summary_output <- capture.output(print(summary(x), ...))
+      output <- c(output, summary_output)
+    }
+    by_type <- skimr::partition(x)
+    # Process each partition as a plain-text data frame
+    partition_output <- purrr::imap(
+      by_type, 
+      ~ {
+        # Rename skim_variable to variable using tidyverse
+        df <- .x %>% 
+          dplyr::rename(variable = skim_variable)
+
+        # Add header for the partition
+        header <- paste("\nSummary of", .y, "variables:")
+        body <- kable_signif(df, digits = 3)
+        
+        # Combine header and body
+        paste0(c(header, body), collapse="\n")
+      }
+    )
+    output <- c(output, unlist(partition_output))
+  } else {
+    # Fall back to the default method for non-skim_df objects
+    warning("Input to capture_skim() is not a skim_df object; falling back to render with default print method.")
+    output <- c(output, capture.output(NextMethod("print", x)))
+  }
+  
+  # return the entire output
+  paste(output, collapse = "\n")
+}
+
+#'
+#' wrapper for `kable()` that effectively passes the `digits` arg to `signif()`
+#' instead of the default `round()` behaviour
+#'
+kable_signif <- function(x, digits = 3, ...) {
+  # Apply signif() to numeric columns
+  numeric_cols <- sapply(x, is.numeric)
+  x[numeric_cols] <- lapply(x[numeric_cols], function(col) signif(col, digits))
+  knitr::kable(x, ...)
+}
