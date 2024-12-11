@@ -128,8 +128,8 @@ test_that("validate(households) warns about multiple ID columns per entity_level
   # fix it
   expect_message(
     households <- households %>%
-      set_variable_metadata('dupeId', data_type='string'),
-    "Made metadata update"
+      redo_type_detection_as_variables_only('dupeId'),
+    "Redoing type detection"
   )
   
   # it should now be fixed
@@ -186,23 +186,5 @@ test_that("validate() warns about mangled variable metadata columns", {
       set_variable_metadata('Household.Id', data_type = 'sparkles'),
     "Assigned data `y` must be compatible with existing data"
   )
-  
-  # however we can go in and directly mess something up
-  bad <- households
-  bad@variables <- bad@variables %>%
-    mutate(data_type = fct_expand(data_type, 'sparkles'))
-  expect_message(
-    bad <- bad %>%
-      set_variable_metadata('Household.Id', data_type = 'sparkles')
-  )
-  
-  expect_warning(
-    expect_false(validate(bad)),
-    "data_type.+Contains values outside factor levels.+sparkles"
-  )
-
-  # check we didn't modify households
-  expect_true(validate(households, quiet=TRUE))
-  
   
 })

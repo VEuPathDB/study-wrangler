@@ -21,19 +21,26 @@ skim <- skimr::skim_with(
 )
 
 # Convert R column types to `data_type` metadata annotation
-infer_data_type <- function(data, column_name) {
+infer_data_type <- function(data, column_name, .no_id_check = FALSE) {
   column <- data %>% pull(column_name)
+  
   if (inherits(column, "Date") || inherits(column, "POSIXct")) {
     return("date")
-  } else if (n_distinct(column) == length(column)) {
-    return("id") # guess ID type only works for primary keys  
-  } else if (is.integer(column)) { 
+  } 
+  
+  if (!.no_id_check && n_distinct(column) == length(column)) {
+    return("id") # Guess ID type only works for primary keys  
+  } 
+  
+  if (is.integer(column)) { 
     return("integer")
-  } else if (is.numeric(column)) {
+  } 
+  
+  if (is.numeric(column)) {
     return("number")
-  } else {
-    return("string")
-  }
+  } 
+  
+  return("string")
 }
 
 #'

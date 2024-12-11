@@ -75,6 +75,28 @@ setMethod("validate", "Entity", function(entity, quiet = FALSE) {
     ))
     return(FALSE)
   }
+  
+  # Validation: check that there are no NAs in required columns
+  # for variables metadata
+  required_metadata_cols = c('data_shape')
+  variables_with_critical_NAs <- variables %>%
+    filter(data_type != 'id') %>%
+    select('variable', all_of(required_metadata_cols)) %>%
+    filter(if_any(all_of(required_metadata_cols), is.na))
+  if (nrow(variables_with_critical_NAs) > 0) {
+    give_feedback(fatal_message=paste0(
+      c(
+        "Error: NAs found in critical variable metadata columns:",
+        kable(variables_with_critical_NAs),
+        "~~~~",
+        "This error is not expected to occur. Please contact the developers."
+      ),
+      collapse="\n"
+    ))
+    return(FALSE)
+  }
+  
+  ### End of fatal checks ###
 
   # Validation: Check that all metadata values respect the types and factor
   # levels in `variable_metadata_defaults`. We do not expect the factor columns
@@ -129,6 +151,19 @@ setMethod("validate", "Entity", function(entity, quiet = FALSE) {
       fatal_message = paste0(
         "Variable metadata contains illegal values:\n",
         paste(kable(issues), collapse = "\n")
+      )
+    )
+    return(FALSE)
+  }
+  
+  # Validation: is.na(data_type) not allowed for any variable
+  missing_data_type <- variables %>%
+    filter(is.na(data_type)) %>% pull(variable)
+  if (length(missing_data_type) > 0) {
+    give_feedback(
+      fatal_message = paste0(
+        "Metadata data_shape must not be NA for these variables:\n",
+        paste(missing_data_type, collapse = ", ")
       )
     )
     return(FALSE)
@@ -191,9 +226,11 @@ setMethod("validate", "Entity", function(entity, quiet = FALSE) {
       c(
         "There are multiple ID columns per entity level:",
         kable(id_col_contraventions),
+        "~~~~",
         "Entity level 0 is this entity. Level -1 is the parent entity, -2 is the grandparent, etc.",
-        "You can fix this by removing the data columns or changing ID columns into regular variables, e.g.",
-        "entity <- entity %>% set_variable_metadata('column.name', data_type='string')"
+        "It is likely that one or more variable columns have been incorrectly detected as ID columns.",
+        "To fix this, redo the column type inference as follows:",
+        "entity <- entity %>% redo_type_detection_as_variables_only(columns = c('variable1', 'variable2'))"
       ),
       collapse="\n"
     ))
@@ -222,8 +259,8 @@ setMethod("validate", "Entity", function(entity, quiet = FALSE) {
     }
   }
   
-  # Validation: check that categorical columns are factors
   
+  # Validation: check that categorical columns are factors
   factor_columns <- variables %>%
     filter(data_shape != "continuous") %>% pull(variable)
   

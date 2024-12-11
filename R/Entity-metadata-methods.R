@@ -4,10 +4,10 @@ library(glue)
 #'
 #' Generics (attempting to remove redundancy from documentation)
 #' 
-#' @export
-setGeneric("infer_missing_data_types", function(entity) standardGeneric("infer_missing_data_types"))
-#' @export
+setGeneric("infer_missing_data_types", function(entity, ...) standardGeneric("infer_missing_data_types"))
 setGeneric("infer_missing_data_shapes", function(entity) standardGeneric("infer_missing_data_shapes"))
+#' @export
+setGeneric("redo_type_detection_as_variables_only", function(entity, columns) standardGeneric("redo_type_detection_as_variables_only"))
 #' @export
 setGeneric("set_entity_metadata", function(entity, ...) standardGeneric("set_entity_metadata"))
 #' @export
@@ -19,9 +19,9 @@ setGeneric("set_variable_metadata", function(entity, ...) standardGeneric("set_v
 #' @export
 setGeneric("set_variable_display_names_from_provider_labels", function(entity) standardGeneric("set_variable_display_names_from_provider_labels"))
 #' @export
-setGeneric("set_parent", function(entity, name, id) standardGeneric("set_parent"))
+setGeneric("set_parent", function(entity, name, column) standardGeneric("set_parent"))
 #' @export
-setGeneric("set_parents", function(entity, names, ids) standardGeneric("set_parents"))
+setGeneric("set_parents", function(entity, names, columns) standardGeneric("set_parents"))
 
 
 
@@ -29,31 +29,29 @@ setGeneric("set_parents", function(entity, names, ids) standardGeneric("set_pare
 #' 
 #' Infers `data_type` metadata for columns where this is currently `NA`.
 #' 
-#' @param entity an Entity object
-#' @returns modified entity
-#' @export
-setMethod("infer_missing_data_types", "Entity", function(entity) {
-
+#' @param entity an Entity object.
+#' @param .no_id_check logical, optional. If `TRUE`, skips the `n_distinct()` check in `infer_data_type`, 
+#' and no columns will be inferred as `id`. Defaults to `FALSE`.
+#' @returns modified entity.
+setMethod("infer_missing_data_types", "Entity", function(entity, .no_id_check = FALSE) {
+  
   variables <- entity@variables
   data <- entity@data
-
+  
   # use infer_column_data_type(data_column) to fill in NAs in variables$data_type column
   variables <- variables %>%
     rowwise() %>% # performance is not critical here
     mutate(
-      data_type = factor(
-        if_else(
-          is.na(data_type),
-          infer_data_type(data, variable),
-          data_type
-        ),
-        levels=levels(variable_metadata_defaults$data_type)
+      data_type = fct_mutate(
+        data_type,
+        is.na(data_type),
+        infer_data_type(data, variable, .no_id_check = .no_id_check),
       )
     ) %>%
     ungroup() # remove special row-wise grouping
-
+  
   # clone and modify original entity argument
-  return(entity %>% initialize(variables=variables))
+  return(entity %>% initialize(variables = variables))
 })
 
 #' infer_missing_data_shapes
@@ -63,7 +61,6 @@ setMethod("infer_missing_data_types", "Entity", function(entity) {
 #' 
 #' @param entity an Entity object
 #' @returns modified entity
-#' @export
 setMethod("infer_missing_data_shapes", "Entity", function(entity) {
   data <- entity@data
   variables <- entity@variables
@@ -114,6 +111,55 @@ setMethod("infer_missing_data_shapes", "Entity", function(entity) {
 })
 
 
+#' redo_type_detection_as_variables_only
+#' 
+#' Redoes the automatic type detection for specific columns but will never
+#' guess ID type for those columns
+#'  
+#' @param entity an Entity object
+#' @param columns a character vector of column names
+#' @returns modified entity
+setMethod("redo_type_detection_as_variables_only", "Entity", function(entity, columns) {
+  data <- entity@data
+  variables <- entity@variables
+
+  # Early return if `columns` is empty
+  if (missing(columns) || length(columns) == 0) {
+    message("No column names provided. No changes made.")
+    return(entity)
+  }
+    
+  # Check that all `columns` column names exist as columns in `data`
+  missing_columns <- setdiff(columns, colnames(data))
+  if (length(missing_columns) > 0) {
+    stop(glue("Error: the following data columns do not exist in this entity: {paste(missing_columns, collapse = ', ')}"))
+  }
+  
+  # Check that all `columns` exist as rows in `variables` metadata
+  missing_metadata <- setdiff(columns, variables$variable)
+  if (length(missing_metadata) > 0) {
+    stop(glue("Error: the following columns are missing from entity metadata: {paste(missing_metadata, collapse = ', ')}"))
+  }
+
+  # Set `variables$data_type` to NA where `variable %in% columns`
+  message("Redoing type detection")
+  variables <- variables %>%
+    mutate(
+      data_type = fct_mutate(
+        data_type,
+        variable %in% columns,
+        NA
+      )
+    )
+  
+  # reform entity object and then redo column inference
+  entity <- entity %>%
+    initialize(variables=variables) %>%
+    infer_missing_data_types(.no_id_check=TRUE) %>%
+    infer_missing_data_shapes()
+
+  return(entity)
+})
 
 #' set_entity_metadata
 #' 
@@ -318,12 +364,12 @@ setMethod("set_variable_display_names_from_provider_labels", "Entity", function(
 #'
 #' @param entity An Entity object.
 #' @param name A character string specifying the entity name of the parent.
-#' @param id A character string specifying the column name containing the parent_id.
+#' @param column A character string specifying the column name containing the parent_id.
 #' @returns Modified entity.
 #' @export
-setMethod("set_parent", "Entity", function(entity, name, id) {
+setMethod("set_parent", "Entity", function(entity, name, column) {
   # Call set_parents with single-element vectors
-  set_parents(entity, names = c(name), ids = c(id))
+  set_parents(entity, names = c(name), columns = c(column))
 })
 
 
@@ -333,32 +379,32 @@ setMethod("set_parent", "Entity", function(entity, name, id) {
 #' 
 #' @param entity an Entity object
 #' @param names a character vector of the entity names of parent, grandparent, etc
-#' @param ids a character vector of the column names containing parent_id, grandparent_id, etc
+#' @param columns a character vector of the column names containing parent_id, grandparent_id, etc
 #' @returns modified entity
 #' @export
-setMethod("set_parents", "Entity", function(entity, names, ids) {
+setMethod("set_parents", "Entity", function(entity, names, columns) {
   data <- entity@data
   variables <- entity@variables
 
-  # Early return if `names` and `ids` are empty
-  if (length(names) == 0 && length(ids) == 0) {
+  # Early return if `names` and `columns` are empty
+  if (length(names) == 0 && length(columns) == 0) {
     message("No parent entity relationships provided. No changes made.")
     return(entity)
   }
 
-  # Check that length of `names` and `ids` are the same
-  if (length(names) != length(ids)) {
-    stop("Error: 'names' and 'ids' must have the same length.")
+  # Check that length of `names` and `columns` are the same
+  if (length(names) != length(columns)) {
+    stop("Error: 'names' and 'columns' must have the same length.")
   }
   
-  # Check that all `ids` column names exist as columns in `data`
-  missing_ids <- setdiff(ids, colnames(data))
-  if (length(missing_ids) > 0) {
-    stop(glue("Error: the following data columns do not exist in this entity: {paste(missing_ids, collapse = ', ')}"))
+  # Check that all `columns` column names exist as columns in `data`
+  missing_columns <- setdiff(columns, colnames(data))
+  if (length(missing_columns) > 0) {
+    stop(glue("Error: the following data columns do not exist in this entity: {paste(missing_columns, collapse = ', ')}"))
   }
   
-  # Check that all `ids` exist as rows in `variables` metadata
-  missing_metadata <- setdiff(ids, variables$variable)
+  # Check that all `columns` exist as rows in `variables` metadata
+  missing_metadata <- setdiff(columns, variables$variable)
   if (length(missing_metadata) > 0) {
     stop(glue("Error: the following columns are missing from entity metadata: {paste(missing_metadata, collapse = ', ')}"))
   }
@@ -366,9 +412,9 @@ setMethod("set_parents", "Entity", function(entity, names, ids) {
   # Generalized mutation to update `variables`
   variables <- variables %>%
     mutate(
-      data_type = fct_mutate(data_type, variable %in% ids, 'id'),
-      entity_name = if_else(variable %in% ids, names[match(variable, ids)], entity_name),
-      entity_level = if_else(variable %in% ids, -match(variable, ids), entity_level)
+      data_type = fct_mutate(data_type, variable %in% columns, 'id'),
+      entity_name = if_else(variable %in% columns, names[match(variable, columns)], entity_name),
+      entity_level = if_else(variable %in% columns, -match(variable, columns), entity_level)
     )
   
   message("Parent entity relationships and columns have been set")
