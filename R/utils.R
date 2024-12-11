@@ -127,7 +127,7 @@ capture_skim <- function(x, include_summary = TRUE, ...) {
     partition_output <- purrr::imap(
       by_type, 
       ~ {
-        # Rename skim_variable to variable using tidyverse
+        # Rename skim_variable to variable
         df <- .x %>% 
           dplyr::rename(variable = skim_variable)
 
