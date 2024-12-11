@@ -1,8 +1,9 @@
 library(glue)
 library(knitr)
 
-# skimr shortens all factor names to three characters by default.
-# Create a custom skimmer that doesn't do this and trims top counts to 5.
+#' skimr shortens all factor names to three characters by default.
+#' Create a custom skimmer that doesn't do this and trims top counts to 5.
+#' @export
 skim <- skimr::skim_with(
   factor = skimr::sfl(
     top_counts = function(x) {
@@ -45,13 +46,13 @@ infer_data_type <- function(data, column_name, .no_id_check = FALSE) {
 }
 
 #'
-#' void context function that will stop() if a metadata name isn't an Entity slot
+#' void context function that will stop() if a metadata name isnt an Entity slot
 #' 
-#' usage:
+#' @examples
 #' 
 #' myfunction <- function(arg1, arg2, ...) {
 #'   metadata = list(...)
-#'   validate_entity_metadata_names(metadata) # will bail if there's a problem
+#'   validate_entity_metadata_names(metadata) # will bail if there is a problem
 #'   # continue doing things with metadata
 #' }
 #'
@@ -111,7 +112,8 @@ validate_entity_name <- function(name) {
 #' Custom function to force plain text output from skim()
 #'
 #' usage: `capture_skim(skim(tbl))`
-#' 
+#'
+#' @export
 capture_skim <- function(x, include_summary = TRUE, ...) {
   output <- character(0)
 

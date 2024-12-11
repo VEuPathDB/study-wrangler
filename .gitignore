@@ -5,5 +5,8 @@
 # Ignore derived files
 man/*.Rd
 
+dist/
 
 inst/doc
+/doc/
+/Meta/

@@ -23,9 +23,9 @@ this is a **multi-entity situation** that we will cover later.
 
 
 ```{r setup}
-library(study.wrangler)
 library(tidyverse)
 library(knitr)
+library(study.wrangler)
 ```
 
 ```{r}

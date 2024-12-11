@@ -33,6 +33,8 @@ docker run --rm -ti -v $PWD:/study.wrangler -e PASSWORD=password -p 8888:8787 ve
 
 # To update the documentation and/or NAMESPACE file
 > document()
+> build(path='dist')
+> install()
 # Note that we are not committing the man/*.Rd files to the repo at the moment
 #+end_example
 
