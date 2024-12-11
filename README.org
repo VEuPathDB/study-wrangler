@@ -4,18 +4,18 @@ study.wranger R package for tidying data in a way compatible with VEuPathDB work
 
 To build a docker image:
 #+begin_example
-docker build -t study-wrangler .
+docker build -t veupathdb/study-wrangler .
 #+end_example
 
 To run in docker:
 #+begin_example
-docker run --rm -ti -e PASSWORD=password -p 8989:8787 study-wrangler
+docker run --rm -ti -e PASSWORD=password -p 8989:8787 veupathdb/study-wrangler
 # Then in your web browser navigate to localhost:8989 and login with "rstudio" and "password"
 #+end_example
 
 To add R functions to the repo (using docker):
 #+begin_example
-docker run --rm -ti -v $PWD:/study.wrangler -e PASSWORD=password -p 8888:8787 study-wrangler
+docker run --rm -ti -v $PWD:/study.wrangler -e PASSWORD=password -p 8888:8787 veupathdb/study-wrangler
 # Then in your web browser navigate to localhost:8888 and login with "rstudio" and "password"
 
 # at the RStudio prompt
