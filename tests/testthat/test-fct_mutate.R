@@ -49,6 +49,13 @@ test_that("fac_mutate() errors on non-level values", {
   )
 })
 
+test_that("fac_mutate() allows assignment to NA", {
+  expect_silent(
+    no_dog <- fct_mutate(dog, NA)
+  )
+})
+
+
 test_that("fac_mutate() conditions work on column mutations", {
   expect_equal(
     pets %>% mutate(
@@ -59,7 +66,17 @@ test_that("fac_mutate() conditions work on column mutations", {
       )) %>% pull(pet_type) %>% as.character(),
     c("puppy", "dog", "cat", "puppy", "cat")
   )
-  
+
+  expect_equal(
+    pets %>% mutate(
+      pet_type = fct_mutate(
+        pet_type,
+        pet_type == 'dog' & age <= 2,
+        NA
+      )) %>% pull(pet_type) %>% as.character(),
+    c(NA, "dog", "cat", NA, "cat")
+  )
+    
   # also mutate for the negative condition
   # and add a new level automatically
   expect_equal(

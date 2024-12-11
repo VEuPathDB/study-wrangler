@@ -82,21 +82,29 @@ fct_mutate <- function(factor, condition, true_value, false_value = NULL, .auto_
     stop(glue::glue("Error: 'factor' and 'condition' must have the same length or 'condition' must have length 1."))
   }
   
-  # Check and expand levels for true_value
-  if (!.auto_expand && !(true_value %in% levels(factor))) {
-    stop(glue::glue("Error: Value '{true_value}' is not an existing level in the factor."))
-  }
-  if (.auto_expand) {
-    factor <- forcats::fct_expand(factor, true_value)
+  # Check and expand levels for true_value (NAs are always allowed)
+  if (!is.na(true_value)) {
+    if (!.auto_expand && !(true_value %in% levels(factor))) {
+      stop(glue::glue("Error: Value '{true_value}' is not an existing level in the factor."))
+    }
+    if (.auto_expand) {
+      factor <- forcats::fct_expand(factor, true_value)
+    }
+  } else {
+    true_value <- NA_character_
   }
   
   # Check and expand levels for false_value if it is provided
   if (!is.null(false_value)) {
-    if (!.auto_expand && !(false_value %in% levels(factor))) {
-      stop(glue::glue("Error: Value '{false_value}' is not an existing level in the factor."))
-    }
-    if (.auto_expand) {
-      factor <- forcats::fct_expand(factor, false_value)
+    if (!is.na(false_value)) { # NAs are always allowed
+      if (!.auto_expand && !(false_value %in% levels(factor))) {
+        stop(glue::glue("Error: Value '{false_value}' is not an existing level in the factor."))
+      }
+      if (.auto_expand) {
+        factor <- forcats::fct_expand(factor, false_value)
+      }
+    } else {
+      false_value <- NA_character_
     }
   }
   
@@ -104,12 +112,12 @@ fct_mutate <- function(factor, condition, true_value, false_value = NULL, .auto_
   levels <- levels(factor)
   if (is.null(false_value)) {
     factor <- if_else(condition,
-                      forcats::fct(true_value, levels = levels),
+                      forcats::fct(true_value, levels = levels, na = NA_character_),
                       factor)
   } else {
     factor <- if_else(condition,
-                      forcats::fct(true_value, levels = levels),
-                      forcats::fct(false_value, levels = levels))
+                      forcats::fct(true_value, levels = levels, na = NA_character_),
+                      forcats::fct(false_value, levels = levels, na = NA_character_))
   }
   return(factor)
 }
