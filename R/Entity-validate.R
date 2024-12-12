@@ -236,23 +236,35 @@ setMethod("validate", "Entity", function(entity, quiet = FALSE) {
     ))
   }
   
-
+  my_id_variable <- variables %>%
+    filter(data_type == 'id') %>%
+    filter(entity_level == 0)
+  
+  # Validation: there must be an ID column for this entity
+  if (nrow(my_id_variable) == 0) {
+    add_feedback(paste0(
+      c(
+        "This entity appears to have no ID column. It must have a column with a unique",
+        "value in each row."
+      ),
+      collapse="\n"
+    ))
+  }
+  
+  
   # Validation: If there's an entity@name, and only one ID column at entity_level == 0,
   # check the latter's entity_name is correct
   if (!is.na(entity@name) &&
       entity@name != "" &&
-      all(id_col_contraventions$entity_level != 0)) {
+      all(id_col_contraventions$entity_level != 0) &&
+      nrow(my_id_variable) > 0) {
     
-    id_variable <- variables %>%
-      filter(data_type == 'id') %>%
-      filter(entity_level == 0)
-
-    if (id_variable %>% pull(entity_name) %>% coalesce("") != entity@name) {
+    if (my_id_variable %>% pull(entity_name) %>% coalesce("") != entity@name) {
       add_feedback(glue(paste0(
         c(
-          "ID column '{id_variable %>% pull(variable)}' has incorrect `entity_name`.",
-          "It is '{id_variable %>% pull(entity_name)}' and should be '{entity@name}'",
-          "[You can fix this with `set_variable_metadata('{id_variable %>% pull(variable)}', entity_name='{entity@name}')`]"
+          "ID column '{my_id_variable %>% pull(variable)}' has incorrect `entity_name`.",
+          "It is '{my_id_variable %>% pull(entity_name)}' and should be '{entity@name}'",
+          "[You can fix this with `set_variable_metadata('{my_id_variable %>% pull(variable)}', entity_name='{entity@name}')`]"
         ),
         collapse="\n"
       )))

@@ -188,3 +188,21 @@ test_that("validate() warns about mangled variable metadata columns", {
   )
   
 })
+
+
+test_that("validate() complains about no ID column at all", {
+  file_path <- system.file("extdata", "toy_example/households.tsv", package = 'study.wrangler')
+  
+  # Modify the data to introduce an invalid date
+  lose_id_column <- function(data) {
+    return(data %>% select(-c("Household Id")))
+  }
+  
+  households <- entity_from_file(file_path, name='household', preprocess_fn = lose_id_column)
+  
+  expect_message(
+    expect_false(validate(households)),
+    "This entity appears to have no ID column."
+  )
+})
+
