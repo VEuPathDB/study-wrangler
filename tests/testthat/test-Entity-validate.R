@@ -199,5 +199,7 @@ test_that("validate() complains about no ID column at all", {
     expect_false(validate(households)),
     "This entity appears to have no ID column."
   )
+  
+  # TO DO? add convenience method to generate add a integer-sequence ID column?
 })
 
