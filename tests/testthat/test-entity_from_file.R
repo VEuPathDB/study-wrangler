@@ -83,3 +83,13 @@ test_that("entity_from_file sets metadata from ... args", {
   expect_equal(result@name, 'household')
 })
 
+test_that("entity_from_file reports problems from read_tsv()", {
+  
+  file_path <- system.file("extdata", "toy_example/brokenHouseholds.tsv", package = 'study.wrangler')
+  
+  expect_error(
+    result <- entity_from_file(file_path, name = "household"),
+    "Issues were encountered while parsing the file.+5 columns.+6 columns"
+  )
+})
+

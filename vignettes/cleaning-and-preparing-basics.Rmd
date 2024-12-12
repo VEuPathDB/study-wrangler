@@ -7,6 +7,16 @@ vignette: >
   %\VignetteEncoding{UTF-8}
 ---
 
+<style type="text/css">
+body {
+  min-width: 60em;
+  margin: auto;
+}
+body > p {
+  max-width: 45em;
+}
+</style>
+
 ```{r, include = FALSE}
 knitr::opts_chunk$set(
   collapse = TRUE,
@@ -226,9 +236,30 @@ Here's a simple example with an extra column in one row:
 ```{r}
 
 broken_file_path <- system.file("extdata", "toy_example/brokenHouseholds.tsv", package = 'study.wrangler')
-households <- entity_from_file(broken_file_path)
+
+tryCatch(
+  {
+    result <- entity_from_file(broken_file_path, name = "household")
+  },
+  error = function(e) {
+    warning("Error captured: ", e$message)
+  }
+)
 
 ```
+
+We had to wrap it in `expect_error` so that the notebook execution isn't interrupted.
+
+The error message would look something like this:
+
+```
+ Error in entity_from_file(broken_file_path) : 
+  Error: Issues were encountered while parsing the file:
+ row   col  expected    actual      file                                                          
+----  ----  ----------  ----------  --------------------------------------------------------------
+   2     6  5 columns   6 columns   /study.wrangler/inst/extdata/toy_example/brokenHouseholds.tsv
+```
+
 
 There's not much we can do in R with a badly broken file, so in this case the file will
 need fixing before we can proceed.
@@ -276,8 +307,8 @@ An alternative might be to make a `preprocess_fn` that massaged the bad dates in
 
 ```{r}
 
-households@data <- households@data %>%
-  filter(!is.na(Enrollment.date))
+households <- households %>%
+ set_data(filter(!is.na(Enrollment.date)))
 
 ```
 
@@ -299,7 +330,7 @@ introduce_typo <- function(data) {
   # duplicate the last row but with a new ID and a dodgy typo
   data <- data %>%
     bind_rows(slice_tail(., n = 1) %>%
-                mutate('Household Id' = 'H004', 'Construction material' = "Concrte"))
+                mutate('Household Id' = 'H004', 'Construction material' = "Concerte"))
   return(data)
 }
 
@@ -308,4 +339,53 @@ validate(households)
 
 ```
 
-However, maybe
+However, just because it validates, it doesn't mean it's clean data!
+
+```{r}
+
+inspect(households)
+
+```
+
+You can see there's a problem in the values of `Construction.material`
+
+```
+Summary of factor variables:
+variable                 n_missing   complete_rate  ordered    n_unique  top_counts                         
+----------------------  ----------  --------------  --------  ---------  -----------------------------------
+Owns.property                    0               1  FALSE             2  Yes: 3, No: 1                      
+Construction.material            0               1  FALSE             3  Concrete: 2, Concrte: 1, Timber: 1 
+```
+
+If this was a categorical variable with many values, we might need to look at all of them, which we
+can do with `inspect(entity, variable_name)` - but we don't need to for this toy example.
+
+We can go ahead and fix the data. But first let's take a look at the dodgy column:
+
+```{r}
+
+households %>% get_data() %>% pull(Construction.material)
+
+```
+
+Note that `entity_from_file()` detected this was a categorical variable and converted the
+column into an R factor.  If we use factor-manipulation functions we can avoid introducing
+further problem values. If we accidentally manipulate categorical variable data so that
+it reverts to a regular `character` type, the validator will fail and let us know. 
+
+Let's fix the typo with `fct_recode()` from the `forcats` tidyverse library.
+
+```{r}
+
+households <- households %>% 
+  set_data(
+    mutate(Construction.material = fct_recode(Construction.material, 'Concrete' = 'Concerte'))
+  )
+validate(households)
+households %>% get_data() %>% pull(Construction.material)
+
+```
+
+Note that both the values and the allowed "levels" (aka vocabulary in EDA-speak)
+have been changed.
+

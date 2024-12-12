@@ -21,7 +21,9 @@ setGeneric("get_variable_metadata", function(entity, ...) standardGeneric("get_v
 #' @export
 setGeneric("get_id_column_metadata", function(entity, ...) standardGeneric("get_id_column_metadata"))
 #' @export
-setGeneric("get_data", function(entity, ...) standardGeneric("get_data"))
+setGeneric("get_data", function(entity) standardGeneric("get_data"))
+#' @export
+setGeneric("set_data", function(entity, ...) standardGeneric("set_data"))
 #' @export
 setGeneric("set_variable_display_names_from_provider_labels", function(entity) standardGeneric("set_variable_display_names_from_provider_labels"))
 #' @export
@@ -380,18 +382,38 @@ setMethod("get_id_column_metadata", "Entity", function(entity, ...) {
 #' 
 #' Returns the data tibble as-is
 #' 
-#' Treat this as read-only. If you need to make changes to the data use something like:
-#' 
-#' `entity@data <- entity@data %>% mutate(...)`
-#' 
+#' Treat this as read-only. If you need to make changes to the data use `set_data()`
 #' 
 #' @param entity an Entity object
 #' @returns data tibble
 #' @export
-setMethod("get_data", "Entity", function(entity, ...) {
+setMethod("get_data", "Entity", function(entity) {
   return(entity@data)
 })
 
+
+#' set_data
+#' 
+#' Returns a new entity object with data modified by the pipeline passed to it.
+#' This allows tidyverse-style manipulation of an Entity object's `data` slot.
+#' 
+#' Example usage:
+#' ```R
+#' households <- households %>%
+#'   set_data(mutate(Construction.material = fct_recode(Construction.material, 'Concrete' = 'Concrte')))
+#' ```
+#' 
+#' @param entity an Entity object
+#' @param ... a tidyverse pipeline to modify the data slot of the entity object
+#' @returns a new Entity object with the modified data slot
+#' @export
+setMethod("set_data", "Entity", function(entity, ...) {
+  if (missing(...)) {
+    stop("The `...` argument is missing. Please provide a pipeline to modify the data.", call. = FALSE)
+  }
+  new_data <- entity@data %>% ...
+  initialize(entity, data = new_data)
+})
 
 #'
 #' set_variable_display_names_from_provider_labels

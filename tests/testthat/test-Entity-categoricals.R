@@ -7,7 +7,10 @@ test_that("validate(households) alerts to categorical variables with non-factor 
   expect_true(validate(households, quiet=TRUE))
   
   # mutate a column naively (not wrapped in `factor()`)
-  households@data <- households@data %>% mutate(Owns.property = if_else(Owns.property == 'Yes', 'Sure thing', 'Not really'))
+  households <- households %>%
+    set_data(
+      mutate(Owns.property = if_else(Owns.property == 'Yes', 'Sure thing', 'Not really'))
+    )
   # validate again
   expect_message(
     expect_false(validate(households)),
@@ -15,12 +18,12 @@ test_that("validate(households) alerts to categorical variables with non-factor 
   )
 
   # now mutate it back to a factor
-  households@data <- households@data %>% mutate(Owns.property = factor(Owns.property))
+  households <- households %>%
+    set_data(
+      mutate(Owns.property = factor(Owns.property))
+    )
   # should now be valid
   expect_true(validate(households, quiet=TRUE))
-
-  # households@data <- households@data %>% mutate(Owns.property = factor(if_else(Owns.property == 'Yes', 'Sure thing', 'Not really')))
-  
 })
 
 test_that("Using forcats manipulations on categoricals does not break validation", {
@@ -31,9 +34,10 @@ test_that("Using forcats manipulations on categoricals does not break validation
   # validate it
   expect_true(validate(households, quiet=TRUE))
   
-  households@data <- households@data %>%
-    mutate(Owns.property = fct_expand(Owns.property, "It's complicated"))
-  
+  households <- households %>%
+    set_data(
+      mutate(Owns.property = fct_expand(Owns.property, "It's complicated"))
+    )  
   expect_true(validate(households, quiet=TRUE))
   expect_output(
     inspect_variable(households, "Owns.property"),
@@ -47,9 +51,10 @@ test_that("Even very large vocabularies are reported in inspect_variable", {
   expect_true(validate(households, quiet=TRUE))
 
   # add new factor levels, "aaa":"zzz"
-  households@data <- households@data %>%
-    mutate(Owns.property = fct_expand(Owns.property, paste0(letters, letters, letters)))
-  
+  households <- households %>%
+    set_data(
+      mutate(Owns.property = fct_expand(Owns.property, paste0(letters, letters, letters)))
+    )
   expect_true(validate(households, quiet=TRUE))
   expect_output(
     inspect_variable(households, "Owns.property"),
