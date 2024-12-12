@@ -132,11 +132,12 @@ capture_skim <- function(x, include_summary = TRUE, ...) {
           dplyr::rename(variable = skim_variable)
 
         # Add header for the partition
-        header <- paste("\nSummary of", .y, "variables:")
+        header <- paste("Summary of", .y, "variables:")
         body <- kable_signif(df, digits = 3)
+        margin_bottom <- ''
         
-        # Combine header and body
-        paste0(c(header, body), collapse="\n")
+        # Combine header, body and margin
+        paste0(c(header, body, margin_bottom), collapse="\n")
       }
     )
     output <- c(output, unlist(partition_output))

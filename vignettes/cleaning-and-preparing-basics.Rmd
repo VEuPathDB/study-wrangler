@@ -21,24 +21,40 @@ file of data that describes study participants *and* the households they belong
 to (most likely redundantly with data in household columns repeated), then
 this is a **multi-entity situation** that we will cover later.
 
-
 ```{r setup}
 library(tidyverse)
 library(knitr)
-library(study.wrangler)
+# during development
+devtools::load_all()
+# or
+# library(study.wrangler)
 ```
 
+So let's start loading a tab-delimited file of toy data. Here we get the location
+of the file from the data bundled with this package. You can simply provide
+a relative or absolute path to any tab-delimited data file.
+
 ```{r}
-cat(
-  paste0(
-    c(
-      "here is a table of cars",
-      kable(head(mtcars)),
-      "\nand here is a skim of the whole table",
-      capture_skim(skim(mtcars))
-    ),
-    collapse="\n"
-  )
-)
+
+households_file_path <- system.file("extdata", "toy_example/households.tsv", package = 'study.wrangler')
+households_file_path
+
+```
+Now let's load it in with one of the wrangler's main functions:
+
+```{r}
+
+households <- entity_from_file(households_file_path)
+
+```
+
+If there are no warnings or errors, we now have an "entity object": `households`.
+
+We can use the wrangler's `inspect()` function to see what is inside it.
+
+```{r}
+
+inspect(households)
+
 ```
 

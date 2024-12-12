@@ -38,31 +38,42 @@ setMethod("inspect", "Entity", function(entity, variable_name = NULL) {
     filter(data_type != 'id') %>%
     select(-starts_with('entity_')) %>%
     arrange(display_order)
-  
-  cat("Entity-level metadata:")
+
+  # entity level metadata  
   slots_list <- as_list(entity)
   character_slots <- slots_list[lapply(slots_list, class) == "character"]
-  print(kable(tibble(
-    Field = names(character_slots),
-    Value = unlist(character_slots)
-  )))
+  cat(
+    to_lines(
+      heading("Entity-level metadata"),
+      kable(
+        tibble(
+          Field = names(character_slots),
+          Value = unlist(character_slots)
+        )
+      )
+    )
+  )
   
   # some row count stats
-  cat("\nRow counts:")
-  print(kable(tibble(
-    Type = c(
-      "Total",
-      "Complete data (no missing values)"
-    ),
-    Count = c(
-      nrow(data),
-      data %>% filter(if_all(everything(), ~ !is.na(.))) %>% nrow()
-    )
-  )))
+  cat(
+    to_lines(
+      heading("Row counts"),
+      kable(
+        tibble(
+          Type = c(
+            "Total",
+            "Complete data (no missing values)"
+          ),
+          Count = c(
+            nrow(data),
+            data %>% filter(if_all(everything(), ~ !is.na(.))) %>% nrow()
+          )
+        )
+      ),
 
-  cat("\n\nID columns:")
-  print(kable(ids_metadata %>% select(variable, entity_name, entity_level)))
-  cat(glue("
+      heading("ID columns"),
+      kable(ids_metadata %>% select(variable, entity_name, entity_level)),
+      glue("
 ~~~~
 If you see variables in the table above that should not be handled as IDs
 then you can redo the automatic column type detection with:
@@ -70,32 +81,58 @@ then you can redo the automatic column type detection with:
 ~~~~
 If there are ID columns missing above, you may need to use:
 `set_parents(names=c('parent_name', 'grandparent_name'), columns=c('parent.id', 'grandparent.id'))`
-"),"\n")
-  
-  cat("\nKey variable metadata:\n(use `inspect(entity, 'variable.name')` for more detail)")
-  print(kable(variables_metadata %>%
-    select(variable, provider_label, data_type, data_shape, display_name, stable_id)
-  ))
-  
-  cat("\nVariable annotation summary:")
-  print(kable(tibble(
-    Type = c(
-      "Total number of variables",
-      "display_name provided*",
-      "definition provided"
-    ),
-    Count = c(
-      nrow(variables_metadata),
-      variables_metadata %>% filter(!is.na(display_name)) %>% nrow(),
-      variables_metadata %>% filter(!is.na(definition)) %>% nrow()
+"),
+      
+      heading("Key variable metadata"),
+      kable(variables_metadata %>%
+        select(variable, provider_label, data_type, data_shape, display_name, stable_id)),
+      "~~~~",
+      "Use `inspect(entity, 'variable.name')` for more detail on individual variables",
+      
+      heading("Variable annotation summary"),
+      kable(
+        tibble(
+          Type = c(
+            "Total number of variables",
+            "display_name provided*",
+            "definition provided"
+          ),
+          Count = c(
+            nrow(variables_metadata),
+            variables_metadata %>% filter(!is.na(display_name)) %>% nrow(),
+            variables_metadata %>% filter(!is.na(definition)) %>% nrow()
+          )
+        )
+      ),
+      "~~~~",
+      "* use `set_variable_display_names_from_provider_labels()` to use original column headings as-is."
     )
-  )))
-  cat("~~~~\n* use `set_variable_display_names_from_provider_labels()` to use original column headings as-is.\n")
-  
+  )
+
   if (nrow(variables_metadata)) {
-    cat("\nSummary of variable values and distributions:\n")
-  
     skim_data <- data %>% select(-all_of(ids_metadata$variable)) %>% skim()
-    print(skim_data, include_summary = FALSE)
+    cat(
+      to_lines(
+        heading("Summary of variable values and distributions"),
+        capture_skim(skim_data, include_summary = FALSE)
+      )
+    )
   }
 })
+
+#'
+#' simple helper to format a heading for the console-based reports
+#'
+heading <- function(heading) {
+  return(glue("\n\n### {heading} ###\n", .trim = FALSE))
+}
+
+#'
+#' super simple wrapper to aid with outputting to the terminal
+#'
+#' all args must be character type
+#'
+to_lines <- function(...) {
+  character_vector <- c(...)
+  paste0(paste0(character_vector, "\n"), collapse = "")
+}
