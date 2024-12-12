@@ -17,6 +17,10 @@ setGeneric("sync_variable_metadata", function(entity) standardGeneric("sync_vari
 #' @export
 setGeneric("set_variable_metadata", function(entity, ...) standardGeneric("set_variable_metadata"))
 #' @export
+setGeneric("get_variable_metadata", function(entity, ...) standardGeneric("get_variable_metadata"))
+#' @export
+setGeneric("get_id_column_metadata", function(entity, ...) standardGeneric("get_id_column_metadata"))
+#' @export
 setGeneric("set_variable_display_names_from_provider_labels", function(entity) standardGeneric("set_variable_display_names_from_provider_labels"))
 #' @export
 setGeneric("set_parent", function(entity, name, column) standardGeneric("set_parent"))
@@ -336,6 +340,43 @@ setMethod("set_variable_metadata", "Entity", function(entity, variable_name, ...
 })
 
 
+#' get_variable_metadata
+#' 
+#' Returns a metadata tibble for variables only (not ID columns)
+#' 
+#' Treat this data as read-only (use set_xxx methods to make changes)
+#' 
+#' @param entity an Entity object
+#' @returns tibble of metadata for variables
+#' @export
+setMethod("get_variable_metadata", "Entity", function(entity, ...) {
+  return(
+    entity@variables %>%
+      filter(data_type != 'id') %>%
+      select(!starts_with('entity_')) %>%
+      arrange(display_order)
+  )
+})
+
+#' get_id_column_metadata
+#' 
+#' Returns a metadata tibble for variables only (not ID columns)
+#' 
+#' Treat this data as read-only (use set_xxx methods to make changes)
+#' 
+#' @param entity an Entity object
+#' @returns tibble of metadata for id_columns
+#' @export
+setMethod("get_id_column_metadata", "Entity", function(entity, ...) {
+  return(
+    entity@variables %>%
+      filter(data_type == 'id') %>%
+      select(variable, starts_with('entity_')) %>%
+      arrange(entity_level)
+  )
+})
+
+
 #'
 #' set_variable_display_names_from_provider_labels
 #' 
@@ -348,7 +389,7 @@ setMethod("set_variable_display_names_from_provider_labels", "Entity", function(
   variables <- entity@variables
   
   # Define the logical mask for rows that need updating
-  mask <- variables$data_type != 'id' & is.na(variables$display_name)
+  mask <- variables %>% transmute(data_type != 'id' & is.na(display_name)) %>% pull()
 
   # Update the display_name for rows matching the mask
   variables <- variables %>%

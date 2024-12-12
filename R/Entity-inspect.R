@@ -32,11 +32,8 @@ setMethod("inspect", "Entity", function(entity, variable_name = NULL) {
     stop("Error: variables metadata must contain `data_type` and `data_shape` columns.")
   }
   
-  ids_metadata <- variables %>% filter(data_type == 'id')
-  variables_metadata <- variables %>%
-    filter(data_type != 'id') %>%
-    select(-starts_with('entity_')) %>%
-    arrange(display_order)
+  ids_metadata <- get_id_column_metadata(entity)
+  variables_metadata <- get_variable_metadata(entity)
 
   # entity level metadata  
   slots_list <- as_list(entity)

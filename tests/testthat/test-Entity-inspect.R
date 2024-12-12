@@ -23,9 +23,9 @@ test_that("inspect(entity) counts annotations properly", {
   output <- capture.output(inspect(households))
   
   # expect 4 variables with no annotations
-  expect_true(any(grepl('Total number of variables\\s*\\|\\s*\\b4\\b', output, perl=TRUE)))
-  expect_true(any(grepl('display_name provided\\*\\s*\\|\\s*\\b0\\b', output, perl=TRUE)))
-  expect_true(any(grepl('definition provided\\s*\\|\\s*\\b0\\b', output, perl=TRUE)))
+  expect_true(any(grepl('Total number of variables\\s*\\b4\\b', output, perl=TRUE)))
+  expect_true(any(grepl('display_name provided\\*\\s*\\b0\\b', output, perl=TRUE)))
+  expect_true(any(grepl('definition provided\\s*\\b0\\b', output, perl=TRUE)))
 
   expect_message(
     expect_message(
@@ -42,7 +42,7 @@ test_that("inspect(entity) counts annotations properly", {
   
   # let's see if these show up
   output <- capture.output(inspect(households))
-  expect_true(any(grepl('display_name provided\\*\\s*\\|\\s*\\b1\\b', output, perl=TRUE)))
-  expect_true(any(grepl('definition provided\\s*\\|\\s*\\b2\\b', output, perl=TRUE)))
+  expect_true(any(grepl('display_name provided\\*\\s*\\b1\\b', output, perl=TRUE)))
+  expect_true(any(grepl('definition provided\\s*\\b2\\b', output, perl=TRUE)))
 
 })

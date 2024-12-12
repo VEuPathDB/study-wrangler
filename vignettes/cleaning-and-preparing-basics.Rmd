@@ -107,6 +107,114 @@ display_name_plural   households
 parent_name           NA         
 ```
 
+And some basic row count stats:
+
+```
+### Row counts ###
+
+Type                                 Count
+----------------------------------  ------
+Total                                    3
+Complete data (no missing values)        3
+```
+
+And that the ID column table has assigned the 'Household.Id' column to the
+correct entity (this one, level=0). Previously it was NA.
+
+```
+### ID columns ###
+
+variable       entity_name    entity_level
+-------------  ------------  -------------
+Household.Id   household                 0
+```
+
+What else can we see from the `inspect(households)` report?
+
+Well, there's a summary of what we know about the variables (non-ID-columns):
+
+```
+### Key variable metadata ###
+
+variable                provider_label          data_type   data_shape    display_name   stable_id 
+----------------------  ----------------------  ----------  ------------  -------------  ----------
+Number.of.animals       Number of animals       integer     continuous    NA             NA        
+Owns.property           Owns property           string      categorical   NA             NA        
+Enrollment.date         Enrollment date         date        continuous    NA             NA        
+Construction.material   Construction material   string      categorical   NA             NA        
+```
+
+The `provider_label` is the original column heading in the input file. From now
+on we will refer to variables with their R-friendly names, in the `variable`
+column above.
+
+The wrangler has done a good job at auto-detecting the integer, date and string types.
+We will explain how to correct erroneously inferred types later.
+
+We'll come back to `data_shape` later too.
+
+The next part of the report gently slaps our wrists for not providing display_names
+and definitions (which make the variables more user-friendly in the UI)
+
+```
+### Variable annotation summary ###
+
+Type                         Count
+--------------------------  ------
+Total number of variables        4
+display_name provided*           0
+definition provided              0
+~~~~
+* use `set_variable_display_names_from_provider_labels()` to use original column headings as-is.
+```
+
+Let's fix that according to the guidance, and also add a definition using the
+generic `set_variable_metadata()` function. We can chain these together using the
+magrittr pipe `%>%` when both functions operate on and return entity objects. 
+
+```{r}
+
+households <- households %>%
+  set_variable_display_names_from_provider_labels() %>%
+  set_variable_metadata('Owns.property', definition="The occupant owns the property either outright or via a mortgage")
+
+inspect(households)
+
+```
+
+Yay, now we have `display_names` for all the variables and the second table shows one definition provided.
+
+```
+### Key variable metadata ###
+
+variable                provider_label          data_type   data_shape    display_name            stable_id 
+----------------------  ----------------------  ----------  ------------  ----------------------  ----------
+Number.of.animals       Number of animals       integer     continuous    Number of animals       NA        
+Owns.property           Owns property           string      categorical   Owns property           NA        
+Enrollment.date         Enrollment date         date        continuous    Enrollment date         NA        
+Construction.material   Construction material   string      categorical   Construction material   NA        
+~~~~
+Use `inspect(entity, 'variable.name')` for more detail on individual variables
 
 
+### Variable annotation summary ###
+
+Type                         Count
+--------------------------  ------
+Total number of variables        4
+display_name provided*           4
+definition provided              1
+```
+
+You can inspect annotations like `definition` with `inspect(households, 'Owns.property')` but we won't run that again.
+
+Maybe we need a convenience function `show_variables_missing_metadata(entity, 'definition')`?
+
+For now we can do:
+
+```{r}
+
+households %>% get_variable_metadata() %>% filter(is.na(definition)) %>% pull(variable) %>% cat(sep="\n")
+
+```
 
