@@ -217,4 +217,95 @@ For now we can do:
 households %>% get_variable_metadata() %>% filter(is.na(definition)) %>% pull(variable) %>% cat(sep="\n")
 
 ```
+So what if there was data that needed cleaning?
 
+First let's see what happens if there are major problems with the TSV file.
+
+Here's a simple example with an extra column in one row:
+
+```{r}
+
+broken_file_path <- system.file("extdata", "toy_example/brokenHouseholds.tsv", package = 'study.wrangler')
+households <- entity_from_file(broken_file_path)
+
+```
+
+There's not much we can do in R with a badly broken file, so in this case the file will
+need fixing before we can proceed.
+
+However, we hope to be able to fix all other problems with the wrangler.
+
+For example, a non-existent date in the input file.
+
+We can spoof this the `preprocess_fn` hook of `entity_from_file()` - which makes a change to
+the raw data before any type inference (e.g. date detection) or column name clean-up is done.
+We'll also go back to using the non-broken input file.
+
+```{r}
+
+spoof_bad_date <- function(data) {
+  data$`Enrollment date`[2] <- "2021-02-29" # Invalid date
+  return(data)
+}
+
+# we'll also provide the entity_name directly to save having to set it later
+households <- entity_from_file(households_file_path, name = 'household', preprocess_fn = spoof_bad_date)
+
+```
+
+That's good. R changed one of our values to `NA` but told us about it.
+
+We can view the damage with
+
+```{r}
+
+households %>% get_data()
+
+```
+
+Or if there's a lot of rows and columns we can filter and select/pull what's important:
+
+```{r}
+
+households %>% get_data() %>% filter(is.na(Enrollment.date)) %>% pull(Household.Id) %>% cat(sep="\n")
+
+```
+
+So we now have an opportunity to fix it. Maybe this time we will exclude all rows with bad dates.
+An alternative might be to make a `preprocess_fn` that massaged the bad dates into good ones.
+
+```{r}
+
+households@data <- households@data %>%
+  filter(!is.na(Enrollment.date))
+
+```
+
+We have to operate directly on the `data` slot of the entity object. But don't worry,
+validation will let you know if you've messed it up!
+
+```{r}
+
+validate(households)
+
+```
+Woo!
+
+Let's break the data in another way and fix it:
+
+```{r}
+
+introduce_typo <- function(data) {
+  # duplicate the last row but with a new ID and a dodgy typo
+  data <- data %>%
+    bind_rows(slice_tail(., n = 1) %>%
+                mutate('Household Id' = 'H004', 'Construction material' = "Concrte"))
+  return(data)
+}
+
+households <- entity_from_file(households_file_path, name = 'household', preprocess_fn = introduce_typo)
+validate(households)
+
+```
+
+However, maybe

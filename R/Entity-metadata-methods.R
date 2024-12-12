@@ -21,9 +21,9 @@ setGeneric("get_variable_metadata", function(entity, ...) standardGeneric("get_v
 #' @export
 setGeneric("get_id_column_metadata", function(entity, ...) standardGeneric("get_id_column_metadata"))
 #' @export
-setGeneric("set_variable_display_names_from_provider_labels", function(entity) standardGeneric("set_variable_display_names_from_provider_labels"))
+setGeneric("get_data", function(entity, ...) standardGeneric("get_data"))
 #' @export
-setGeneric("set_parent", function(entity, name, column) standardGeneric("set_parent"))
+setGeneric("set_variable_display_names_from_provider_labels", function(entity) standardGeneric("set_variable_display_names_from_provider_labels"))
 #' @export
 setGeneric("set_parents", function(entity, names, columns) standardGeneric("set_parents"))
 
@@ -376,6 +376,22 @@ setMethod("get_id_column_metadata", "Entity", function(entity, ...) {
   )
 })
 
+#' get_data
+#' 
+#' Returns the data tibble as-is
+#' 
+#' Treat this as read-only. If you need to make changes to the data use something like:
+#' 
+#' `entity@data <- entity@data %>% mutate(...)`
+#' 
+#' 
+#' @param entity an Entity object
+#' @returns data tibble
+#' @export
+setMethod("get_data", "Entity", function(entity, ...) {
+  return(entity@data)
+})
+
 
 #'
 #' set_variable_display_names_from_provider_labels
@@ -398,21 +414,6 @@ setMethod("set_variable_display_names_from_provider_labels", "Entity", function(
   message(glue("Copied provider_label over to display_name for {sum(mask, na.rm = TRUE)} variables"))
   return(entity %>% initialize(variables=variables))
 })
-
-#' set_parent
-#'
-#' Sets metadata for a single parent ID column of this entity by delegating to set_parents.
-#'
-#' @param entity An Entity object.
-#' @param name A character string specifying the entity name of the parent.
-#' @param column A character string specifying the column name containing the parent_id.
-#' @returns Modified entity.
-#' @export
-setMethod("set_parent", "Entity", function(entity, name, column) {
-  # Call set_parents with single-element vectors
-  set_parents(entity, names = c(name), columns = c(column))
-})
-
 
 #' set_parents
 #' 

@@ -55,13 +55,13 @@ test_that("entity_from_file detects invalid dates", {
   file_path <- system.file("extdata", "toy_example/households.tsv", package = 'study.wrangler')
   
   # Modify the data to introduce an invalid date
-  modify_fn <- function(data) {
+  spoof_bad_date <- function(data) {
     data$`Enrollment date`[2] <- "2021-02-29" # Invalid date
     return(data)
   }
   
   expect_warning(
-    result <- entity_from_file(file_path, preprocess_fn = modify_fn),
+    result <- entity_from_file(file_path, preprocess_fn = spoof_bad_date),
     "expected valid date, but got" # Expected error message from readr
   )
 })
