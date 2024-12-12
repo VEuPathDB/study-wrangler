@@ -58,3 +58,55 @@ inspect(households)
 
 ```
 
+There's a lot to unpack there, but we'll come back to that 
+
+Now inspect an individual variable in detail
+
+```{r}
+
+inspect_variable(households, 'Construction.material')
+
+```
+
+And validate it
+
+```{r}
+
+validate(households)
+
+```
+
+Aha - something is wrong. Let's follow the advice and fix it.
+
+```{r}
+
+households <- households %>% set_entity_name('household')
+validate(households)
+
+```
+
+Yay - now it validates. Let's have a closer look inside:
+
+```{r}
+
+inspect(households)
+
+```
+
+You can see that some top-level information about the entity is now filled in:
+
+```
+### Entity-level metadata ###
+
+Field                 Value      
+--------------------  -----------
+name                  household  
+description           NA         
+display_name          household  
+display_name_plural   households 
+parent_name           NA         
+```
+
+
+
+

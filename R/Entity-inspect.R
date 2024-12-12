@@ -20,8 +20,7 @@ setGeneric("inspect", function(entity, ...) standardGeneric("inspect"))
 setMethod("inspect", "Entity", function(entity, variable_name = NULL) {
   if (!is.null(variable_name)) {
     # Delegate to inspect_variable and return early
-    inspect_variable(entity, variable_name)
-    return()
+    return(inspect_variable(entity, variable_name))
   }
 
   # Extract data and variables
