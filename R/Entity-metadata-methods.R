@@ -34,6 +34,10 @@ setGeneric("set_parents", function(entity, names, columns) standardGeneric("set_
 setGeneric("get_parents", function(entity) standardGeneric("get_parents"))
 #' @export
 setGeneric("get_parent_name", function(entity) standardGeneric("get_parent_name"))
+#' @export
+setGeneric("get_children", function(entity) standardGeneric("get_children"))
+#' @export
+setGeneric("append_children", function(parent, child) standardGeneric("append_children"))
 
 
 #' infer_missing_data_types
@@ -541,5 +545,32 @@ setMethod("get_parent_name", "Entity", function(entity) {
   } else {
     return(NULL)
   }
+})
+
+#' get_children
+#' 
+#' Gets the list of child entities. Only applicable in the context of a Study
+#' where a tree has been constructed
+#' 
+#' @param entity an Entity object
+#' @returns a list of Entity objects
+#' @export
+setMethod("get_children", "Entity", function(entity) {
+  return(entity@children)
+})
+
+
+#' append_children
+#' 
+#' Gets the list of child entities. Only applicable in the context of a Study
+#' where a tree has been constructed
+#' 
+#' @param entity an Entity object
+#' @returns an updated Entity object
+#' @export
+setMethod("append_children", "Entity", function(parent, child) {
+  current_children <- get_children(parent)
+  updated_children <- c(current_children, list(child))
+  return(initialize(parent, children = updated_children))
 })
 

@@ -162,3 +162,30 @@ kable_signif <- function(x, digits = 3, ...) {
   x[numeric_cols] <- lapply(x[numeric_cols], function(col) signif(col, digits))
   knitr::kable(x, ...)
 }
+
+
+#'
+#' find_root_entity()
+#' 
+#' from a list of connected Entity objects, return the single root entity
+#'
+#' error if multiple roots (this also will happen if no children have been connected)
+#'
+find_root_entity <- function(processedNodes) {
+  # Collect all child names
+  allChildren <- unlist(lapply(processedNodes, function(entity) {
+    sapply(get_children(entity), get_entity_name)
+  }))
+  
+  # Identify root candidates
+  root_candidates <- Filter(function(entity) !(get_entity_name(entity) %in% allChildren), processedNodes)
+  
+  if (length(root_candidates) == 1) {
+    return(root_candidates[[1]])
+  } else if (length(root_candidates) > 1) {
+    stop("Multiple roots found. Invalid tree.")
+  } else {
+    stop("No root found. Invalid tree.")
+  }
+}
+
