@@ -13,7 +13,7 @@ library(tibble)
 #'   (e.g., `"Household"`). Defaults to the value of `name` if not explicitly provided.
 #' @slot display_name_plural A `character` string representing the pluralized external display name 
 #'   of the entity (e.g., `"Households"`). Defaults to `display_name` with `"s"` appended if not explicitly provided.
-#' @slot parent_name A `character` string representing the internal name of the parent entity (if applicable).
+#' @param children a list of child entities (if the entity has been assembled into a tree). Empty for leaf nodes and unassembled entities.
 #'
 #' @keywords classes
 #' @exportClass Entity
@@ -29,8 +29,7 @@ library(tibble)
 #'               name = "example_entity",
 #'               description = "An example entity",
 #'               display_name = "Example Entity",
-#'               display_name_plural = "Example Entities",
-#'               parent_name = "parent_entity")
+#'               display_name_plural = "Example Entities")
 #' print(entity)
 setClass(
   "Entity",
@@ -43,7 +42,7 @@ setClass(
     description = "character",
     display_name = "character",
     display_name_plural = "character",
-    parent_name = "character"
+    children = "list"
   )
 )
 
@@ -58,7 +57,7 @@ setClass(
 #' @param description A `character` string providing a description of the entity. Defaults to `NA_character_`.
 #' @param display_name A `character` string for the external display name of the entity. Defaults to the value of `name`.
 #' @param display_name_plural A `character` string for the pluralized external display name. Defaults to `display_name` with `"s"` appended.
-#' @param parent_name A `character` string for the internal name of the parent entity. Defaults to `NA_character_`.
+#' @param children a list of child entities (if the entity has been assembled into a tree). Empty for leaf nodes and unassembled entities.
 #'
 #' @return An object of class `Entity`.
 #' @export
@@ -81,7 +80,7 @@ entity <- function(data,
                    description = NA_character_,
                    display_name = NA_character_,
                    display_name_plural = NA_character_,
-                   parent_name = NA_character_
+                   children = list()
 ) {
   
   metadata <- list(
@@ -91,7 +90,7 @@ entity <- function(data,
     description = description,
     display_name = display_name,
     display_name_plural = display_name_plural,
-    parent_name = parent_name
+    children = children
   )
   
   metadata <- apply_entity_metadata_defaults(metadata)
