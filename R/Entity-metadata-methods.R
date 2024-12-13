@@ -13,6 +13,8 @@ setGeneric("set_entity_metadata", function(entity, ...) standardGeneric("set_ent
 #' @export
 setGeneric("set_entity_name", function(entity, name) standardGeneric("set_entity_name"))
 #' @export
+setGeneric("get_entity_name", function(entity) standardGeneric("get_entity_name"))
+#' @export
 setGeneric("sync_variable_metadata", function(entity) standardGeneric("sync_variable_metadata"))
 #' @export
 setGeneric("set_variable_metadata", function(entity, ...) standardGeneric("set_variable_metadata"))
@@ -32,7 +34,6 @@ setGeneric("set_parents", function(entity, names, columns) standardGeneric("set_
 setGeneric("get_parents", function(entity) standardGeneric("get_parents"))
 #' @export
 setGeneric("get_parent_name", function(entity) standardGeneric("get_parent_name"))
-
 
 
 #' infer_missing_data_types
@@ -230,6 +231,17 @@ setMethod("set_entity_name", "Entity", function(entity, name) {
     warning(glue("Warning: Entity name is missing or not plain alphanumeric"))
   }
   return(entity)
+})
+
+#' get_entity_name
+#' 
+#' Gets the name of the entity
+#' 
+#' @param entity an Entity object
+#' @returns a single character string (name of the entity)
+#' @export
+setMethod("get_entity_name", "Entity", function(entity) {
+  return(entity@name)
 })
 
 
