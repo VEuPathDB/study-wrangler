@@ -67,9 +67,12 @@ test_that("participant_observations fixture loads and validates", {
     "Total number of variables\\s+7\\b"
   )
 
+  parent_names = c("participant", "household")
+  parent_columns = c("Participant.Id", "Household.Id")
+  
   expect_message(
     observations <- observations %>%
-      set_parents(names=c("participant", "household"), columns=c("Participant.Id", "Household.Id")),
+      set_parents(names = parent_names, columns = parent_columns),
     "Parent entity relationships and columns have been set"
   )
   
@@ -80,5 +83,31 @@ test_that("participant_observations fixture loads and validates", {
   
   expect_true(validate(observations, quiet=TRUE))
   
+  # check that `get_parents()` returns the same.
+  expect_silent(
+    parents <- observations %>% get_parents()
+  )
+  expect_equal(parents, list(names = parent_names, columns = parent_columns))
+  
+  # test bad args to set_parents()
+  parent_names_empty <- character(0)
+  parent_columns_empty <- character(0)
+  expect_message(
+    observations <- observations %>%
+      set_parents(names = parent_names_empty, columns = parent_columns_empty),
+    "No parent entity relationships provided. No changes made."
+  )
+  
+  expect_error(
+    observations <- observations %>%
+      set_parents(names = c("participant", "household"), columns = c("Participant.Id")),
+    "Error: 'names' and 'columns' must have the same length."
+  )
+  
+  expect_error(
+    observations <- observations %>%
+      set_parents(names = c("participant", "household"), columns = c("NonexistentColumn", "AnotherFakeColumn")),
+    "Error: the following data columns do not exist in this entity: NonexistentColumn, AnotherFakeColumn"
+  )
 })
 

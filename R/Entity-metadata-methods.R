@@ -28,6 +28,8 @@ setGeneric("set_data", function(entity, ...) standardGeneric("set_data"))
 setGeneric("set_variable_display_names_from_provider_labels", function(entity) standardGeneric("set_variable_display_names_from_provider_labels"))
 #' @export
 setGeneric("set_parents", function(entity, names, columns) standardGeneric("set_parents"))
+#' @export
+setGeneric("get_parents", function(entity) standardGeneric("get_parents"))
 
 
 
@@ -486,3 +488,27 @@ setMethod("set_parents", "Entity", function(entity, names, columns) {
   # Return modified entity
   return(entity %>% initialize(variables = variables))
 })
+
+
+#' gets_parents
+#' 
+#' Sets metadata for parent ID columns of this entity
+#' 
+#' @param entity an Entity object
+#' @returns list of `names` (character vector) and `columns` (character vector)
+#' @export
+setMethod("get_parents", "Entity", function(entity) {
+  # Get metadata for ID columns and filter for parents
+  parent_metadata <- entity %>%
+    get_id_column_metadata() %>%
+    filter(entity_level < 0) %>%
+    arrange(desc(entity_level)) # Reverse the order to match set_parents()
+  
+  # Extract names and columns for parent entities
+  names <- parent_metadata$entity_name
+  columns <- parent_metadata$variable
+  
+  return(list(names = names, columns = columns))
+})
+
+
