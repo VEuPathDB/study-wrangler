@@ -30,6 +30,8 @@ setGeneric("set_variable_display_names_from_provider_labels", function(entity) s
 setGeneric("set_parents", function(entity, names, columns) standardGeneric("set_parents"))
 #' @export
 setGeneric("get_parents", function(entity) standardGeneric("get_parents"))
+#' @export
+setGeneric("get_parent_name", function(entity) standardGeneric("get_parent_name"))
 
 
 
@@ -511,4 +513,21 @@ setMethod("get_parents", "Entity", function(entity) {
   return(list(names = names, columns = columns))
 })
 
+#' get_parent_name
+#' 
+#' Gets the name of the immediate parent entity
+#' 
+#' @param entity an Entity object
+#' @returns a single character string (name of the immediate parent) or NULL if no parents exist
+#' @export
+setMethod("get_parent_name", "Entity", function(entity) {
+  parents <- entity %>% get_parents()
+  
+  # Return the first name if it exists, otherwise return NULL
+  if (length(parents$names) > 0) {
+    return(parents$names[1])
+  } else {
+    return(NULL)
+  }
+})
 

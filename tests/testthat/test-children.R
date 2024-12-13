@@ -67,6 +67,13 @@ test_that("participant_observations fixture loads and validates", {
     "Total number of variables\\s+7\\b"
   )
 
+  # get_parent_name() should return NULL silently
+  expect_silent(
+    expect_null(
+      observations %>% get_parent_name()
+    )
+  )
+  
   parent_names = c("participant", "household")
   parent_columns = c("Participant.Id", "Household.Id")
   
@@ -108,6 +115,12 @@ test_that("participant_observations fixture loads and validates", {
     observations <- observations %>%
       set_parents(names = c("participant", "household"), columns = c("NonexistentColumn", "AnotherFakeColumn")),
     "Error: the following data columns do not exist in this entity: NonexistentColumn, AnotherFakeColumn"
+  )
+  
+  # get_parent_name()
+  expect_equal(
+    observations %>% get_parent_name(),
+    'participant'
   )
 })
 
