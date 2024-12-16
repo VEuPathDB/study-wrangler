@@ -1,6 +1,8 @@
 #' @export
 setGeneric("get_root_entity", function(study) standardGeneric("get_root_entity"))
 #' @export
+setGeneric("get_entities", function(study) standardGeneric("get_entities"))
+#' @export
 setGeneric("get_study_name", function(study) standardGeneric("get_study_name"))
 
 
@@ -14,6 +16,17 @@ setGeneric("get_study_name", function(study) standardGeneric("get_study_name"))
 #' @export
 setMethod("get_root_entity", "Study", function(study) {
   return(study@root_entity)
+})
+
+#' get_entities
+#'
+#' Gets a depth-first flattened list of entities, root to leaf order.
+#'
+#' @param study A `Study` object.
+#' @return list of entities.
+#' @export
+setMethod("get_entities", "Study", function(study) {
+  return(flatten_entities(study@root_entity))
 })
 
 

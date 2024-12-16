@@ -165,27 +165,18 @@ kable_signif <- function(x, digits = 3, ...) {
 
 
 #'
-#' find_root_entity()
+#' flatten_entities
 #' 
-#' from a list of connected Entity objects, return the single root entity
+#' depth-first recursive flatten of entity tree - returns a list of entities, root-first
 #'
-#' error if multiple roots (this also will happen if no children have been connected)
-#'
-find_root_entity <- function(processedNodes) {
-  # Collect all child names
-  allChildren <- unlist(lapply(processedNodes, function(entity) {
-    sapply(get_children(entity), get_entity_name)
-  }))
+flatten_entities <- function(entity) {
+  # Collect the current entity
+  entities <- list(entity)
   
-  # Identify root candidates
-  root_candidates <- Filter(function(entity) !(get_entity_name(entity) %in% allChildren), processedNodes)
-  
-  if (length(root_candidates) == 1) {
-    return(root_candidates[[1]])
-  } else if (length(root_candidates) > 1) {
-    stop("Multiple roots found. Invalid tree.")
-  } else {
-    stop("No root found. Invalid tree.")
+  # Recursively collect child entities
+  for (child in get_children(entity)) {
+    entities <- c(entities, flatten_entities(child))
   }
+  
+  return(entities)
 }
-
