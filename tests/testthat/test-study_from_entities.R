@@ -43,7 +43,8 @@ test_that("study_from_entities() works", {
 
   # won't build study due to missing linking entity
   expect_error(
-    study <- study_from_entities(entities=c(households, observations), name="my bad study")
+    study <- study_from_entities(entities=c(households, observations), name="my bad study"),
+    "Tree does not include all provided entities. Check for disconnected or orphaned nodes."
   )
   
   
