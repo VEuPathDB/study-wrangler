@@ -15,6 +15,10 @@ setGeneric("set_entity_name", function(entity, name) standardGeneric("set_entity
 #' @export
 setGeneric("get_entity_name", function(entity) standardGeneric("get_entity_name"))
 #' @export
+setGeneric("get_display_name", function(entity) standardGeneric("get_display_name"))
+#' @export
+setGeneric("get_display_name_plural", function(entity) standardGeneric("get_display_name_plural"))
+#' @export
 setGeneric("sync_variable_metadata", function(entity) standardGeneric("sync_variable_metadata"))
 #' @export
 setGeneric("set_variable_metadata", function(entity, ...) standardGeneric("set_variable_metadata"))
@@ -246,6 +250,28 @@ setMethod("set_entity_name", "Entity", function(entity, name) {
 #' @export
 setMethod("get_entity_name", "Entity", function(entity) {
   return(entity@name)
+})
+
+#' get_display_name
+#'
+#' Gets the display name of the entity
+#'
+#' @param entity an Entity object
+#' @returns a single character string (display name of the entity)
+#' @export
+setMethod("get_display_name", "Entity", function(entity) {
+  return(entity@display_name)
+})
+
+#' get_display_name_plural
+#'
+#' Gets the plural display name of the entity
+#'
+#' @param entity an Entity object
+#' @returns a single character string (plural display name of the entity)
+#' @export
+setMethod("get_display_name_plural", "Entity", function(entity) {
+  return(entity@display_name_plural)
 })
 
 
