@@ -12,8 +12,7 @@
 #'
 #' @examples
 #' # Create a Study object
-#' root_entity <- new("Entity", name = "root", data = tibble(), variables = tibble())
-#' study <- new("Study", name = "Example Study", root_entity = root_entity)
+#' study <- study(name = "Example Study", root_entity = root_entity)
 #' print(study)
 setClass(
   "Study",
@@ -23,3 +22,11 @@ setClass(
     quiet = "logical"
   )
 )
+
+#'
+#' Study constructor with sensible defaults
+#'
+#' @export
+study <- function(name = NA_character_, root_entity, quiet = FALSE) {
+  new("Study", name = name, root_entity = root_entity, quiet = quiet)
+}

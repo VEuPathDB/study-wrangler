@@ -1,6 +1,11 @@
-study_from_entities <- function(entities, name = character()) {
+study_from_entities <- function(entities, ...) {
+  # check extra args are valid slots
+  metadata = list(...)
+  validate_object_metadata_names('Entity', metadata)
+
   # Validate input
   if (!is.list(entities)) stop("Entities must be provided as a list.")
+  if (length(entities) == 0) stop("At least one entity must be provided.")
   
   # Step 1: Find the root entity (the only parentless entity)
   root_candidates <- Filter(function(entity) is.null(get_parent_name(entity)), entities)
@@ -38,6 +43,8 @@ study_from_entities <- function(entities, name = character()) {
     stop("Tree does not include all provided entities. Check for disconnected or orphaned nodes.")
   }
   
-  # Step 5: Create and return the Study object
-  return(new("Study", name = name, root_entity = root_entity))
+  # Step 5: Create and return the Study object, with merged metadata from ... args
+  constructor_args <- c(list(root_entity = root_entity), metadata)
+  study <- do.call(study, constructor_args)
+  return(study)
 }

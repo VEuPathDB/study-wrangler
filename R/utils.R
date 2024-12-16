@@ -47,22 +47,23 @@ infer_data_type <- function(data, column_name, .no_id_check = FALSE) {
 }
 
 #'
-#' void context function that will stop() if a metadata name isnt an Entity slot
+#' void context function that will stop() if a metadata name isn't a slot
+#' in the specified object class
 #' 
 #' @examples
 #' 
 #' myfunction <- function(arg1, arg2, ...) {
 #'   metadata = list(...)
-#'   validate_entity_metadata_names(metadata) # will bail if there is a problem
+#'   validate_object_metadata_names('Entity', metadata) # will bail if there is a problem
 #'   # continue doing things with metadata
 #' }
 #'
-validate_entity_metadata_names <- function(metadata) {
-  disallowed_keys <- c("data", "variables")
-  valid_keys <- setdiff(slotNames("Entity"), disallowed_keys)
+validate_object_metadata_names <- function(class_name, metadata) {
+  disallowed_keys <- c("data", "variables", "root_entity")
+  valid_keys <- setdiff(slotNames(class_name), disallowed_keys)
   invalid_keys <- setdiff(names(metadata), valid_keys)
   if (length(invalid_keys) > 0) {
-    stop("Error: these entity_from_file() args are not valid Entity metadata names: ", toString(invalid_keys))
+    stop(glue("Error: these entity_from_file() args are not valid {class_name} metadata names: {toString(invalid_keys)}"))
   }
 }
 

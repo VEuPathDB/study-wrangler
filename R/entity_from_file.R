@@ -52,7 +52,7 @@ entity_from_file <- function(file_path, preprocess_fn = NULL, ...) {
 
   # check extra args are valid slots
   metadata = list(...)
-  validate_entity_metadata_names(metadata)
+  validate_object_metadata_names('Entity', metadata)
   
   # Read the data with minimal column name repair and no type detection
   data <- suppressWarnings(

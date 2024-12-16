@@ -192,7 +192,7 @@ setMethod("set_entity_metadata", "Entity", function(entity, ...) {
   metadata <- list(...)
   
   # Validate metadata keys
-  validate_entity_metadata_names(metadata)
+  validate_object_metadata_names('Entity', metadata)
   
   if (length(metadata) == 0)
     return(entity)
