@@ -40,3 +40,23 @@ setMethod("get_entities", "Study", function(study) {
 setMethod("get_study_name", "Study", function(study) {
   return(study@name)
 })
+
+#' set_quiet
+#' 
+#' Sets an internal flag so that subsequent operations do not emit informational
+#' and help messages
+#' 
+#' 
+#' Example usage:
+#' ```R
+#' study <- study %>% set_quiet() %>% validate()
+#' ```
+#' 
+#' @param entity a Study object
+#' @param value = TRUE (default is TRUE; pass FALSE to make chatty again)
+#' @returns a new Study object with the modified quiet slot
+#' @export
+setMethod("set_quiet", "Study", function(object, ...) {
+  quiet <- if (missing(...)) { TRUE } else { ... }
+  initialize(object, quiet = quiet)
+})

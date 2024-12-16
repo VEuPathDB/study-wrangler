@@ -4,6 +4,8 @@
 #'
 #' @slot name A `character` string representing the name of the study.
 #' @slot root_entity An `Entity` object representing the root entity of the study.
+#' @slot quiet A `logical` to stop any info/message output for validation and manipulation functions (default = FALSE)
+#' 
 #'
 #' @keywords classes
 #' @exportClass Study
@@ -17,6 +19,7 @@ setClass(
   "Study",
   slots = list(
     name = "character",
-    root_entity = "Entity"
+    root_entity = "Entity",
+    quiet = "logical"
   )
 )
