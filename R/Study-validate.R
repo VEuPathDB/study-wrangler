@@ -80,6 +80,11 @@ setMethod("validate", "Study", function(object) {
         "Parent-child entity relationships are problematic in the following pairs:",
         paste(problematic_pairs, collapse = "; "),
         "Use check_row_relationships(parent, child) for row-wise details."
+
+        # TO DO <<<<<<<<<<<<<<<<<<<<<<<<<
+        # should probably have a study method that takes the names:
+        # study %>% check_row_relationships('household', 'participant')
+        # and also get_entity_by_name(study, name)
       ))
     }
   }
