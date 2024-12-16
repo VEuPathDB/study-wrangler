@@ -1,12 +1,3 @@
-#' Validate Generic
-#'
-#' Defines the S4 generic for the validate function.
-#' 
-#' @param entity The object to validate.
-#' @returns a Boolean indicating success or failure
-#' @export
-setGeneric("validate", function(entity) standardGeneric("validate"))
-
 #' Validate an Entity Object
 #'
 #' Performs various checks on data completeness and consistency 
@@ -15,7 +6,8 @@ setGeneric("validate", function(entity) standardGeneric("validate"))
 #' @param entity An Entity object to validate.
 #' @returns a Boolean indicating success or failure
 #' @export
-setMethod("validate", "Entity", function(entity) {
+setMethod("validate", "Entity", function(object) {
+  entity <- object
   # Extract data and variables
   data <- entity@data
   variables <- entity@variables

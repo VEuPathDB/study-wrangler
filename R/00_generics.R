@@ -10,3 +10,13 @@ setGeneric("inspect", function(object, ...) standardGeneric("inspect"))
 #' @param value = TRUE
 #' @export
 setGeneric("set_quiet", function(object, ...) standardGeneric("set_quiet"))
+
+
+#' Validate Generic
+#'
+#' Defines the S4 generic for the validate function.
+#' 
+#' @param entity The object to validate.
+#' @returns a Boolean indicating success or failure
+#' @export
+setGeneric("validate", function(object) standardGeneric("validate"))
