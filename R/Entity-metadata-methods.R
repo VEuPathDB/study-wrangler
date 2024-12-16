@@ -37,7 +37,7 @@ setGeneric("get_parent_name", function(entity) standardGeneric("get_parent_name"
 #' @export
 setGeneric("get_children", function(entity) standardGeneric("get_children"))
 #' @export
-setGeneric("append_children", function(parent, child) standardGeneric("append_children"))
+setGeneric("pretty_tree", function(entity) standardGeneric("pretty_tree"))
 
 
 #' infer_missing_data_types
@@ -559,18 +559,65 @@ setMethod("get_children", "Entity", function(entity) {
   return(entity@children)
 })
 
-
-#' append_children
-#' 
-#' Gets the list of child entities. Only applicable in the context of a Study
-#' where a tree has been constructed
-#' 
-#' @param entity an Entity object
-#' @returns an updated Entity object
+#'
+#' pretty_tree
+#'
+#' @param entity
+#' @returns vector of character (lines to print or cat)
 #' @export
-setMethod("append_children", "Entity", function(parent, child) {
-  current_children <- get_children(parent)
-  updated_children <- c(current_children, list(child))
-  return(initialize(parent, children = updated_children))
+setMethod("pretty_tree", "Entity", function(entity) {
+  # This will be our main entry point.
+  # We'll call a helper function that recursively gathers all lines.
+  lines <- format_entity(entity, prefix = "", is_last = TRUE, is_root = TRUE)
+  return(lines)
 })
+
+#'
+#' helper for pretty_tree
+#'
+format_entity <- function(entity, prefix, is_last, is_root = FALSE) {
+  # Determine the prefix for this entity line
+  line_prefix <- if (is_root) {
+    prefix
+  } else if (is_last) {
+    paste0(prefix, "└── ")
+  } else {
+    paste0(prefix, "├── ")
+  }
+  
+  this_line <- paste0(line_prefix, get_entity_name(entity))
+  
+  # For children, we need to decide on the next prefix. If this entity is the last child,
+  # the next prefix for its children is prefix + "    " (4 spaces),
+  # otherwise it's prefix + "|   ".
+  children_prefix <- if (is_root) {
+    prefix
+  }  else if (is_last) {
+    paste0(prefix, "    ")
+  } else {
+    paste0(prefix, "│   ")
+  }
+  
+  children <- get_children(entity)
+  
+  if (length(children) == 0) {
+    # No children, just return the current line.
+    return(this_line)
+  } else {
+    # Recursively format each child. The last child's is_last = TRUE.
+    lines_for_children <- mapply(
+      FUN = function(child, is_last_child) {
+        format_entity(child, prefix = children_prefix, is_last = is_last_child)
+      },
+      child = children,
+      is_last_child = seq_along(children) == length(children),
+      SIMPLIFY = FALSE
+    )
+    
+    # Combine this entity's line with all children's lines.
+    return(c(this_line, unlist(lines_for_children)))
+  }
+}
+
+
 
