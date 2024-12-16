@@ -33,3 +33,39 @@ test_that("validate(study) fails for things", {
   )
   
 })
+
+# test the parent IDs are correct, row-wise
+test_that("check_parent_ids() works", {
+  households_path <- system.file("extdata", "toy_example/households.tsv", package = 'study.wrangler')
+  participants_path <- system.file("extdata", "toy_example/participants.tsv", package = 'study.wrangler')
+
+  households <- entity_from_file(households_path, name="household")
+  
+  participants <- entity_from_file(participants_path, name="participant", quiet=TRUE) %>%
+    redo_type_detection_as_variables_only('Name') %>%
+    set_parents(names=c("household"), columns=c("Household.Id")) %>% set_quiet(FALSE)
+  
+  # this should be silent
+  expect_silent(
+    check_result <- check_parent_ids(households, participants)
+  )
+  # and it should be valid
+  expect_true(check_result$is_valid)
+  
+  # now mess up some of the parent IDs in participants
+  bad_participants <- participants %>% set_data(
+    mutate(Household.Id = if_else(row_number() %% 3 == 0, 'H007', Household.Id))
+  )
+
+  # this should be silent
+  expect_silent(
+    check_result <- check_parent_ids(households, bad_participants)
+  )
+  # and it should be invalid
+  expect_false(check_result$is_valid)
+  expect_equal(
+    check_result$missing_mappings %>% nrow(),
+    2
+  )
+    
+})

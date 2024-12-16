@@ -713,10 +713,50 @@ setMethod("set_quiet", "Entity", function(object, quiet = TRUE) {
 })
 
 
-setMethod("check_parent_ids",
-          signature(parent = "Entity", child = "Entity"),
-          function(parent, child) {
-  
-  
-  
-})
+#'
+#' check_parent_ids
+#'
+#' Performs a join of the parent and child tibbles and returns
+#' FALSE if there are any child rows that can't be joined to the parent
+#'
+#' Maybe don't export this??
+#' @export
+setMethod(
+  "check_parent_ids",
+  signature(parent = "Entity", child = "Entity"),
+  function(parent, child) {
+    
+    # Extract data
+    child_data <- child %>% get_data() # tibble
+    parent_data <- parent %>% get_data() # tibble
+    
+    # Identify columns
+    child_id_column_name <- child %>% get_entity_id_column()   # child's primary key
+    child_join_column_name <- child %>% get_parent_id_column() # child's foreign key to parent
+    parent_join_column_name <- parent %>% get_entity_id_column() # parent's primary key
+    
+    # Perform a right join from parent_data to child_data so that all child rows appear
+    # If a child's foreign key doesn't match a parent's primary key, parent columns will be NA.
+    joined_data <- parent_data %>% 
+      right_join(
+        child_data, 
+        by = setNames(child_join_column_name, parent_join_column_name),
+        suffix = c('.x', '.y'), # with these two args, join column names will be 
+        keep = TRUE # Household.Id.x and Household.Id.y
+      )
+    parent_join_column_name.x <- paste0(parent_join_column_name, '.x')
+    child_join_column_name.y <- paste0(child_join_column_name, '.y')
+    
+    # Find rows where the parent match failed (i.e. parent's PK column is NA)
+    missing_parents <- joined_data %>%
+      filter(if_any(all_of(parent_join_column_name.x), is.na)) %>%
+      select(all_of(c(child_join_column_name.y, child_id_column_name))) %>%
+      rename(setNames(child_join_column_name.y, child_join_column_name))
+
+    is_valid <- nrow(missing_parents) == 0
+    return(list(
+      is_valid = is_valid,
+      missing_mappings = if (!is_valid) missing_parents else NULL
+    ))
+  }
+)
