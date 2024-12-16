@@ -8,6 +8,7 @@
 #' @export
 setMethod("validate", "Study", function(object) {
   study <- object
+  root_entity <- study@root_entity
   quiet <- study@quiet
   
   tools <- create_feedback_tools(quiet = quiet)
@@ -47,8 +48,39 @@ setMethod("validate", "Study", function(object) {
   # Foreign key/parent ID check
   if (length(entities) > 0) {
     
+    # Recursive function to check parent-child relationships
+    check <- function(entity) {
+      problematic_pairs <- list() # Initialize list to collect problematic pairs
+      
+      for (child in entity@children) {
+        result <- check_parent_ids(entity, child)
+        
+        # If invalid, collect the parent-child pair
+        if (!result$is_valid) {
+          problematic_pairs <- c(
+            problematic_pairs,
+            paste(get_entity_name(entity), "->", get_entity_name(child))
+          )
+        }
+        
+        # Recurse into the child's children
+        child_results <- check(child)
+        problematic_pairs <- c(problematic_pairs, child_results)
+      }
+      
+      return(problematic_pairs) # Return all problematic pairs for this branch
+    }
     
+    # Start the check from the root entity
+    problematic_pairs <- check(root_entity)
     
+    # If there are any problematic pairs, report them
+    if (length(problematic_pairs) > 0) {
+      add_feedback(paste(
+        "Parent-child entity relationships are problematic in the following pairs:",
+        paste(problematic_pairs, collapse = "; ")
+      ))
+    }
   }
   
   give_feedback()

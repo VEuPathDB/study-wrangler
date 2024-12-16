@@ -34,7 +34,12 @@ study_from_entities <- function(entities, ...) {
     return(parent)
   }
   
-  # Step 3: Grow the tree from the root
+  # Step 3: Grow the tree from the root after
+  # stripping all entities of their @children
+  entities <- lapply(entities, function(entity) {
+    entity@children <- list()
+    return(entity)
+  })
   root_entity <- grow_tree(root_entity, entities)
   
   # Step 4: Sanity check

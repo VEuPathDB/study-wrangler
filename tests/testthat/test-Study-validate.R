@@ -69,3 +69,5 @@ test_that("check_parent_ids() works", {
   )
     
 })
+
+# bad_participants <- participants %>% set_data(mutate(Household.Id = fct_mutate(Household.Id, row_number() %% 3 == 0, 'H007', .auto_expand = TRUE)))
