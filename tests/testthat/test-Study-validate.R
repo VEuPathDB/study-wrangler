@@ -70,4 +70,39 @@ test_that("check_parent_ids() works", {
     
 })
 
-# bad_participants <- participants %>% set_data(mutate(Household.Id = fct_mutate(Household.Id, row_number() %% 3 == 0, 'H007', .auto_expand = TRUE)))
+# now test the whole study version (in validate())
+test_that("validate(study) checks parent ID relationships row-wise", {
+  
+  expect_silent(study <- make_study(name = 'cool study'))
+  
+  expect_true(
+    study %>% set_quiet() %>% validate()
+  )
+  entities <- get_entities(study)
+  households <- entities[[1]]
+  participants <- entities[[2]]
+  observations <- entities[[3]]
+
+  expect_silent(
+    study <- study_from_entities(entities=list(households, participants, observations), name = 'should be the same')
+  )
+  expect_true(
+    study %>% set_quiet() %>% validate()
+  )
+  
+  bad_participants <- participants %>%
+    set_data(
+      mutate(
+        Household.Id = fct_mutate(Household.Id, row_number() %% 3 == 0, 'H007', .auto_expand = TRUE)
+      )
+    )
+  
+  expect_silent(
+    bad_study <- study_from_entities(entities=list(households, bad_participants, observations), name = 'a bad one')
+  )
+  
+})
+
+
+
+
