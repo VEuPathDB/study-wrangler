@@ -40,3 +40,17 @@ setMethod("get_entities", "Study", function(study) {
 setMethod("get_study_name", "Study", function(study) {
   return(study@name)
 })
+
+
+
+#' Inspect a Study Object
+#'
+#' Provides a summary view of the study's metadata and its entity structure
+#'
+#' @param entity An Entity object to inspect.
+#' @export
+setMethod("inspect", "Study", function(object) {
+  study <- object
+  cat(to_lines(pretty_tree(get_root_entity(study))))
+  
+})
