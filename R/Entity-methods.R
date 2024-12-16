@@ -15,6 +15,8 @@ setGeneric("set_entity_name", function(entity, name) standardGeneric("set_entity
 #' @export
 setGeneric("get_entity_name", function(entity) standardGeneric("get_entity_name"))
 #' @export
+setGeneric("get_entity_id_column", function(entity) standardGeneric("get_entity_id_column"))
+#' @export
 setGeneric("get_display_name", function(entity) standardGeneric("get_display_name"))
 #' @export
 setGeneric("get_display_name_plural", function(entity) standardGeneric("get_display_name_plural"))
@@ -39,9 +41,13 @@ setGeneric("get_parents", function(entity) standardGeneric("get_parents"))
 #' @export
 setGeneric("get_parent_name", function(entity) standardGeneric("get_parent_name"))
 #' @export
+setGeneric("get_parent_id_column", function(entity) standardGeneric("get_parent_id_column"))
+#' @export
 setGeneric("get_children", function(entity) standardGeneric("get_children"))
 #' @export
 setGeneric("pretty_tree", function(entity) standardGeneric("pretty_tree"))
+#' @export
+setGeneric("check_parent_ids", function(parent, child) standardGeneric("check_parent_ids"))
 
 
 #' infer_missing_data_types
@@ -251,6 +257,29 @@ setMethod("set_entity_name", "Entity", function(entity, name) {
 setMethod("get_entity_name", "Entity", function(entity) {
   return(entity@name)
 })
+
+#' get_entity_id_column
+#' 
+#' Gets the name of this entity's ID column
+#' 
+#' @param entity an Entity object
+#' @returns a single character string (name of the column), or NULL if there any issues
+#' @export
+setMethod("get_entity_id_column", "Entity", function(entity) {
+  variables <- entity@variables
+
+  my_id_columns <- variables %>% 
+    filter(data_type == "id") %>% 
+    filter(entity_level == 0) %>% 
+    pull(variable)
+
+  if (length(my_id_columns) == 1) {
+    return(my_id_columns)
+  }
+    
+  return(NULL)
+})
+
 
 #' get_display_name
 #'
@@ -536,7 +565,7 @@ setMethod("set_parents", "Entity", function(entity, names, columns) {
 
 #' gets_parents
 #' 
-#' Sets metadata for parent ID columns of this entity
+#' Gets metadata for parent ID columns of this entity
 #' 
 #' @param entity an Entity object
 #' @returns list of `names` (character vector) and `columns` (character vector)
@@ -568,6 +597,24 @@ setMethod("get_parent_name", "Entity", function(entity) {
   # Return the first name if it exists, otherwise return NULL
   if (length(parents$names) > 0) {
     return(parents$names[1])
+  } else {
+    return(NULL)
+  }
+})
+
+#' get_parent_id_column
+#' 
+#' Gets the name of the immediate parent entity
+#' 
+#' @param entity an Entity object
+#' @returns a single character string (column name in the data tibble) or NULL if no parents exist
+#' @export
+setMethod("get_parent_id_column", "Entity", function(entity) {
+  parents <- entity %>% get_parents()
+  
+  # Return the first name if it exists, otherwise return NULL
+  if (length(parents$columns) > 0) {
+    return(parents$columns[1])
   } else {
     return(NULL)
   }
@@ -661,7 +708,15 @@ format_entity <- function(entity, prefix, is_last, is_root = FALSE) {
 #' @param value = TRUE (default is TRUE; pass FALSE to make chatty again)
 #' @returns a new Entity object with the modified quiet slot
 #' @export
-setMethod("set_quiet", "Entity", function(object, ...) {
-  quiet <- if (missing(...)) { TRUE } else { ... }
+setMethod("set_quiet", "Entity", function(object, quiet = TRUE) {
   initialize(object, quiet = quiet)
+})
+
+
+setMethod("check_parent_ids",
+          signature(parent = "Entity", child = "Entity"),
+          function(parent, child) {
+  
+  
+  
 })

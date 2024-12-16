@@ -22,7 +22,7 @@ setMethod("validate", "Study", function(object) {
   entities %>% map(
     function(entity) {
       is_valid <- entity %>% set_quiet() %>% validate()
-      if (is_valid) {
+      if (!is_valid) {
         add_feedback(
           glue(
             "The entity named '{get_entity_name(entity)}' is not valid. Please run `validate()` on it directly for more details."
@@ -37,9 +37,21 @@ setMethod("validate", "Study", function(object) {
     return(FALSE)
   }
   
-  # more validation...
-  if (is.na())
+  # Metadata slot validation...
+  if (is.na(study@name)) {
+    add_feedback(
+      "Study name is missing. Add it with `set_study_name()`."
+    )
+  }
   
+  # Foreign key/parent ID check
+  if (length(entities) > 0) {
+    
+    
+    
+  }
+  
+  give_feedback()
   
   return(get_is_valid())  
 })

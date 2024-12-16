@@ -1,4 +1,7 @@
-make_study <- function() {
+make_study <- function(...) {
+  metadata <- list(...)
+  validate_object_metadata_names('Study', metadata)
+  
   households_path <- system.file("extdata", "toy_example/households.tsv", package = 'study.wrangler')
   participants_path <- system.file("extdata", "toy_example/participants.tsv", package = 'study.wrangler')
   observations_path <- system.file("extdata", "toy_example/participant_observations.tsv", package = 'study.wrangler')
@@ -16,6 +19,8 @@ make_study <- function() {
       columns=c("Participant.Id","Household.Id")
     )
 
-  study <- study_from_entities(entities = c(households, participants, observations), name = "my study")
+  # call study_from_entities with 'spread' metadata 
+  args = c(list(entities = c(households, participants, observations)), metadata)
+  study <- do.call(study_from_entities, args)
   return(study)
 }
