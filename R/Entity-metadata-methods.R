@@ -140,7 +140,7 @@ setMethod("redo_type_detection_as_variables_only", "Entity", function(entity, co
 
   # Early return if `columns` is empty
   if (missing(columns) || length(columns) == 0) {
-    message("No column names provided. No changes made.")
+    if (!entity@quiet) message("No column names provided. No changes made.")
     return(entity)
   }
     
@@ -157,7 +157,7 @@ setMethod("redo_type_detection_as_variables_only", "Entity", function(entity, co
   }
 
   # Set `variables$data_type` to NA where `variable %in% columns`
-  message("Redoing type detection")
+  if (!entity@quiet) message("Redoing type detection")
   variables <- variables %>%
     mutate(
       data_type = fct_mutate(
@@ -216,7 +216,7 @@ setMethod("set_entity_metadata", "Entity", function(entity, ...) {
 setMethod("set_entity_name", "Entity", function(entity, name) {
   if (validate_entity_name(name)) {
     
-    message(glue("Adding entity name '{name}'..."))
+    if (!entity@quiet) message(glue("Adding entity name '{name}'..."))
     # set it with the general purpose method that also
     # sets display_name* with sensible fallbacks
     entity <- entity %>% set_entity_metadata(name = name)
@@ -271,7 +271,7 @@ setMethod("sync_variable_metadata", "Entity", function(entity) {
 
   # Early return if no mismatches
   if (length(missing_variables) == 0 && length(extra_variables) == 0) {
-    message("No metadata synchronization needed.")
+    if (!entity@quiet) message("No metadata synchronization needed.")
     return(entity)
   }
   
@@ -291,7 +291,7 @@ setMethod("sync_variable_metadata", "Entity", function(entity) {
       )
 
     variables <- bind_rows(variables, missing_metadata)
-    message(paste(
+    if (!entity@quiet) message(paste(
       "Synced variables metadata by adding defaults for:",
       paste(missing_variables, collapse = ", ")
     ))
@@ -300,7 +300,7 @@ setMethod("sync_variable_metadata", "Entity", function(entity) {
   if (length(extra_variables)) {
     variables <- variables %>%
       filter(!variable %in% extra_variables)
-    message(paste(
+    if (!entity@quiet) message(paste(
       "Synced metadata by removing these variables with no data:",
       paste(extra_variables, collapse = ", ")
     ))
@@ -355,7 +355,7 @@ setMethod("set_variable_metadata", "Entity", function(entity, variable_name, ...
     updates,
     \(x, y) variables[row_number, x] <<- y
   )
-  message(glue("Made metadata update(s) to '{names(updates)}' for '{variable_name}'"))
+  if (!entity@quiet) message(glue("Made metadata update(s) to '{names(updates)}' for '{variable_name}'"))
 
   # return modified entity
   return(entity %>% initialize(variables=variables))
@@ -453,7 +453,7 @@ setMethod("set_variable_display_names_from_provider_labels", "Entity", function(
   variables <- variables %>%
     mutate(display_name = if_else(mask, provider_label, display_name))
   
-  message(glue("Copied provider_label over to display_name for {sum(mask, na.rm = TRUE)} variables"))
+  if (!entity@quiet) message(glue("Copied provider_label over to display_name for {sum(mask, na.rm = TRUE)} variables"))
   return(entity %>% initialize(variables=variables))
 })
 
@@ -472,7 +472,7 @@ setMethod("set_parents", "Entity", function(entity, names, columns) {
 
   # Early return if `names` and `columns` are empty
   if (length(names) == 0 && length(columns) == 0) {
-    message("No parent entity relationships provided. No changes made.")
+    if (!entity@quiet) message("No parent entity relationships provided. No changes made.")
     return(entity)
   }
 
@@ -501,7 +501,7 @@ setMethod("set_parents", "Entity", function(entity, names, columns) {
       entity_level = if_else(variable %in% columns, -match(variable, columns), entity_level)
     )
   
-  message("Parent entity relationships and columns have been set")
+  if (!entity@quiet) message("Parent entity relationships and columns have been set")
   
   # Return modified entity
   return(entity %>% initialize(variables = variables))
@@ -620,4 +620,22 @@ format_entity <- function(entity, prefix, is_last, is_root = FALSE) {
 }
 
 
-
+#' set_quiet
+#' 
+#' Sets an internal flag so that subsequent operations do not emit confirmational
+#' and help messages
+#' 
+#' 
+#' Example usage:
+#' ```R
+#' households <- households %>% set_quiet() %>% some_chatty_operation()
+#' ```
+#' 
+#' @param entity an Entity object
+#' @param value = TRUE (default is TRUE; pass FALSE to make chatty again)
+#' @returns a new Entity object with the modified quiet slot
+#' @export
+setMethod("set_quiet", "Entity", function(object, ...) {
+  quiet <- if (missing(...)) { TRUE } else { ... }
+  initialize(object, quiet = quiet)
+})

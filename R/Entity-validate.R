@@ -5,7 +5,7 @@
 #' @param entity The object to validate.
 #' @returns a Boolean indicating success or failure
 #' @export
-setGeneric("validate", function(entity, ...) standardGeneric("validate"))
+setGeneric("validate", function(entity) standardGeneric("validate"))
 
 #' Validate an Entity Object
 #'
@@ -15,11 +15,12 @@ setGeneric("validate", function(entity, ...) standardGeneric("validate"))
 #' @param entity An Entity object to validate.
 #' @returns a Boolean indicating success or failure
 #' @export
-setMethod("validate", "Entity", function(entity, quiet = FALSE) {
+setMethod("validate", "Entity", function(entity) {
   # Extract data and variables
   data <- entity@data
   variables <- entity@variables
-
+  quiet <- entity@quiet
+  
   # Initialize validation results and messages
   is_valid <- TRUE
   feedback <- character()
@@ -31,13 +32,12 @@ setMethod("validate", "Entity", function(entity, quiet = FALSE) {
   }
     
   give_feedback <- function(fatal_message = NULL) {
-    if (quiet) return()
-    if (length(feedback) > 0) {
+    if (!quiet && length(feedback) > 0) {
       message("Validation issues found:\n", paste(feedback, collapse = "\n"))
     }
     if (is.character(fatal_message)) {
       warning("Fatal issue encountered:\n", fatal_message, call.=FALSE)
-    } else if (length(feedback) == 0) {
+    } else if (!quiet && length(feedback) == 0) {
       message("Entity is valid.")
     }
   }

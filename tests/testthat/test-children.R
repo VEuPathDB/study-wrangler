@@ -17,7 +17,7 @@ test_that("participants fixture loads and fails validation due to wrongly infere
   )
 
   # and now it should validate
-  expect_true(validate(participants, quiet=TRUE))
+  expect_true(participants %>% set_quiet() %>% validate())
 })
 
 test_that("set_parents() works and the result validates", {
@@ -35,8 +35,8 @@ test_that("set_parents() works and the result validates", {
   )
 
   # it should now validate  
-  expect_true(validate(participants, quiet=TRUE))
-  
+  expect_true(participants %>% set_quiet() %>% validate())
+
   # but Household.Id is still a regular variable
   output <- capture.output(inspect(participants))
   expect_true(any(grepl("Total number of variables\\s+5\\b", output)))
@@ -53,7 +53,7 @@ test_that("set_parents() works and the result validates", {
   expect_true(any(grepl("Total number of variables\\s+4\\b", output)))
   expect_false(any(grepl("Household.Id\\s+string\\s+categorical\\b", output)))
   
-  expect_true(validate(participants, quiet=TRUE))
+  expect_true(participants %>% set_quiet() %>% validate())
 })
 
 
@@ -88,8 +88,8 @@ test_that("participant_observations fixture loads and validates", {
     "Total number of variables\\s+5\\b"
   )
   
-  expect_true(validate(observations, quiet=TRUE))
-  
+  expect_true(observations %>% set_quiet() %>% validate())
+
   # check that `get_parents()` returns the same.
   expect_silent(
     parents <- observations %>% get_parents()
