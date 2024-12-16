@@ -47,7 +47,7 @@ test_that("check_parent_ids() works", {
   
   # this should be silent
   expect_silent(
-    check_result <- check_parent_ids(households, participants)
+    check_result <- check_row_relationships(households, participants)
   )
   # and it should be valid
   expect_true(check_result$is_valid)
@@ -59,7 +59,7 @@ test_that("check_parent_ids() works", {
 
   # this should be silent
   expect_silent(
-    check_result <- check_parent_ids(households, bad_participants)
+    check_result <- check_row_relationships(households, bad_participants)
   )
   # and it should be invalid
   expect_false(check_result$is_valid)
@@ -73,17 +73,18 @@ test_that("check_parent_ids() works", {
 # now test the whole study version (in validate())
 test_that("validate(study) checks parent ID relationships row-wise", {
   
-  expect_silent(study <- make_study(name = 'cool study'))
+  expect_no_error(study <- make_study(name = 'cool study'))
   
   expect_true(
     study %>% set_quiet() %>% validate()
   )
   entities <- get_entities(study)
+  # library(zeallot) opportunity:
   households <- entities[[1]]
   participants <- entities[[2]]
   observations <- entities[[3]]
 
-  expect_silent(
+  expect_no_error(
     study <- study_from_entities(entities=list(households, participants, observations), name = 'should be the same')
   )
   expect_true(
@@ -100,7 +101,10 @@ test_that("validate(study) checks parent ID relationships row-wise", {
   expect_silent(
     bad_study <- study_from_entities(entities=list(households, bad_participants, observations), name = 'a bad one')
   )
-  
+  expect_message(
+    validate(bad_study),
+    "relationships are problematic in the following pairs.+household.+participant"
+  )
 })
 
 

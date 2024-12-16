@@ -53,7 +53,7 @@ setMethod("validate", "Study", function(object) {
       problematic_pairs <- list() # Initialize list to collect problematic pairs
       
       for (child in entity@children) {
-        result <- check_parent_ids(entity, child)
+        result <- check_row_relationships(entity, child)
         
         # If invalid, collect the parent-child pair
         if (!result$is_valid) {
@@ -76,9 +76,10 @@ setMethod("validate", "Study", function(object) {
     
     # If there are any problematic pairs, report them
     if (length(problematic_pairs) > 0) {
-      add_feedback(paste(
+      add_feedback(to_lines(
         "Parent-child entity relationships are problematic in the following pairs:",
-        paste(problematic_pairs, collapse = "; ")
+        paste(problematic_pairs, collapse = "; "),
+        "Use check_row_relationships(parent, child) for row-wise details."
       ))
     }
   }
