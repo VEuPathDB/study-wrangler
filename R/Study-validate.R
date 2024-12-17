@@ -12,7 +12,7 @@ setMethod("validate", "Study", function(object) {
   quiet <- study@quiet
 
   # name of caller's object for code suggestions after violations
-  caller_name = find_global_varname(study, fallback = 'study')
+  global_varname = find_global_varname(study, fallback = 'study')
   
   tools <- create_feedback_tools(quiet = quiet)
   # the following can be made nicer with library(zeallot)
@@ -25,12 +25,12 @@ setMethod("validate", "Study", function(object) {
   
   entities %>% map(
     function(entity) {
-      entity_caller_name = find_global_varname(entity, 'entity')
       is_valid <- entity %>% quiet() %>% validate()
       if (!is_valid) {
+        entity_name <- get_entity_name(entity)
         add_feedback(
           glue(
-            "The entity named '{get_entity_name(entity)}' is not valid.\nPlease run `{entity_caller_name} %>% validate()` for more details."
+            "The entity named '{entity_name}' is not valid.\nPlease run `{global_varname} %>% get_entity('{entity_name}') %>% validate()` for more details."
           )
         )
       }
@@ -45,7 +45,7 @@ setMethod("validate", "Study", function(object) {
   # Metadata slot validation...
   if (is.na(study@name)) {
     add_feedback(
-      glue("Study name is missing. Add it with `{caller_name} <- {caller_name} %>% set_study_name('a name')`.")
+      glue("Study name is missing. Add it with `{global_varname} <- {global_varname} %>% set_study_name('a name')`.")
     )
   }
   
@@ -91,7 +91,7 @@ setMethod("validate", "Study", function(object) {
         "Use the following code to get row-wise details:",
         indented(
           problematic_pairs %>%
-            transmute(glue("{caller_name} <- {caller_name} %>% check_parent_child_row_linkage('{parent}', '{child}')")) %>% pull()
+            transmute(glue("{global_varname} <- {global_varname} %>% check_parent_child_row_linkage('{parent}', '{child}')")) %>% pull()
         )
       ))
     }

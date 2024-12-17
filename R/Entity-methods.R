@@ -48,6 +48,8 @@ setGeneric("get_children", function(entity) standardGeneric("get_children"))
 setGeneric("pretty_tree", function(entity) standardGeneric("pretty_tree"))
 #' @export
 setGeneric("check_parent_child_join", function(parent, child) standardGeneric("check_parent_child_join"))
+#' @export
+setGeneric("remove_children", function(entity) standardGeneric("remove_children"))
 
 
 #' infer_missing_data_types
@@ -776,3 +778,16 @@ setMethod(
     ))
   }
 )
+
+#'
+#' remove children from entity (in Study context)
+#' 
+#' 
+#' @param object an Entity object
+#' @returns a new Entity object with children removed
+#' @export
+setMethod("remove_children", "Entity", function(entity) {
+  entity@children <- list()
+  return(entity)
+})
+

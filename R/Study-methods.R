@@ -45,8 +45,7 @@ setMethod("get_entities", "Study", function(study) {
 #' @export
 setMethod("get_entity", "Study", function(study, name) {
   entities <- flatten_entities(study@root_entity)
-  
-  # TO DO
+  return(entities %>% detect(~ get_entity_name(.x) == name))
 })
 
 

@@ -27,14 +27,8 @@ study_from_entities <- function(entities, ...) {
 
   # Strip all entities of their @children (if they have them)
   # before assembling them together
-  entities <- entities %>% map(
-    function(entity) {
-      entity@children <- list()
-      return(entity)
-    }
-  )
+  entities <- entities %>% map(remove_children)
 
-    
   # Step 1: Find the root entity (the only parentless entity)
   root_candidates <- Filter(function(entity) is.null(get_parent_name(entity)), entities)
   

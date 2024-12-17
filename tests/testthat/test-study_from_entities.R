@@ -42,6 +42,20 @@ test_that("study_from_entities() works", {
     lapply(expected_entities, get_entity_name)
   )
 
+  # test get_entity()
+  expect_equal(
+    study %>% get_entity('household') %>% remove_children(),
+    households
+  )
+  expect_equal(
+    study %>% get_entity('participant') %>% remove_children(),
+    participants
+  )
+  expect_equal(
+    study %>% get_entity('observation') %>% remove_children(),
+    observations
+  )
+    
   # won't build study due to missing linking entity
   expect_error(
     study <- study_from_entities(entities=c(households, observations), name="my bad study"),
