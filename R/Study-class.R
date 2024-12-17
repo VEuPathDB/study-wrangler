@@ -4,19 +4,29 @@
 #'
 #' @slot name A `character` string representing the name of the study.
 #' @slot root_entity An `Entity` object representing the root entity of the study.
+#' @slot quiet A `logical` to stop any info/message output for validation and manipulation functions (default = FALSE)
+#' 
 #'
 #' @keywords classes
 #' @exportClass Study
 #'
 #' @examples
 #' # Create a Study object
-#' root_entity <- new("Entity", name = "root", data = tibble(), variables = tibble())
-#' study <- new("Study", name = "Example Study", root_entity = root_entity)
+#' study <- study(name = "Example Study", root_entity = root_entity)
 #' print(study)
 setClass(
   "Study",
   slots = list(
     name = "character",
-    root_entity = "Entity"
+    root_entity = "Entity",
+    quiet = "logical"
   )
 )
+
+#'
+#' Study constructor with sensible defaults
+#'
+#' @export
+study <- function(name = NA_character_, root_entity, quiet = FALSE) {
+  new("Study", name = name, root_entity = root_entity, quiet = quiet)
+}

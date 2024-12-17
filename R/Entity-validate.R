@@ -1,12 +1,3 @@
-#' Validate Generic
-#'
-#' Defines the S4 generic for the validate function.
-#' 
-#' @param entity The object to validate.
-#' @returns a Boolean indicating success or failure
-#' @export
-setGeneric("validate", function(entity, ...) standardGeneric("validate"))
-
 #' Validate an Entity Object
 #'
 #' Performs various checks on data completeness and consistency 
@@ -15,32 +6,18 @@ setGeneric("validate", function(entity, ...) standardGeneric("validate"))
 #' @param entity An Entity object to validate.
 #' @returns a Boolean indicating success or failure
 #' @export
-setMethod("validate", "Entity", function(entity, quiet = FALSE) {
+setMethod("validate", "Entity", function(object) {
+  entity <- object
   # Extract data and variables
   data <- entity@data
   variables <- entity@variables
-
-  # Initialize validation results and messages
-  is_valid <- TRUE
-  feedback <- character()
-
-  add_feedback <- function(message) {
-    # special <<- operator updates variable in "parent context"
-    feedback <<- c(feedback, message)
-    is_valid <<- FALSE
-  }
-    
-  give_feedback <- function(fatal_message = NULL) {
-    if (quiet) return()
-    if (length(feedback) > 0) {
-      message("Validation issues found:\n", paste(feedback, collapse = "\n"))
-    }
-    if (is.character(fatal_message)) {
-      warning("Fatal issue encountered:\n", fatal_message, call.=FALSE)
-    } else if (length(feedback) == 0) {
-      message("Entity is valid.")
-    }
-  }
+  quiet <- entity@quiet
+  
+  tools <- create_feedback_tools(quiet = quiet)
+  # the following can be made nicer with library(zeallot)
+  add_feedback <- tools$add_feedback
+  give_feedback <- tools$give_feedback
+  get_is_valid <- tools$get_is_valid
   
   # Fatal Validation: Check if metadata is empty
   if (nrow(variables) == 0) {
@@ -296,5 +273,5 @@ setMethod("validate", "Entity", function(entity, quiet = FALSE) {
   give_feedback()  
   
   # Return overall validation status
-  return(is_valid)
+  return(get_is_valid())
 })

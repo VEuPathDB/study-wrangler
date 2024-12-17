@@ -15,6 +15,12 @@ setGeneric("set_entity_name", function(entity, name) standardGeneric("set_entity
 #' @export
 setGeneric("get_entity_name", function(entity) standardGeneric("get_entity_name"))
 #' @export
+setGeneric("get_entity_id_column", function(entity) standardGeneric("get_entity_id_column"))
+#' @export
+setGeneric("get_display_name", function(entity) standardGeneric("get_display_name"))
+#' @export
+setGeneric("get_display_name_plural", function(entity) standardGeneric("get_display_name_plural"))
+#' @export
 setGeneric("sync_variable_metadata", function(entity) standardGeneric("sync_variable_metadata"))
 #' @export
 setGeneric("set_variable_metadata", function(entity, ...) standardGeneric("set_variable_metadata"))
@@ -35,9 +41,13 @@ setGeneric("get_parents", function(entity) standardGeneric("get_parents"))
 #' @export
 setGeneric("get_parent_name", function(entity) standardGeneric("get_parent_name"))
 #' @export
+setGeneric("get_parent_id_column", function(entity) standardGeneric("get_parent_id_column"))
+#' @export
 setGeneric("get_children", function(entity) standardGeneric("get_children"))
 #' @export
-setGeneric("append_children", function(parent, child) standardGeneric("append_children"))
+setGeneric("pretty_tree", function(entity) standardGeneric("pretty_tree"))
+#' @export
+setGeneric("check_row_relationships", function(parent, child) standardGeneric("check_row_relationships"))
 
 
 #' infer_missing_data_types
@@ -140,7 +150,7 @@ setMethod("redo_type_detection_as_variables_only", "Entity", function(entity, co
 
   # Early return if `columns` is empty
   if (missing(columns) || length(columns) == 0) {
-    message("No column names provided. No changes made.")
+    if (!entity@quiet) message("No column names provided. No changes made.")
     return(entity)
   }
     
@@ -157,7 +167,7 @@ setMethod("redo_type_detection_as_variables_only", "Entity", function(entity, co
   }
 
   # Set `variables$data_type` to NA where `variable %in% columns`
-  message("Redoing type detection")
+  if (!entity@quiet) message("Redoing type detection")
   variables <- variables %>%
     mutate(
       data_type = fct_mutate(
@@ -188,7 +198,7 @@ setMethod("set_entity_metadata", "Entity", function(entity, ...) {
   metadata <- list(...)
   
   # Validate metadata keys
-  validate_entity_metadata_names(metadata)
+  validate_object_metadata_names('Entity', metadata)
   
   if (length(metadata) == 0)
     return(entity)
@@ -216,7 +226,7 @@ setMethod("set_entity_metadata", "Entity", function(entity, ...) {
 setMethod("set_entity_name", "Entity", function(entity, name) {
   if (validate_entity_name(name)) {
     
-    message(glue("Adding entity name '{name}'..."))
+    if (!entity@quiet) message(glue("Adding entity name '{name}'..."))
     # set it with the general purpose method that also
     # sets display_name* with sensible fallbacks
     entity <- entity %>% set_entity_metadata(name = name)
@@ -248,6 +258,51 @@ setMethod("get_entity_name", "Entity", function(entity) {
   return(entity@name)
 })
 
+#' get_entity_id_column
+#' 
+#' Gets the name of this entity's ID column
+#' 
+#' @param entity an Entity object
+#' @returns a single character string (name of the column), or NULL if there any issues
+#' @export
+setMethod("get_entity_id_column", "Entity", function(entity) {
+  variables <- entity@variables
+
+  my_id_columns <- variables %>% 
+    filter(data_type == "id") %>% 
+    filter(entity_level == 0) %>% 
+    pull(variable)
+
+  if (length(my_id_columns) == 1) {
+    return(my_id_columns)
+  }
+    
+  return(NULL)
+})
+
+
+#' get_display_name
+#'
+#' Gets the display name of the entity
+#'
+#' @param entity an Entity object
+#' @returns a single character string (display name of the entity)
+#' @export
+setMethod("get_display_name", "Entity", function(entity) {
+  return(entity@display_name)
+})
+
+#' get_display_name_plural
+#'
+#' Gets the plural display name of the entity
+#'
+#' @param entity an Entity object
+#' @returns a single character string (plural display name of the entity)
+#' @export
+setMethod("get_display_name_plural", "Entity", function(entity) {
+  return(entity@display_name_plural)
+})
+
 
 #' sync_variable_metadata
 #' 
@@ -271,7 +326,7 @@ setMethod("sync_variable_metadata", "Entity", function(entity) {
 
   # Early return if no mismatches
   if (length(missing_variables) == 0 && length(extra_variables) == 0) {
-    message("No metadata synchronization needed.")
+    if (!entity@quiet) message("No metadata synchronization needed.")
     return(entity)
   }
   
@@ -291,7 +346,7 @@ setMethod("sync_variable_metadata", "Entity", function(entity) {
       )
 
     variables <- bind_rows(variables, missing_metadata)
-    message(paste(
+    if (!entity@quiet) message(paste(
       "Synced variables metadata by adding defaults for:",
       paste(missing_variables, collapse = ", ")
     ))
@@ -300,7 +355,7 @@ setMethod("sync_variable_metadata", "Entity", function(entity) {
   if (length(extra_variables)) {
     variables <- variables %>%
       filter(!variable %in% extra_variables)
-    message(paste(
+    if (!entity@quiet) message(paste(
       "Synced metadata by removing these variables with no data:",
       paste(extra_variables, collapse = ", ")
     ))
@@ -355,7 +410,7 @@ setMethod("set_variable_metadata", "Entity", function(entity, variable_name, ...
     updates,
     \(x, y) variables[row_number, x] <<- y
   )
-  message(glue("Made metadata update(s) to '{names(updates)}' for '{variable_name}'"))
+  if (!entity@quiet) message(glue("Made metadata update(s) to '{names(updates)}' for '{variable_name}'"))
 
   # return modified entity
   return(entity %>% initialize(variables=variables))
@@ -453,7 +508,7 @@ setMethod("set_variable_display_names_from_provider_labels", "Entity", function(
   variables <- variables %>%
     mutate(display_name = if_else(mask, provider_label, display_name))
   
-  message(glue("Copied provider_label over to display_name for {sum(mask, na.rm = TRUE)} variables"))
+  if (!entity@quiet) message(glue("Copied provider_label over to display_name for {sum(mask, na.rm = TRUE)} variables"))
   return(entity %>% initialize(variables=variables))
 })
 
@@ -472,7 +527,7 @@ setMethod("set_parents", "Entity", function(entity, names, columns) {
 
   # Early return if `names` and `columns` are empty
   if (length(names) == 0 && length(columns) == 0) {
-    message("No parent entity relationships provided. No changes made.")
+    if (!entity@quiet) message("No parent entity relationships provided. No changes made.")
     return(entity)
   }
 
@@ -501,7 +556,7 @@ setMethod("set_parents", "Entity", function(entity, names, columns) {
       entity_level = if_else(variable %in% columns, -match(variable, columns), entity_level)
     )
   
-  message("Parent entity relationships and columns have been set")
+  if (!entity@quiet) message("Parent entity relationships and columns have been set")
   
   # Return modified entity
   return(entity %>% initialize(variables = variables))
@@ -510,7 +565,7 @@ setMethod("set_parents", "Entity", function(entity, names, columns) {
 
 #' gets_parents
 #' 
-#' Sets metadata for parent ID columns of this entity
+#' Gets metadata for parent ID columns of this entity
 #' 
 #' @param entity an Entity object
 #' @returns list of `names` (character vector) and `columns` (character vector)
@@ -547,6 +602,24 @@ setMethod("get_parent_name", "Entity", function(entity) {
   }
 })
 
+#' get_parent_id_column
+#' 
+#' Gets the name of the immediate parent entity
+#' 
+#' @param entity an Entity object
+#' @returns a single character string (column name in the data tibble) or NULL if no parents exist
+#' @export
+setMethod("get_parent_id_column", "Entity", function(entity) {
+  parents <- entity %>% get_parents()
+  
+  # Return the first name if it exists, otherwise return NULL
+  if (length(parents$columns) > 0) {
+    return(parents$columns[1])
+  } else {
+    return(NULL)
+  }
+})
+
 #' get_children
 #' 
 #' Gets the list of child entities. Only applicable in the context of a Study
@@ -559,18 +632,133 @@ setMethod("get_children", "Entity", function(entity) {
   return(entity@children)
 })
 
-
-#' append_children
-#' 
-#' Gets the list of child entities. Only applicable in the context of a Study
-#' where a tree has been constructed
-#' 
-#' @param entity an Entity object
-#' @returns an updated Entity object
+#'
+#' pretty_tree
+#'
+#' @param entity
+#' @returns vector of character (lines to print or cat)
 #' @export
-setMethod("append_children", "Entity", function(parent, child) {
-  current_children <- get_children(parent)
-  updated_children <- c(current_children, list(child))
-  return(initialize(parent, children = updated_children))
+setMethod("pretty_tree", "Entity", function(entity) {
+  # This will be our main entry point.
+  # We'll call a helper function that recursively gathers all lines.
+  lines <- format_entity(entity, prefix = "", is_last = TRUE, is_root = TRUE)
+  return(lines)
 })
 
+#'
+#' helper for pretty_tree
+#'
+format_entity <- function(entity, prefix, is_last, is_root = FALSE) {
+  # Determine the prefix for this entity line
+  line_prefix <- if (is_root) {
+    prefix
+  } else if (is_last) {
+    paste0(prefix, "└── ")
+  } else {
+    paste0(prefix, "├── ")
+  }
+  
+  this_line <- paste0(line_prefix, get_entity_name(entity))
+  
+  # For children, we need to decide on the next prefix. If this entity is the last child,
+  # the next prefix for its children is prefix + "    " (4 spaces),
+  # otherwise it's prefix + "|   ".
+  children_prefix <- if (is_root) {
+    prefix
+  }  else if (is_last) {
+    paste0(prefix, "    ")
+  } else {
+    paste0(prefix, "│   ")
+  }
+  
+  children <- get_children(entity)
+  
+  if (length(children) == 0) {
+    # No children, just return the current line.
+    return(this_line)
+  } else {
+    # Recursively format each child. The last child's is_last = TRUE.
+    lines_for_children <- mapply(
+      FUN = function(child, is_last_child) {
+        format_entity(child, prefix = children_prefix, is_last = is_last_child)
+      },
+      child = children,
+      is_last_child = seq_along(children) == length(children),
+      SIMPLIFY = FALSE
+    )
+    
+    # Combine this entity's line with all children's lines.
+    return(c(this_line, unlist(lines_for_children)))
+  }
+}
+
+
+#' set_quiet
+#' 
+#' Sets an internal flag so that subsequent operations do not emit confirmational
+#' and help messages
+#' 
+#' 
+#' Example usage:
+#' ```R
+#' households <- households %>% set_quiet() %>% some_chatty_operation()
+#' ```
+#' 
+#' @param entity an Entity object
+#' @param value = TRUE (default is TRUE; pass FALSE to make chatty again)
+#' @returns a new Entity object with the modified quiet slot
+#' @export
+setMethod("set_quiet", "Entity", function(object, quiet = TRUE) {
+  initialize(object, quiet = quiet)
+})
+
+
+#'
+#' check_row_relationships
+#'
+#' @param parent An Entity object
+#' @param child An Entity object that is a direct child of the parent
+#' 
+#' Performs a join of the parent and child tibbles and returns
+#' FALSE if there are any child rows that can't be joined to the parent
+#'
+#' @export
+setMethod(
+  "check_row_relationships",
+  signature(parent = "Entity", child = "Entity"),
+  function(parent, child) {
+    
+    # Extract data
+    child_data <- child %>% get_data() # tibble
+    parent_data <- parent %>% get_data() # tibble
+    
+    # Identify columns
+    child_id_column_name <- child %>% get_entity_id_column()   # child's primary key
+    child_join_column_name <- child %>% get_parent_id_column() # child's foreign key to parent
+    parent_join_column_name <- parent %>% get_entity_id_column() # parent's primary key
+    
+    # Perform a right join from parent_data to child_data so that all child rows appear
+    # If a child's foreign key doesn't match a parent's primary key, parent columns will be NA.
+    joined_data <- parent_data %>% 
+      right_join(
+        child_data, 
+        by = setNames(child_join_column_name, parent_join_column_name),
+        suffix = c('.x', '.y'), # with these two args, join column names will be 
+        keep = TRUE # Household.Id.x and Household.Id.y
+      )
+    parent_join_column_name.x <- paste0(parent_join_column_name, '.x')
+    child_join_column_name.y <- paste0(child_join_column_name, '.y')
+    
+    # Find rows where the parent match failed (i.e. parent's PK column is NA)
+    missing_parents <- joined_data %>%
+      filter(if_any(all_of(parent_join_column_name.x), is.na)) %>%
+      select(all_of(c(child_join_column_name.y, child_id_column_name))) %>%
+      rename(setNames(child_join_column_name.y, child_join_column_name))
+
+    is_valid <- nrow(missing_parents) == 0
+    return(list(
+      is_valid = is_valid,
+      missing_mappings = if (!is_valid) missing_parents else NULL
+    ))
+  }
+)

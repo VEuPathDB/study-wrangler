@@ -14,7 +14,7 @@ library(tibble)
 #' @slot display_name_plural A `character` string representing the pluralized external display name 
 #'   of the entity (e.g., `"Households"`). Defaults to `display_name` with `"s"` appended if not explicitly provided.
 #' @param children a list of child entities (if the entity has been assembled into a tree). Empty for leaf nodes and unassembled entities.
-#'
+#' @param quiet a logical that will suppress informational messages from operations on this object
 #' @keywords classes
 #' @exportClass Entity
 #'
@@ -42,7 +42,8 @@ setClass(
     description = "character",
     display_name = "character",
     display_name_plural = "character",
-    children = "list"
+    children = "list",
+    quiet = "logical"
   )
 )
 
@@ -80,7 +81,8 @@ entity <- function(data,
                    description = NA_character_,
                    display_name = NA_character_,
                    display_name_plural = NA_character_,
-                   children = list()
+                   children = list(),
+                   quiet = FALSE
 ) {
   
   metadata <- list(
@@ -90,7 +92,8 @@ entity <- function(data,
     description = description,
     display_name = display_name,
     display_name_plural = display_name_plural,
-    children = children
+    children = children,
+    quiet = quiet
   )
   
   metadata <- apply_entity_metadata_defaults(metadata)

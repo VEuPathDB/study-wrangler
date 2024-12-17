@@ -47,22 +47,23 @@ infer_data_type <- function(data, column_name, .no_id_check = FALSE) {
 }
 
 #'
-#' void context function that will stop() if a metadata name isnt an Entity slot
+#' void context function that will stop() if a metadata name isn't a slot
+#' in the specified object class
 #' 
 #' @examples
 #' 
 #' myfunction <- function(arg1, arg2, ...) {
 #'   metadata = list(...)
-#'   validate_entity_metadata_names(metadata) # will bail if there is a problem
+#'   validate_object_metadata_names('Entity', metadata) # will bail if there is a problem
 #'   # continue doing things with metadata
 #' }
 #'
-validate_entity_metadata_names <- function(metadata) {
-  disallowed_keys <- c("data", "variables")
-  valid_keys <- setdiff(slotNames("Entity"), disallowed_keys)
+validate_object_metadata_names <- function(class_name, metadata) {
+  disallowed_keys <- c("data", "variables", "root_entity")
+  valid_keys <- setdiff(slotNames(class_name), disallowed_keys)
   invalid_keys <- setdiff(names(metadata), valid_keys)
   if (length(invalid_keys) > 0) {
-    stop("Error: these entity_from_file() args are not valid Entity metadata names: ", toString(invalid_keys))
+    stop(glue("Error: these entity_from_file() args are not valid {class_name} metadata names: {toString(invalid_keys)}"))
   }
 }
 
@@ -165,27 +166,18 @@ kable_signif <- function(x, digits = 3, ...) {
 
 
 #'
-#' find_root_entity()
+#' flatten_entities
 #' 
-#' from a list of connected Entity objects, return the single root entity
+#' depth-first recursive flatten of entity tree - returns a list of entities, root-first
 #'
-#' error if multiple roots (this also will happen if no children have been connected)
-#'
-find_root_entity <- function(processedNodes) {
-  # Collect all child names
-  allChildren <- unlist(lapply(processedNodes, function(entity) {
-    sapply(get_children(entity), get_entity_name)
-  }))
+flatten_entities <- function(entity) {
+  # Collect the current entity
+  entities <- list(entity)
   
-  # Identify root candidates
-  root_candidates <- Filter(function(entity) !(get_entity_name(entity) %in% allChildren), processedNodes)
-  
-  if (length(root_candidates) == 1) {
-    return(root_candidates[[1]])
-  } else if (length(root_candidates) > 1) {
-    stop("Multiple roots found. Invalid tree.")
-  } else {
-    stop("No root found. Invalid tree.")
+  # Recursively collect child entities
+  for (child in get_children(entity)) {
+    entities <- c(entities, flatten_entities(child))
   }
+  
+  return(entities)
 }
-
