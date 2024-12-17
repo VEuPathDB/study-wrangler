@@ -12,7 +12,7 @@ setMethod("validate", "Study", function(object) {
   quiet <- study@quiet
 
   # name of caller's object for code suggestions after violations
-  caller_name = get_caller_name(study, fallback = 'study')
+  caller_name = find_global_varname(study, fallback = 'study')
   
   tools <- create_feedback_tools(quiet = quiet)
   # the following can be made nicer with library(zeallot)
@@ -25,8 +25,8 @@ setMethod("validate", "Study", function(object) {
   
   entities %>% map(
     function(entity) {
+      entity_caller_name = find_global_varname(entity, 'entity')
       is_valid <- entity %>% quiet() %>% validate()
-      entity_caller_name = get_caller_name(entity, 'entity')
       if (!is_valid) {
         add_feedback(
           glue(
@@ -39,7 +39,7 @@ setMethod("validate", "Study", function(object) {
   # early termination if any of the entities are invalid
   if (!get_is_valid()) {
     give_feedback(fatal_message = "Error: one or more entities is invalid.")
-    return(FALSE)
+    return(invisible(FALSE))
   }
   
   # Metadata slot validation...
@@ -98,6 +98,5 @@ setMethod("validate", "Study", function(object) {
   }
   
   give_feedback()
-  
-  return(get_is_valid())  
+  return(invisible(get_is_valid()))  
 })

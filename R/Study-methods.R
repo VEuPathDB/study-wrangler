@@ -3,6 +3,8 @@ setGeneric("get_root_entity", function(study) standardGeneric("get_root_entity")
 #' @export
 setGeneric("get_entities", function(study) standardGeneric("get_entities"))
 #' @export
+setGeneric("get_entity", function(study, ...) standardGeneric("get_entity"))
+#' @export
 setGeneric("get_study_name", function(study) standardGeneric("get_study_name"))
 #' @export
 setGeneric("set_study_metadata", function(study, ...) standardGeneric("set_study_metadata"))
@@ -30,6 +32,21 @@ setMethod("get_root_entity", "Study", function(study) {
 #' @export
 setMethod("get_entities", "Study", function(study) {
   return(flatten_entities(study@root_entity))
+})
+
+
+#' get_entity
+#'
+#' Gets an entity by name
+#'
+#' @param study A `Study` object.
+#' @param name 
+#' @return the matching entity or NULL
+#' @export
+setMethod("get_entity", "Study", function(study, name) {
+  entities <- flatten_entities(study@root_entity)
+  
+  # TO DO
 })
 
 

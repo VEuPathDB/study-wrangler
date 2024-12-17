@@ -192,14 +192,23 @@ flatten_entities <- function(entity) {
 #' then this function could return either name.
 #'
 #'
-get_caller_name <- function(obj, fallback="object") {
-  objs <- ls(globalenv())
-  matches <- objs[sapply(objs, function(x) {
-    data.table::address(get(x, envir = parent.env(environment()))) == data.table::address(obj)
-  })]
-  if (length(matches) > 0) matches[1] else fallback
-}
+# find_global_varname <- function(obj, fallback = "object") {
+#   objs <- ls(globalenv())
+#   matches <- objs %>%
+#     keep(~ data.table::address(get(.x, envir = globalenv())) == address(obj))
+#   
+#   if (is_empty(matches)) fallback else matches[1]
+# }
 
+find_global_varname <- function(obj, fallback = "object") {
+  env <- globalenv()
+  objs <- ls(env) # List objects in the global environment (console or notebook)
+
+  matches <- objs %>%
+    keep(~ address(get(.x, envir = env)) == address(obj))
+  
+  if (is_empty(matches)) fallback else matches[1]
+}
 
 #'
 #' simple helper to format a heading for the console-based reports

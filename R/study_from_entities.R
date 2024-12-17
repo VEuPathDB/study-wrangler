@@ -6,12 +6,35 @@ study_from_entities <- function(entities, ...) {
   # Validate input
   if (!is.list(entities)) stop("Entities must be provided as a list.")
   if (length(entities) == 0) stop("At least one entity must be provided.")
-  # Strip all entities of their @children
-  entities <- lapply(entities, function(entity) {
-    entity@children <- list()
-    return(entity)
-  })
+
+  # Make sure all entities are named uniquely
+  entity_names <- entities %>% map_chr(get_entity_name)
   
+  # Identify names that occur more than once
+  duplicate_names <- entity_names[duplicated(entity_names) | duplicated(entity_names, fromLast=TRUE)]
+  
+  # Annotate duplicates with an asterisk
+  annotated_names <- ifelse(entity_names %in% duplicate_names,
+                            paste0(entity_names, "*"),
+                            entity_names)
+  
+  if (length(duplicate_names) > 0) {
+    stop(to_lines(
+      "Entities must all have unique `entity_name` but there are duplicates:",
+      annotated_names
+    ))
+  }
+
+  # Strip all entities of their @children (if they have them)
+  # before assembling them together
+  entities <- entities %>% map(
+    function(entity) {
+      entity@children <- list()
+      return(entity)
+    }
+  )
+
+    
   # Step 1: Find the root entity (the only parentless entity)
   root_candidates <- Filter(function(entity) is.null(get_parent_name(entity)), entities)
   

@@ -22,13 +22,13 @@ setMethod("validate", "Entity", function(object) {
   # Fatal Validation: Check if metadata is empty
   if (nrow(variables) == 0) {
     give_feedback(fatal_message = "Variables' metadata is empty. Ensure metadata is correctly populated.")
-    return(FALSE)
+    return(invisible(FALSE))
   }
   
   # Fatal Validation: Check if data has no columns
   if (ncol(data) == 0) {
     give_feedback(fatal_message = "Data contains no columns. Ensure data is correctly formatted.")
-    return(FALSE)
+    return(invisible(FALSE))
   }
   
   # Validation: Check column alignment
@@ -41,7 +41,7 @@ setMethod("validate", "Entity", function(object) {
        paste(missing_variables, collapse = ", "),
       "\n[add default metadata with `entity <- entity %>% sync_variable_metadata()`]"
     ))
-    return(FALSE)
+    return(invisible(FALSE))
   }
   
   if (length(extra_variables) > 0) {
@@ -50,7 +50,7 @@ setMethod("validate", "Entity", function(object) {
       paste(extra_variables, collapse = ", "),
       "\n[remove the metadata with `entity <- entity %>% sync_variable_metadata()`]"
     ))
-    return(FALSE)
+    return(invisible(FALSE))
   }
   
   # Validation: check that there are no NAs in required columns
@@ -70,7 +70,7 @@ setMethod("validate", "Entity", function(object) {
       ),
       collapse="\n"
     ))
-    return(FALSE)
+    return(invisible(FALSE))
   }
   
   ### End of fatal checks ###
@@ -130,7 +130,7 @@ setMethod("validate", "Entity", function(object) {
         paste(kable(issues), collapse = "\n")
       )
     )
-    return(FALSE)
+    return(invisible(FALSE))
   }
   
   # Validation: is.na(data_type) not allowed for any variable
@@ -143,7 +143,7 @@ setMethod("validate", "Entity", function(object) {
         paste(missing_data_type, collapse = ", ")
       )
     )
-    return(FALSE)
+    return(invisible(FALSE))
   }
   
   # Validation: Check for NA values in 'id' columns
@@ -273,5 +273,5 @@ setMethod("validate", "Entity", function(object) {
   give_feedback()  
   
   # Return overall validation status
-  return(get_is_valid())
+  return(invisible(get_is_valid()))
 })

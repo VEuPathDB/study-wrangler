@@ -47,8 +47,12 @@ test_that("study_from_entities() works", {
     study <- study_from_entities(entities=c(households, observations), name="my bad study"),
     "Tree does not include all provided entities. Check for disconnected or orphaned nodes."
   )
+
+  oopsie <- observations %>% quiet() %>% set_entity_name('household')
+  expect_error(
+    study <- study_from_entities(entities=c(households, participants, oopsie), name="my study"),
+    "Entities must all have unique.+entity_name.+there are duplicates"
+  )
   
-  
-    
 })
 
