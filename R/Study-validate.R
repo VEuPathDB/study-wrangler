@@ -53,7 +53,7 @@ setMethod("validate", "Study", function(object) {
       problematic_pairs <- list() # Initialize list to collect problematic pairs
       
       for (child in entity@children) {
-        result <- check_row_relationships(entity, child)
+        result <- check_parent_child_join(entity, child)
         
         # If invalid, collect the parent-child pair
         if (!result$is_valid) {
@@ -79,11 +79,11 @@ setMethod("validate", "Study", function(object) {
       add_feedback(to_lines(
         "Parent-child entity relationships are problematic in the following pairs:",
         paste(problematic_pairs, collapse = "; "),
-        "Use check_row_relationships(parent, child) for row-wise details."
+        "Use check_parent_child_join(parent, child) for row-wise details."
 
         # TO DO <<<<<<<<<<<<<<<<<<<<<<<<<
         # should probably have a study method that takes the names:
-        # study %>% check_row_relationships('household', 'participant')
+        # study %>% check_parent_child_join('household', 'participant')
         # and also get_entity_by_name(study, name)
       ))
     }

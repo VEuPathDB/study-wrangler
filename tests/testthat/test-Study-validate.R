@@ -47,7 +47,7 @@ test_that("check_parent_ids() works", {
   
   # this should be silent
   expect_silent(
-    check_result <- check_row_relationships(households, participants)
+    check_result <- check_parent_child_join(households, participants)
   )
   # and it should be valid
   expect_true(check_result$is_valid)
@@ -59,7 +59,7 @@ test_that("check_parent_ids() works", {
 
   # this should be silent
   expect_silent(
-    check_result <- check_row_relationships(households, bad_participants)
+    check_result <- check_parent_child_join(households, bad_participants)
   )
   # and it should be invalid
   expect_false(check_result$is_valid)

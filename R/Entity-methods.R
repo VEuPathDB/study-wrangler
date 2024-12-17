@@ -47,7 +47,7 @@ setGeneric("get_children", function(entity) standardGeneric("get_children"))
 #' @export
 setGeneric("pretty_tree", function(entity) standardGeneric("pretty_tree"))
 #' @export
-setGeneric("check_row_relationships", function(parent, child) standardGeneric("check_row_relationships"))
+setGeneric("check_parent_child_join", function(parent, child) standardGeneric("check_parent_child_join"))
 
 
 #' infer_missing_data_types
@@ -714,7 +714,7 @@ setMethod("set_quiet", "Entity", function(object, quiet = TRUE) {
 
 
 #'
-#' check_row_relationships
+#' check_parent_child_join
 #'
 #' @param parent An Entity object
 #' @param child An Entity object that is a direct child of the parent
@@ -724,7 +724,7 @@ setMethod("set_quiet", "Entity", function(object, quiet = TRUE) {
 #'
 #' @export
 setMethod(
-  "check_row_relationships",
+  "check_parent_child_join",
   signature(parent = "Entity", child = "Entity"),
   function(parent, child) {
     
