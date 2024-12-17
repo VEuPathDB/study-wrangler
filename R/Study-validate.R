@@ -10,6 +10,9 @@ setMethod("validate", "Study", function(object) {
   study <- object
   root_entity <- study@root_entity
   quiet <- study@quiet
+
+  # name of caller's object for code suggestions after violations
+  caller_name = get_caller_name(study, fallback = 'study')
   
   tools <- create_feedback_tools(quiet = quiet)
   # the following can be made nicer with library(zeallot)
@@ -22,11 +25,12 @@ setMethod("validate", "Study", function(object) {
   
   entities %>% map(
     function(entity) {
-      is_valid <- entity %>% set_quiet() %>% validate()
+      is_valid <- entity %>% quiet() %>% validate()
+      entity_caller_name = get_caller_name(entity, 'entity')
       if (!is_valid) {
         add_feedback(
           glue(
-            "The entity named '{get_entity_name(entity)}' is not valid. Please run `validate()` on it directly for more details."
+            "The entity named '{get_entity_name(entity)}' is not valid.\nPlease run `{entity_caller_name} %>% validate()` for more details."
           )
         )
       }
@@ -41,7 +45,7 @@ setMethod("validate", "Study", function(object) {
   # Metadata slot validation...
   if (is.na(study@name)) {
     add_feedback(
-      "Study name is missing. Add it with `set_study_name()`."
+      glue("Study name is missing. Add it with `{caller_name} <- {caller_name} %>% set_study_name('a name')`.")
     )
   }
   
@@ -78,7 +82,6 @@ setMethod("validate", "Study", function(object) {
     
     # If there are any problematic pairs, report them
     if (nrow(problematic_pairs) > 0) {
-      caller_name = get_caller_name(study, fallback = 'study')
       add_feedback(to_lines(
         "Parent-child entity relationships are problematic in the following pairs:",
         indented(

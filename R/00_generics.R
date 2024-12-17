@@ -7,9 +7,18 @@ setGeneric("inspect", function(object, ...) standardGeneric("inspect"))
 
 #' A generic for setting a quiet option on an object
 #' 
-#' @param value = TRUE
 #' @export
-setGeneric("set_quiet", function(object, ...) standardGeneric("set_quiet"))
+setGeneric("set_quiet", function(object, quiet, ...) standardGeneric("set_quiet"))
+
+#' A generic for enabling quiet mode on an object
+#' 
+#' @export
+setGeneric("quiet", function(object, ...) standardGeneric("quiet"))
+
+#' A generic for enabling verbose mode on an object
+#' 
+#' @export
+setGeneric("verbose", function(object, ...) standardGeneric("verbose"))
 
 
 #' Validate Generic

@@ -693,25 +693,39 @@ format_entity <- function(entity, prefix, is_last, is_root = FALSE) {
 }
 
 
-#' set_quiet
+#' set_quiet for Entity
 #' 
-#' Sets an internal flag so that subsequent operations do not emit confirmational
-#' and help messages
+#' Sets an internal flag to enable or disable quiet mode.
 #' 
-#' 
-#' Example usage:
-#' ```R
-#' households <- households %>% set_quiet() %>% some_chatty_operation()
-#' ```
-#' 
-#' @param entity an Entity object
-#' @param value = TRUE (default is TRUE; pass FALSE to make chatty again)
+#' @param object an Entity object
+#' @param quiet logical; TRUE to suppress messages, FALSE to enable them
 #' @returns a new Entity object with the modified quiet slot
 #' @export
-setMethod("set_quiet", "Entity", function(object, quiet = TRUE) {
+setMethod("set_quiet", "Entity", function(object, quiet) {
   initialize(object, quiet = quiet)
 })
 
+#' quiet for Entity
+#' 
+#' Enables quiet mode on an Entity object.
+#' 
+#' @param object an Entity object
+#' @returns a new Entity object with quiet mode enabled
+#' @export
+setMethod("quiet", "Entity", function(object) {
+  set_quiet(object, quiet = TRUE)
+})
+
+#' verbose for Entity
+#' 
+#' Enables verbose mode on an Entity object.
+#' 
+#' @param object an Entity object
+#' @returns a new Entity object with quiet mode disabled
+#' @export
+setMethod("verbose", "Entity", function(object) {
+  set_quiet(object, quiet = FALSE)
+})
 
 #'
 #' check_parent_child_join

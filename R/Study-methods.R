@@ -44,25 +44,39 @@ setMethod("get_study_name", "Study", function(study) {
   return(study@name)
 })
 
-#' set_quiet
+#' set_quiet for Study
 #' 
-#' Sets an internal flag so that subsequent operations do not emit informational
-#' and help messages
+#' Sets an internal flag to enable or disable quiet mode.
 #' 
-#' 
-#' Example usage:
-#' ```R
-#' study <- study %>% set_quiet() %>% validate()
-#' ```
-#' 
-#' @param entity a Study object
-#' @param value = TRUE (default is TRUE; pass FALSE to make chatty again)
+#' @param object a Study object
+#' @param quiet logical; TRUE to suppress messages, FALSE to enable them
 #' @returns a new Study object with the modified quiet slot
 #' @export
-setMethod("set_quiet", "Study", function(object, quiet = TRUE) {
+setMethod("set_quiet", "Study", function(object, quiet) {
   initialize(object, quiet = quiet)
 })
 
+#' quiet for Study
+#' 
+#' Enables quiet mode on a Study object.
+#' 
+#' @param object a Study object
+#' @returns a new Study object with quiet mode enabled
+#' @export
+setMethod("quiet", "Study", function(object) {
+  set_quiet(object, quiet = TRUE)
+})
+
+#' verbose for Study
+#' 
+#' Enables verbose mode on a Study object.
+#' 
+#' @param object a Study object
+#' @returns a new Study object with quiet mode disabled
+#' @export
+setMethod("verbose", "Study", function(object) {
+  set_quiet(object, quiet = FALSE)
+})
 
 #' set_study_metadata
 #' 

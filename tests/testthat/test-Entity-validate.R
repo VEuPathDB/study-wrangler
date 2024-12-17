@@ -35,7 +35,7 @@ test_that("validate(households) warns about missing entity name and returns FALS
   )
   
   # should be OK now
-  expect_true(households %>% set_quiet() %>% validate())
+  expect_true(households %>% quiet() %>% validate())
 })
 
 
@@ -45,7 +45,7 @@ test_that("validate(households) returns TRUE for original households fixture dat
   # Create an Entity object
   households <- entity_from_file(file_path, name="household")
   # validate it
-  expect_true(households %>% set_quiet() %>% validate())
+  expect_true(households %>% quiet() %>% validate())
 })
 
 test_that("validate() fails and warns about missing metadata", {
@@ -71,7 +71,7 @@ test_that("validate() fails and warns about missing metadata", {
   )
   
   # now it should be valid
-  expect_true(households %>% set_quiet() %>% validate())
+  expect_true(households %>% quiet() %>% validate())
 })
 
 test_that("validate() fails and warns about extra metadata", {
@@ -97,7 +97,7 @@ test_that("validate() fails and warns about extra metadata", {
   )
   
   # now it should be valid
-  expect_true(households %>% set_quiet() %>% validate())
+  expect_true(households %>% quiet() %>% validate())
 })
 
 test_that("validate(households) warns about multiple ID columns per entity_level", {
@@ -128,7 +128,7 @@ test_that("validate(households) warns about multiple ID columns per entity_level
   )
   
   # it should now be fixed
-  expect_true(households %>% set_quiet() %>% validate())
+  expect_true(households %>% quiet() %>% validate())
   
 })
 
@@ -138,7 +138,7 @@ test_that("validate(households) warns about NAs in ID columns", {
   file_path <- system.file("extdata", "toy_example/households.tsv", package = 'study.wrangler')
   # Create an Entity object
   households <- entity_from_file(file_path, name='household')
-  expect_true(households %>% set_quiet() %>% validate())
+  expect_true(households %>% quiet() %>% validate())
 
   households@data[2,'Household.Id'] <- NA
   
@@ -153,7 +153,7 @@ test_that("validate(households) warns about duplicates in ID columns", {
   file_path <- system.file("extdata", "toy_example/households.tsv", package = 'study.wrangler')
   # Create an Entity object
   households <- entity_from_file(file_path, name='household')
-  expect_true(households %>% set_quiet() %>% validate())
+  expect_true(households %>% quiet() %>% validate())
   
   households@data[2,'Household.Id'] <- 'H001'
   
@@ -166,7 +166,7 @@ test_that("validate(households) warns about duplicates in ID columns", {
 test_that("validate() warns about mangled variable metadata columns", {
   file_path <- system.file("extdata", "toy_example/households.tsv", package = 'study.wrangler')
   households <- entity_from_file(file_path, name='household')
-  expect_true(households %>% set_quiet() %>% validate())
+  expect_true(households %>% quiet() %>% validate())
 
   # well we can't even set an illegal non-integer entity_level the nice way
   expect_error(

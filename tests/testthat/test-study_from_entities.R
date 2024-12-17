@@ -7,7 +7,7 @@ test_that("study_from_entities() works", {
   participants <- entity_from_file(participants_path, name="participant")
   observations <- entity_from_file(observations_path, name="observation")
   
-  expect_true(households %>% set_quiet() %>% validate())
+  expect_true(households %>% quiet() %>% validate())
   
   expect_message(
     participants <- participants %>%
@@ -19,7 +19,7 @@ test_that("study_from_entities() works", {
       set_parents(names=c("household"), columns=c("Household.Id")),
     "Parent entity relationships and columns have been set"
   )
-  expect_true(participants %>% set_quiet() %>% validate())
+  expect_true(participants %>% quiet() %>% validate())
   
   
   expect_message(
@@ -27,7 +27,7 @@ test_that("study_from_entities() works", {
       set_parents(names = c("participant", "household"), columns = c("Participant.Id", "Household.Id")),
     "Parent entity relationships and columns have been set"
   )
-  expect_true(observations %>% set_quiet() %>% validate())
+  expect_true(observations %>% quiet() %>% validate())
   
   # now build a study
   

@@ -29,7 +29,7 @@ test_that("validate(study) fails for things", {
   )
 
   expect_true(
-    study %>% set_quiet() %>% validate()
+    study %>% quiet() %>% validate()
   )
   
 })
@@ -43,7 +43,7 @@ test_that("check_parent_ids() works", {
   
   participants <- entity_from_file(participants_path, name="participant", quiet=TRUE) %>%
     redo_type_detection_as_variables_only('Name') %>%
-    set_parents(names=c("household"), columns=c("Household.Id")) %>% set_quiet(FALSE)
+    set_parents(names=c("household"), columns=c("Household.Id")) %>% verbose()
   
   # this should be silent
   expect_silent(
@@ -76,7 +76,7 @@ test_that("validate(study) checks parent ID relationships row-wise", {
   expect_no_error(study <- make_study(name = 'cool study'))
   
   expect_true(
-    study %>% set_quiet() %>% validate()
+    study %>% quiet() %>% validate()
   )
   entities <- get_entities(study)
   # library(zeallot) opportunity:
@@ -88,7 +88,7 @@ test_that("validate(study) checks parent ID relationships row-wise", {
     study <- study_from_entities(entities=list(households, participants, observations), name = 'should be the same')
   )
   expect_true(
-    study %>% set_quiet() %>% validate()
+    study %>% quiet() %>% validate()
   )
   
   bad_participants <- participants %>%
