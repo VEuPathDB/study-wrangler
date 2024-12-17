@@ -78,11 +78,18 @@ setMethod("validate", "Study", function(object) {
     
     # If there are any problematic pairs, report them
     if (nrow(problematic_pairs) > 0) {
+      caller_name = get_caller_name(study, fallback = 'study')
       add_feedback(to_lines(
         "Parent-child entity relationships are problematic in the following pairs:",
-        kable(problematic_pairs),
+        indented(
+          kable(problematic_pairs)
+        ),
         "~~~~",
-        "Use the following code to get row-wise details:"
+        "Use the following code to get row-wise details:",
+        indented(
+          problematic_pairs %>%
+            transmute(glue("{caller_name} <- {caller_name} %>% check_parent_child_row_linkage('{parent}', '{child}')")) %>% pull()
+        )
       ))
     }
   }

@@ -181,3 +181,49 @@ flatten_entities <- function(entity) {
   
   return(entities)
 }
+
+
+#'
+#' Get the caller's name of an object passed in to a function
+#' (directly or via magrittr pipe) from an interactive 'global' environment
+#'
+#' Note that if a copy-without-modification has been done, e.g.
+#' `copy <- original`
+#' then this function could return either name.
+#'
+#'
+get_caller_name <- function(obj, fallback="object") {
+  objs <- ls(globalenv())
+  matches <- objs[sapply(objs, function(x) {
+    data.table::address(get(x, envir = parent.env(environment()))) == data.table::address(obj)
+  })]
+  if (length(matches) > 0) matches[1] else fallback
+}
+
+
+#'
+#' simple helper to format a heading for the console-based reports
+#'
+heading <- function(heading) {
+  return(glue("\n\n### {heading} ###\n", .trim = FALSE))
+}
+
+#'
+#' super simple wrapper to aid with outputting to the terminal
+#'
+#' all args must be character type
+#'
+to_lines <- function(...) {
+  character_vector <- c(...)
+  paste0(paste0(character_vector, "\n"), collapse = "")
+}
+
+#'
+#' prepends two spaces to a vector of characters
+#'
+#' (nest it if you need more levels)
+#' 
+indented <- function(...) {
+  character_vector <- c(...)
+  paste0("  ", character_vector)
+}

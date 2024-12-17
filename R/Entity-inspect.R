@@ -108,20 +108,3 @@ If there are ID columns missing above, you may need to use:
     )
   }
 })
-
-#'
-#' simple helper to format a heading for the console-based reports
-#'
-heading <- function(heading) {
-  return(glue("\n\n### {heading} ###\n", .trim = FALSE))
-}
-
-#'
-#' super simple wrapper to aid with outputting to the terminal
-#'
-#' all args must be character type
-#'
-to_lines <- function(...) {
-  character_vector <- c(...)
-  paste0(paste0(character_vector, "\n"), collapse = "")
-}
