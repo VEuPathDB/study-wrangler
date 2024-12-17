@@ -50,41 +50,39 @@ setMethod("validate", "Study", function(object) {
     
     # Recursive function to check parent-child relationships
     check <- function(entity) {
-      problematic_pairs <- list() # Initialize list to collect problematic pairs
+      # Initialize an empty tibble to collect problematic pairs
+      problematic_pairs <- tibble(parent = character(), child = character())
       
       for (child in entity@children) {
         result <- check_parent_child_join(entity, child)
         
-        # If invalid, collect the parent-child pair
+        # If invalid, create a row for the parent-child pair
         if (!result$is_valid) {
-          problematic_pairs <- c(
-            problematic_pairs,
-            paste(get_entity_name(entity), "->", get_entity_name(child))
+          problematic_pair <- tibble(
+            parent = get_entity_name(entity),
+            child = get_entity_name(child)
           )
+          problematic_pairs <- bind_rows(problematic_pairs, problematic_pair)
         }
         
-        # Recurse into the child's children
+        # Recurse into the child's children and bind the results
         child_results <- check(child)
-        problematic_pairs <- c(problematic_pairs, child_results)
+        problematic_pairs <- bind_rows(problematic_pairs, child_results)
       }
       
-      return(problematic_pairs) # Return all problematic pairs for this branch
+      return(problematic_pairs) # Return the combined tibble for this branch
     }
     
     # Start the check from the root entity
     problematic_pairs <- check(root_entity)
     
     # If there are any problematic pairs, report them
-    if (length(problematic_pairs) > 0) {
+    if (nrow(problematic_pairs) > 0) {
       add_feedback(to_lines(
         "Parent-child entity relationships are problematic in the following pairs:",
-        paste(problematic_pairs, collapse = "; "),
-        "Use check_parent_child_join(parent, child) for row-wise details."
-
-        # TO DO <<<<<<<<<<<<<<<<<<<<<<<<<
-        # should probably have a study method that takes the names:
-        # study %>% check_parent_child_join('household', 'participant')
-        # and also get_entity_by_name(study, name)
+        kable(problematic_pairs),
+        "~~~~",
+        "Use the following code to get row-wise details:"
       ))
     }
   }
