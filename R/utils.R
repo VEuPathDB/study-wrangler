@@ -205,7 +205,7 @@ find_global_varname <- function(obj, fallback = "object") {
   objs <- ls(env) # List objects in the global environment (console or notebook)
 
   matches <- objs %>%
-    keep(~ address(get(.x, envir = env)) == address(obj))
+    keep(~ data.table::address(get(.x, envir = env)) == data.table::address(obj))
   
   if (is_empty(matches)) fallback else matches[1]
 }
