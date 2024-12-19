@@ -39,7 +39,7 @@ setMethod("validate", "Entity", function(object) {
   
   # Fatal Validation: Check if data has no columns
   if (ncol(data) == 0) {
-    give_feedback(fatal_message = "Data contains no columns. Ensure data is correctly formatted.")
+    give_feedback(fatal_message = "Data contains no columns. Ensure data is correctly delimited and reload.")
     return(invisible(FALSE))
   }
   
@@ -73,14 +73,13 @@ setMethod("validate", "Entity", function(object) {
     select('variable', all_of(required_metadata_cols)) %>%
     filter(if_any(all_of(required_metadata_cols), is.na))
   if (nrow(variables_with_critical_NAs) > 0) {
-    give_feedback(fatal_message=paste0(
+    give_feedback(fatal_message=to_lines(
       c(
         "Error: NAs found in critical variable metadata columns:",
         kable(variables_with_critical_NAs),
         "~~~~",
         "This error is not expected to occur. Please contact the developers."
-      ),
-      collapse="\n"
+      )
     ))
     return(invisible(FALSE))
   }
@@ -269,6 +268,55 @@ setMethod("validate", "Entity", function(object) {
     }
   }
   
+  # Validation: check that integer columns contain integers
+  integer_columns <- variables %>%
+    filter(data_type == "integer") %>% pull(variable)
+  
+  not_integers <- data %>%
+    select(all_of(integer_columns)) %>%
+    summarise(across(everything(), ~ !is.integer(.))) %>%
+    unlist() %>% as.logical()
+  
+  if (any(not_integers)) {
+    for (col_name in integer_columns[not_integers]) {
+      add_feedback(to_lines(
+        c(
+          glue("The column '{col_name}' is declared as 'integer' but contains non-integer values."),
+          "To fix this, either change the column's data type to 'number' to allow non-integers:",
+          indented(glue("{global_varname} <- {global_varname} %>% set_variable_metadata('{col_name}', data_type = 'number')")),
+          "Or, if appropriate, you can modify the column's data to only contain integers, for example:",
+          indented(glue("{global_varname} <- {global_varname} %>% modify_data(mutate({col_name} = as.integer({col_name})))"))
+        )
+      ))
+    }
+  }
+  
+  # Validation: check that number columns contain numeric values
+  number_columns <- variables %>%
+    filter(data_type == "number") %>% pull(variable)
+  
+  not_numbers <- data %>%
+    select(all_of(number_columns)) %>%
+    summarise(across(everything(), ~ !is.numeric(.))) %>%
+    unlist() %>% as.logical()
+  
+  if (any(not_numbers)) {
+    for (col_name in number_columns[not_numbers]) {
+      add_feedback(to_lines(
+        c(
+          glue("The column '{col_name}' is declared as 'number' but contains non-numeric values."),
+          "To fix this, you can modify the column's data to only contain numeric values, for example:",
+          indented(glue("{global_varname} <- {global_varname} %>% modify_data(mutate({col_name} = as.numeric({col_name})))"))
+        )
+      ))
+    }
+  }
+  
+  # Validation: check that number columns contain numeric values
+  date_columns <- variables %>%
+    filter(data_type == "date") %>% pull(variable)
+
+  stop("TO DO date validation")  
   
   # Validation: check that categorical columns are factors
   factor_columns <- variables %>%
@@ -280,16 +328,19 @@ setMethod("validate", "Entity", function(object) {
     unlist() %>% as.logical()
 
   if (any(not_factors)) {
-    add_feedback(paste0(
-      c(
-        glue("Categorical column(s) are not R factors: {paste(factor_columns[not_factors], collapse = ', ')}"),
-        "To fix this, either mutate the data column back into a factor: `entity <- entity %>% modify_data(mutate(col_name = factor(col_name)))`",
-        "Or you can manipulate factors using the `forcats` library: `entity <- entity %>% modify_data(mutate(col_name = fct_recode(col_name, 'newVal' = 'oldVal')))`"
-      ),
-      collapse = "\n"
-    ))
+    for (col_name in factor_columns[not_factors]) {
+      add_feedback(to_lines(
+        c(
+          glue("The column '{col_name}' is declared as 'factor' but is not an R factor."),
+          "To fix this, either mutate the data column back into a factor:",
+          indented(glue("{global_varname} <- {global_varname} %>% modify_data(mutate({col_name} = factor({col_name})))")),
+          "Or you can manipulate factors using the `forcats` library:",
+          indented(glue("{global_varname} <- {global_varname} %>% modify_data(mutate({col_name} = fct_recode({col_name}, 'newVal' = 'oldVal')))"))
+        )
+      ))
+    }
   }
-    
+  
   # Output feedback to the user
   give_feedback()  
   

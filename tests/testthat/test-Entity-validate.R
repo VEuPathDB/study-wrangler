@@ -125,6 +125,27 @@ test_that("validate() fails and warns about extra metadata", {
   expect_true(households %>% quiet() %>% validate())
 })
 
+test_that("validate() fails when any data_shape is NA", {
+  
+  # Example file path
+  file_path <- system.file("extdata", "toy_example/households.tsv", package = 'study.wrangler')
+  # Create an Entity object
+  households <- entity_from_file(file_path, name="household")
+
+  # can only fake this the nasty way
+  households@variables <- households@variables %>%
+    mutate(data_shape = if_else(variable == 'Owns.property', NA, data_shape))
+  
+  expect_warning(
+    expect_false(
+      validate(households)
+    ),
+    "NAs found in critical variable metadata.+Owns.property"
+  )
+})
+
+
+
 test_that("validate(households) warns about multiple ID columns per entity_level", {
   # Example file path
   file_path <- system.file("extdata", "toy_example/households.tsv", package = 'study.wrangler')
@@ -156,7 +177,6 @@ test_that("validate(households) warns about multiple ID columns per entity_level
   expect_true(households %>% quiet() %>% validate())
   
 })
-
 
 test_that("validate(households) warns about NAs in ID columns", {
   # Example file path
@@ -213,7 +233,7 @@ test_that("validate() warns about mangled variable metadata columns", {
 test_that("validate() complains about no ID column at all", {
   file_path <- system.file("extdata", "toy_example/households.tsv", package = 'study.wrangler')
   
-  # Modify the data to introduce an invalid date
+  # function to remove a column at load-time
   lose_id_column <- function(data) {
     return(data %>% select(-c("Household Id")))
   }
@@ -225,6 +245,54 @@ test_that("validate() complains about no ID column at all", {
     "This entity appears to have no ID column."
   )
   
-  # TO DO? add convenience method to generate add a integer-sequence ID column?
+  # see test-Entity-make-id-column.R for repair task testing
 })
+
+
+test_that("validate() complains about integer columns with non-integer data", {
+  file_path <- system.file("extdata", "toy_example/households.tsv", package = 'study.wrangler')
+  households <- entity_from_file(file_path, name='household')
+  
+  # modify the whole data column to doubles
+  households <- households %>% modify_data(mutate(Number.of.animals = Number.of.animals + 0.1))
+  
+  expect_message(
+    expect_false(
+      validate(households)
+    ),
+    "Number.of.animals.+contains non-integer values"
+  )
+})
+
+test_that("validate() complains about number columns with non-numeric data", {
+  file_path <- system.file("extdata", "toy_example/participant_observations.tsv", package = 'study.wrangler')
+  observations <- entity_from_file(file_path, name = 'observation')
+  
+  # Modify the whole data column to append a non-numeric string
+  observations <- observations %>% modify_data(mutate(MUAC..cm. = paste(MUAC..cm., "cm")))
+  
+  expect_message(
+    expect_false(
+      validate(observations)
+    ),
+    "MUAC..cm..+contains non-numeric values"
+  )
+})
+
+
+test_that("validate() complains about date columns with non-ISO-8601 dates", {
+  file_path <- system.file("extdata", "toy_example/participant_observations.tsv", package = 'study.wrangler')
+  observations <- entity_from_file(file_path, name = 'observation')
+  
+  # Modify the whole data column to append a non-numeric string
+  observations <- observations %>% modify_data(mutate(Observation.date = chartr("-", "/", Observation.date)))
+  
+  expect_message(
+    expect_false(
+      validate(observations)
+    ),
+    "Observation.date..+contains non-ISO-8601 dates"
+  )
+})
+
 
