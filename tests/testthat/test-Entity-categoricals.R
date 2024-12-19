@@ -8,7 +8,7 @@ test_that("validate(households) alerts to categorical variables with non-factor 
   
   # mutate a column naively (not wrapped in `factor()`)
   households <- households %>%
-    set_data(
+    modify_data(
       mutate(Owns.property = if_else(Owns.property == 'Yes', 'Sure thing', 'Not really'))
     )
   # validate again
@@ -19,7 +19,7 @@ test_that("validate(households) alerts to categorical variables with non-factor 
 
   # now mutate it back to a factor
   households <- households %>%
-    set_data(
+    modify_data(
       mutate(Owns.property = factor(Owns.property))
     )
   # should now be valid
@@ -35,7 +35,7 @@ test_that("Using forcats manipulations on categoricals does not break validation
   expect_true(households %>% quiet() %>% validate())
 
   households <- households %>%
-    set_data(
+    modify_data(
       mutate(Owns.property = fct_expand(Owns.property, "It's complicated"))
     )  
   expect_true(households %>% quiet() %>% validate())
@@ -52,7 +52,7 @@ test_that("Even very large vocabularies are reported in inspect_variable", {
 
   # add new factor levels, "aaa":"zzz"
   households <- households %>%
-    set_data(
+    modify_data(
       mutate(Owns.property = fct_expand(Owns.property, paste0(letters, letters, letters)))
     )
   expect_true(households %>% quiet() %>% validate())

@@ -222,12 +222,21 @@ setMethod("validate", "Entity", function(object) {
   
   # Validation: there must be an ID column for this entity
   if (nrow(my_id_variable) == 0) {
-    add_feedback(paste0(
+    add_feedback(to_lines(
       c(
-        "This entity appears to have no ID column. It must have a column with a unique",
-        "value in each row."
-      ),
-      collapse="\n"
+        "This entity appears to have no ID column.",
+        "It must have a column with a unique value in each row.",
+        "You can create a simple numeric ID as follows:",
+        indented(c(
+          glue("{global_varname} <- {global_varname} %>%"),
+          indented(c(
+            "modify_data(mutate(ID = row_number())) %>%",
+            "sync_variable_metadata() %>%",
+            "redetect_column_as_id('ID')"
+          ))
+        )),
+        glue("Then `validate({global_varname})` again")
+      )
     ))
   }
   
@@ -265,8 +274,8 @@ setMethod("validate", "Entity", function(object) {
     add_feedback(paste0(
       c(
         glue("Categorical column(s) are not R factors: {paste(factor_columns[not_factors], collapse = ', ')}"),
-        "To fix this, either mutate the data column back into a factor: `entity <- entity %>% set_data(mutate(col_name = factor(col_name)))`",
-        "Or you can manipulate factors using the `forcats` library: `entity <- entity %>% set_data(mutate(col_name = fct_recode(col_name, 'newVal' = 'oldVal')))`"
+        "To fix this, either mutate the data column back into a factor: `entity <- entity %>% modify_data(mutate(col_name = factor(col_name)))`",
+        "Or you can manipulate factors using the `forcats` library: `entity <- entity %>% modify_data(mutate(col_name = fct_recode(col_name, 'newVal' = 'oldVal')))`"
       ),
       collapse = "\n"
     ))

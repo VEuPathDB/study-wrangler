@@ -53,7 +53,7 @@ test_that("check_parent_ids() works", {
   expect_true(check_result$is_valid)
   
   # now mess up some of the parent IDs in participants
-  bad_participants <- participants %>% set_data(
+  bad_participants <- participants %>% modify_data(
     mutate(Household.Id = if_else(row_number() %% 3 == 0, 'H007', Household.Id))
   )
 
@@ -92,7 +92,7 @@ test_that("validate(study) checks parent ID relationships row-wise", {
   )
   
   bad_participants <- participants %>%
-    set_data(
+    modify_data(
       mutate(
         Household.Id = fct_mutate(Household.Id, row_number() %% 3 == 0, 'H007', .auto_expand = TRUE)
       )

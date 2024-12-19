@@ -54,7 +54,7 @@ test_that("validate() fails and warns about missing metadata", {
   # Create an Entity object
   households <- entity_from_file(file_path, name="household")
   # add a new data column
-  households <- households %>% set_data(mutate(newColumn = 42))
+  households <- households %>% modify_data(mutate(newColumn = 42))
     
   # validate
   expect_warning(
@@ -80,7 +80,7 @@ test_that("validate() fails and warns about extra metadata", {
   # Create an Entity object
   households <- entity_from_file(file_path, name="household")
   # remove a new data column
-  households <- households %>% set_data(select(-c('Owns.property')))
+  households <- households %>% modify_data(select(-c('Owns.property')))
   
   # validate
   expect_warning(
@@ -107,7 +107,7 @@ test_that("validate(households) warns about multiple ID columns per entity_level
   households <- entity_from_file(file_path, name='household')
 
   # fake a new ID column
-  households <- households %>% set_data(mutate(dupeId = Household.Id))
+  households <- households %>% modify_data(mutate(dupeId = Household.Id))
   expect_message(
     households <- households %>%
       sync_variable_metadata(),
