@@ -367,8 +367,13 @@ setMethod("get_display_name_plural", "Entity", function(entity) {
 #' @export
 setMethod("sync_variable_metadata", "Entity", function(entity) {
   data <- entity@data
-  variables <- entity@variables
-  
+  variables <- if ("variable" %in% colnames(entity@variables)) {
+    entity@variables
+  } else {
+    message("Reinitializing empty or corrupted variable metadata...")
+    tibble(variable = character(0))
+  }
+
   missing_variables <- setdiff(colnames(data), variables$variable)
   extra_variables <- setdiff(variables$variable, colnames(data))
 

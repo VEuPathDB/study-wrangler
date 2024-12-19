@@ -24,7 +24,16 @@ setMethod("validate", "Entity", function(object) {
   
   # Fatal Validation: Check if metadata is empty
   if (nrow(variables) == 0) {
-    give_feedback(fatal_message = "Variables' metadata is empty. Ensure metadata is correctly populated.")
+    give_feedback(
+      fatal_message =
+        to_lines(c(
+          "Variables' metadata is empty. Ensure metadata is correctly populated.",
+          "To reset the metadata to defaults, use the following command:",
+          indented(
+            glue("{global_varname} <- {global_varname} %>% sync_variable_metadata()")
+          )
+        ))
+    )
     return(invisible(FALSE))
   }
   
@@ -209,8 +218,8 @@ setMethod("validate", "Entity", function(object) {
         "~~~~",
         "Entity level 0 is this entity. Level -1 is the parent entity, -2 is the grandparent, etc.",
         "It is likely that one or more variable columns have been incorrectly detected as ID columns.",
-        "To fix this, redo the column type inference as follows:",
-        "entity <- entity %>% redetect_columns(columns = c('variable1', 'variable2'))"
+        "To fix this, redo the column type detection as follows:",
+        glue("{global_varname} <- {global_varname} %>% redetect_columns_as_variable(columns = c('variable1', 'variable2'))")
       ),
       collapse="\n"
     ))

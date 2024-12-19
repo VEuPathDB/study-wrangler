@@ -74,6 +74,31 @@ test_that("validate() fails and warns about missing metadata", {
   expect_true(households %>% quiet() %>% validate())
 })
 
+test_that("sync_variable_metadata() gracefully handles completely missing variables metadata", {
+  # Example file path
+  file_path <- system.file("extdata", "toy_example/households.tsv", package = 'study.wrangler')
+  # Create an Entity object
+  households <- entity_from_file(file_path, name="household")
+
+  # crudely replace it with an empty tibble (NULL not allowed in that slot)
+  households@variables <- tibble()
+  
+  expect_warning(
+    validate(households),
+    "Variables' metadata is empty. Ensure metadata is correctly populated.+To reset the metadata.+sync_variable_metadata"
+  )
+  
+  # now follow the advice given
+  expect_message(
+    expect_message(
+      households <- households %>% sync_variable_metadata(),
+      "Reinitializing empty or corrupted variable metadata"
+    ),
+    "Synced variables metadata by adding defaults"
+  )
+  
+})
+  
 test_that("validate() fails and warns about extra metadata", {
   # Example file path
   file_path <- system.file("extdata", "toy_example/households.tsv", package = 'study.wrangler')
