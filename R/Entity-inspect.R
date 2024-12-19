@@ -66,7 +66,7 @@ setMethod("inspect", "Entity", function(object, variable_name = NULL) {
 ~~~~
 If you see variables in the table above that should not be handled as IDs
 then you can redo the automatic column type detection with:
-`redo_type_detection_as_variables_only(c('col_name1', 'col_name_2`))`
+`redetect_columns(c('col_name1', 'col_name_2`))`
 ~~~~
 If there are ID columns missing above, you may need to use:
 `set_parents(names=c('parent_name', 'grandparent_name'), columns=c('parent.id', 'grandparent.id'))`

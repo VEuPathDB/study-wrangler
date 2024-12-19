@@ -12,7 +12,7 @@ test_that("participants fixture loads and fails validation due to wrongly infere
   # now we fix it
   expect_message(
     participants <- participants %>%
-      redo_type_detection_as_variables_only('Name'),
+      redetect_columns_as_variables('Name'),
     "Redoing type detection"
   )
 
@@ -30,7 +30,7 @@ test_that("set_parents() works and the result validates", {
   )
   
   expect_message(
-    participants <- participants %>% redo_type_detection_as_variables_only(columns = c('Name')),
+    participants <- participants %>% redetect_columns_as_variables(columns = c('Name')),
     "Redoing type detection"
   )
 

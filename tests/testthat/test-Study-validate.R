@@ -42,7 +42,7 @@ test_that("check_parent_ids() works", {
   households <- entity_from_file(households_path, name="household")
   
   participants <- entity_from_file(participants_path, name="participant", quiet=TRUE) %>%
-    redo_type_detection_as_variables_only('Name') %>%
+    redetect_columns_as_variables('Name') %>%
     set_parents(names=c("household"), columns=c("Household.Id")) %>% verbose()
   
   # this should be silent

@@ -11,7 +11,7 @@ test_that("study_from_entities() works", {
   
   expect_message(
     participants <- participants %>%
-      redo_type_detection_as_variables_only('Name'),
+      redetect_columns_as_variables('Name'),
     "Redoing type detection"
   )
   expect_message(

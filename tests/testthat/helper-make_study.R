@@ -10,7 +10,7 @@ make_study <- function(...) {
   households <- entity_from_file(households_path, name="household", quiet=TRUE)
 
   participants <- entity_from_file(participants_path, name="participant", quiet=TRUE) %>%
-    redo_type_detection_as_variables_only('Name') %>%
+    redetect_columns_as_variables('Name') %>%
     set_parents(names=c("household"), columns=c("Household.Id"))
 
   observations <- entity_from_file(observations_path, name="observation", quiet=TRUE) %>%

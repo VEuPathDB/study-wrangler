@@ -18,6 +18,9 @@ setMethod("validate", "Entity", function(object) {
   add_feedback <- tools$add_feedback
   give_feedback <- tools$give_feedback
   get_is_valid <- tools$get_is_valid
+
+  # name of variable to use in fix-it command suggestions  
+  global_varname = find_global_varname(entity, 'entity')
   
   # Fatal Validation: Check if metadata is empty
   if (nrow(variables) == 0) {
@@ -36,19 +39,19 @@ setMethod("validate", "Entity", function(object) {
   extra_variables <- setdiff(variables$variable, colnames(data))
   
   if (length(missing_variables) > 0) {
-    give_feedback(fatal_message=paste(
+    give_feedback(fatal_message=to_lines(
       "Variable metadata is missing for these data columns:",
-       paste(missing_variables, collapse = ", "),
-      "\n[add default metadata with `entity <- entity %>% sync_variable_metadata()`]"
+       indented(paste(missing_variables, collapse = ", ")),
+      glue("add default metadata with `{global_varname} <- {global_varname} %>% sync_variable_metadata()`")
     ))
     return(invisible(FALSE))
   }
   
   if (length(extra_variables) > 0) {
-    give_feedback(fatal_message=paste(
+    give_feedback(fatal_message=to_lines(
       "These variables have metadata but no data columns:",
-      paste(extra_variables, collapse = ", "),
-      "\n[remove the metadata with `entity <- entity %>% sync_variable_metadata()`]"
+      indented(paste(extra_variables, collapse = ", ")),
+      glue("remove the metadata with `{global_varname} <- {global_varname} %>% sync_variable_metadata()`")
     ))
     return(invisible(FALSE))
   }
@@ -207,7 +210,7 @@ setMethod("validate", "Entity", function(object) {
         "Entity level 0 is this entity. Level -1 is the parent entity, -2 is the grandparent, etc.",
         "It is likely that one or more variable columns have been incorrectly detected as ID columns.",
         "To fix this, redo the column type inference as follows:",
-        "entity <- entity %>% redo_type_detection_as_variables_only(columns = c('variable1', 'variable2'))"
+        "entity <- entity %>% redetect_columns(columns = c('variable1', 'variable2'))"
       ),
       collapse="\n"
     ))

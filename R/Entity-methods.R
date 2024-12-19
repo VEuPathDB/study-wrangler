@@ -7,7 +7,11 @@ library(glue)
 setGeneric("infer_missing_data_types", function(entity, ...) standardGeneric("infer_missing_data_types"))
 setGeneric("infer_missing_data_shapes", function(entity) standardGeneric("infer_missing_data_shapes"))
 #' @export
-setGeneric("redo_type_detection_as_variables_only", function(entity, columns) standardGeneric("redo_type_detection_as_variables_only"))
+setGeneric("redetect_columns", function(entity, columns, ...) standardGeneric("redetect_columns"))
+#' @export
+setGeneric("redetect_columns_as_variables", function(entity, columns) standardGeneric("redetect_columns_as_variables"))
+#' @export
+setGeneric("redetect_column_as_id", function(entity, column) standardGeneric("redetect_column_as_id"))
 #' @export
 setGeneric("set_entity_metadata", function(entity, ...) standardGeneric("set_entity_metadata"))
 #' @export
@@ -57,11 +61,15 @@ setGeneric("remove_children", function(entity) standardGeneric("remove_children"
 #' Infers `data_type` metadata for columns where this is currently `NA`.
 #' 
 #' @param entity an Entity object.
-#' @param .no_id_check logical, optional. If `TRUE`, skips the `n_distinct()` check in `infer_data_type`, 
-#' and no columns will be inferred as `id`. Defaults to `FALSE`.
-#' @returns modified entity.
-setMethod("infer_missing_data_types", "Entity", function(entity, .no_id_check = FALSE) {
-  
+#' @param .allowed_data_types character vector, optional. Specifies the types that are allowed when inferring `data_type`. Must be one or more of "date", "integer", "number", or "id". Defaults to `NULL` (no restriction).
+#' @param .disallowed_data_types character vector, optional. Specifies the types that are disallowed when inferring `data_type`. Must be one or more of "date", "integer", "number", or "id". Defaults to `NULL` (no restriction).
+#' @returns Modified entity with updated `data_type` metadata for columns where it was previously `NA`.
+setMethod("infer_missing_data_types", "Entity",
+function(
+  entity,
+  .allowed_data_types = NULL,
+  .disallowed_data_types = NULL
+) {
   variables <- entity@variables
   data <- entity@data
   
@@ -72,7 +80,11 @@ setMethod("infer_missing_data_types", "Entity", function(entity, .no_id_check = 
       data_type = fct_mutate(
         data_type,
         is.na(data_type),
-        infer_data_type(data, variable, .no_id_check = .no_id_check),
+        infer_data_type(
+          data,
+          variable,
+          .allowed_data_types = .allowed_data_types,
+          .disallowed_data_types = .disallowed_data_types)
       )
     ) %>%
     ungroup() # remove special row-wise grouping
@@ -138,15 +150,18 @@ setMethod("infer_missing_data_shapes", "Entity", function(entity) {
 })
 
 
-#' redo_type_detection_as_variables_only
+#' redetect_columns
 #' 
-#' Redoes the automatic type detection for specific columns but will never
-#' guess ID type for those columns
-#'  
+#' Redoes the automatic type detection for specific columns
+#' 
+#' This function re-applies type inference to the specified columns, updating their metadata.
+#' 
 #' @param entity an Entity object
 #' @param columns a character vector of column names
-#' @returns modified entity
-setMethod("redo_type_detection_as_variables_only", "Entity", function(entity, columns) {
+#' @param .allowed_data_types character vector, optional. Specifies the types that are allowed when inferring `data_type`. Must be one or more of "date", "integer", "number", or "id". Defaults to `NULL` (no restriction).
+#' @param .disallowed_data_types character vector, optional. Specifies the types that are disallowed when inferring `data_type`. Must be one or more of "date", "integer", "number", or "id". Defaults to `NULL` (no restriction).
+#' @returns Modified entity
+setMethod("redetect_columns", "Entity", function(entity, columns, .allowed_data_types = NULL, .disallowed_data_types = NULL) {
   data <- entity@data
   variables <- entity@variables
 
@@ -182,11 +197,42 @@ setMethod("redo_type_detection_as_variables_only", "Entity", function(entity, co
   # reform entity object and then redo column inference
   entity <- entity %>%
     initialize(variables=variables) %>%
-    infer_missing_data_types(.no_id_check=TRUE) %>%
+    infer_missing_data_types(
+      .allowed_data_types = .allowed_data_types,
+      .disallowed_data_types = .disallowed_data_types
+    ) %>%
     infer_missing_data_shapes()
 
   return(entity)
 })
+
+#' redetect_columns_as_variables
+#' 
+#' Redoes the automatic type detection for specific columns but will never
+#' guess ID type for those columns
+#'  
+#' @param entity an Entity object
+#' @param columns a character vector of column names
+#' @returns modified entity
+setMethod("redetect_columns_as_variables", "Entity", function(entity, columns) {
+  return(redetect_columns(entity, columns, .disallowed_data_types = c("id")))
+})
+
+#' redetect_column_as_id
+#' 
+#' Attempts to redetect one named column as a primary ID column (i.e. all values are
+#' unique) but note that this will fall back to data_type: "string" if the
+#' column values aren't all unique 
+#'  
+#' @param entity an Entity object
+#' @param column name of the column to be redetected
+#' @returns modified entity
+setMethod("redetect_column_as_id", "Entity", function(entity, column) {
+  if (length(column) > 1)
+    stop("Error: you can only `redetect_column_as_id()` for one column.")
+  return(redetect_columns(entity, columns = column, .allowed_data_types = c("id")))
+})
+
 
 #' set_entity_metadata
 #' 

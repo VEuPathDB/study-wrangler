@@ -59,7 +59,7 @@ test_that("validate() fails and warns about missing metadata", {
   # validate
   expect_warning(
     is_valid <- validate(households),
-    "Variable metadata is missing for these data columns: newColumn"
+    "Variable metadata is missing for these data columns:\\s+newColumn"
   )
   expect_false(is_valid)
   
@@ -85,7 +85,7 @@ test_that("validate() fails and warns about extra metadata", {
   # validate
   expect_warning(
     is_valid <- validate(households),
-    "These variables have metadata but no data columns: Owns.property"
+    "These variables have metadata but no data columns:\\s+Owns.property"
   )
   expect_false(is_valid)
 
@@ -123,7 +123,7 @@ test_that("validate(households) warns about multiple ID columns per entity_level
   # fix it
   expect_message(
     households <- households %>%
-      redo_type_detection_as_variables_only('dupeId'),
+      redetect_columns_as_variables('dupeId'),
     "Redoing type detection"
   )
   

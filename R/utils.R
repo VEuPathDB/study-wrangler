@@ -23,27 +23,53 @@ skim <- skimr::skim_with(
 )
 
 # Convert R column types to `data_type` metadata annotation
-infer_data_type <- function(data, column_name, .no_id_check = FALSE) {
+infer_data_type <- function(data, column_name, 
+                            .allowed_data_types = NULL, 
+                            .disallowed_data_types = NULL) {
+  # Define allowed types as an enum-like factor
+  # (excluding "string" which is always the default fallback type)
+  valid_data_types <- c("date", "integer", "number", "id")
+  
+  # Validate .allowed_data_types
+  if (!is.null(.allowed_data_types) && 
+      !all(.allowed_data_types %in% valid_data_types)) {
+    stop("Invalid value(s) in `.allowed_data_types`: ", 
+         paste(setdiff(.allowed_data_types, valid_data_types), collapse = ", "))
+  }
+  
+  # Validate .disallowed_data_types
+  if (!is.null(.disallowed_data_types) && 
+      !all(.disallowed_data_types %in% valid_data_types)) {
+    stop("Invalid value(s) in `.disallowed_data_types`: ", 
+         paste(setdiff(.disallowed_data_types, valid_data_types), collapse = ", "))
+  }
+  
+  # Extract column
   column <- data %>% pull(column_name)
-
-  # dates and numbers come first so they can't be detected as IDs
-  if (inherits(column, "Date") || inherits(column, "POSIXct")) {
-    return("date")
-  } 
   
-  if (is.integer(column)) { 
-    return("integer")
-  } 
-
-  if (is.numeric(column)) {
-    return("number")
-  } 
+  check_this_type <- function(type) {
+    if (is_empty(.disallowed_data_types) && is_empty(.allowed_data_types)) {
+      return(TRUE)
+    }
+    if (type %in% .disallowed_data_types) return(FALSE)
+    if (type %in% .allowed_data_types) return(TRUE)
+    return(FALSE)
+  }
   
-  if (!.no_id_check && n_distinct(column) == length(column)) {
-    return("id") # Guess ID type only works for primary keys  
-  } 
-  
-  return("string")
+  # Dates and numbers come first so they can't be detected as IDs
+  return(
+    if (check_this_type("date") && (inherits(column, "Date") || inherits(column, "POSIXct"))) {
+      "date"
+    } else if (check_this_type("integer") && is.integer(column)) {
+      "integer"
+    } else if (check_this_type("number") && is.numeric(column)) {
+      "number"
+    } else if (check_this_type("id") && n_distinct(column) == length(column)) {
+      "id" # Guess ID type only works for primary keys
+    } else {
+      "string" # Default fallback
+    }
+  )
 }
 
 #'
