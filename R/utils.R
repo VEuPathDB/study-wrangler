@@ -266,3 +266,51 @@ indented <- function(...) {
   character_vector <- c(...)
   paste0("  ", character_vector)
 }
+
+
+#'
+#' Check and Convert Column to Date with Error Handling
+#'
+#' helper for set_variable_as_date(entity, column_name)
+#'
+#'
+#' @param data A tibble or data frame containing the data.
+#' @param column_name The name of the column to be converted.
+#' @returns The modified data if conversion succeeds, or stops with an error if it fails.
+check_and_convert_to_date <- function(data, column_name) {
+  column <- data %>% pull(column_name) # Extract column by name
+
+  # Safely attempt conversion on each element
+  safe_as_date <- function(x) tryCatch(as.Date(x), error = function(e) NA)
+  # final as.Date() is necessary
+  result <- column %>% map(safe_as_date) %>% unlist() %>% as.Date()
+
+  failed <- is.na(result) & !is.na(column)
+  
+  if (all(failed)) {
+    example_value <- column[failed][1]
+    stop(glue::glue(
+      "All rows in column '{column_name}' failed to convert to date.\n",
+      "Example invalid value: '{example_value}'.\n",
+      "Ensure the column contains valid, unambiguous date formats."
+    ))
+  } else if (any(failed)) {
+    num_failures <- sum(failed)
+    failed_examples <- head(column[failed], 10)
+    failed_summary <- paste0(
+      "Problematic values:\n",
+      paste(seq_along(failed_examples), ":", failed_examples, collapse = "\n")
+    )
+    stop(glue::glue(
+      "{num_failures} rows in column '{column_name}' failed to convert to date.\n",
+      "{failed_summary}\n",
+      "Ensure these values are corrected before conversion."
+    ))
+  }
+  
+  # If all rows succeed, replace the column tidily
+  data <- data %>%
+    mutate("{column_name}" := result)
+  
+  return(data)
+}

@@ -54,7 +54,8 @@ setGeneric("pretty_tree", function(entity) standardGeneric("pretty_tree"))
 setGeneric("check_parent_child_join", function(parent, child) standardGeneric("check_parent_child_join"))
 #' @export
 setGeneric("remove_children", function(entity) standardGeneric("remove_children"))
-
+#' @export
+setGeneric("set_variable_as_date", function(entity, column_name) standardGeneric("set_variable_as_date"))
 
 #' infer_missing_data_types
 #' 
@@ -842,3 +843,23 @@ setMethod("remove_children", "Entity", function(entity) {
   return(entity)
 })
 
+
+#' Set Variable as Date
+#'
+#' Convenience function to mark a column as a date type and ensure conversion succeeds.
+#'
+#' @param entity An Entity object.
+#' @param column_name The name of the column to be converted.
+#' @returns Modified Entity object.
+setMethod("set_variable_as_date", "Entity", function(entity, column_name) {
+  # Pre-check and convert column
+  data <- entity@data
+  data <- check_and_convert_to_date(data, column_name)
+  
+  # Update metadata and return the modified entity
+  entity <- entity %>%
+    set_variable_metadata(column_name, data_type = "date") %>%
+    initialize(data = data)
+  
+  return(entity)
+})

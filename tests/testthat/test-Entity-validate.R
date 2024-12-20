@@ -292,20 +292,33 @@ test_that("validate() complains about ID column with wrong entity_name", {
 
 })
 
-
-skip()
 test_that("validate() complains about date columns with non-ISO-8601 dates", {
   file_path <- system.file("extdata", "toy_example/participant_observations.tsv", package = 'study.wrangler')
   observations <- entity_from_file(file_path, name = 'observation')
   
-  # Modify the whole data column to append a non-numeric string
+  # mess up the date a bit - it's still a date but the column type is now character
   observations <- observations %>% modify_data(mutate(Observation.date = chartr("-", "/", Observation.date)))
   
   expect_message(
     expect_false(
       validate(observations)
     ),
-    "Observation.date..+contains non-ISO-8601 dates"
+    "The column 'Observation.date' is declared as 'date' but R does not currently recognise it as a date"
+  )
+  
+  # let's see if we can fix it with the recommended command
+  expect_silent(
+    observations <- observations %>% modify_data(mutate(Observation.date = as.Date(Observation.date)))
+  )
+  expect_true(observations %>% quiet() %>% validate())
+
+  # mess up the date a bit more - now the character column has non-dates
+  observations <- observations %>% modify_data(mutate(Observation.date = str_replace(Observation.date, "09-29", "09-31")))
+  
+  # now it can't be fixed with a simple `as.Date()`
+  expect_error(
+    observations <- observations %>% modify_data(mutate(Observation.date = as.Date(Observation.date))),
+    "Caused by error in.+charToDate.+character string is not in a standard unambiguous format"
   )
 })
 

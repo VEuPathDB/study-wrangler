@@ -330,9 +330,11 @@ setMethod("validate", "Entity", function(object) {
     for (col_name in date_columns[not_dates]) {
       add_feedback(to_lines(
         c(
-          glue("The column '{col_name}' is declared as 'date' but R is not handling the data column as date."),
-          "To fix this, you can modify the column's data to only contain numeric values, for example:",
-          indented(glue("{global_varname} <- {global_varname} %>% modify_data(mutate({col_name} = as.numeric({col_name})))"))
+          glue("The column '{col_name}' is declared as 'date' but R does not currently recognise it as a date."),
+          "To fix this, you can modify the column's data by converting to dates, for example:",
+          indented(glue("{global_varname} <- {global_varname} %>% modify_data(mutate({col_name} = as.Date({col_name})))")),
+          "However, this may fail or create NAs if there are badly formatted, incorrect or ambiguous dates.",
+          "You should ensure there is no unintentional data loss when manipulating dates."
         )
       ))
     }
