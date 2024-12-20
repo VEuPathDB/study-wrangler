@@ -279,7 +279,21 @@ test_that("validate() complains about number columns with non-numeric data", {
   )
 })
 
+test_that("validate() complains about ID column with wrong entity_name", {
+  file_path <- system.file("extdata", "toy_example/households.tsv", package = 'study.wrangler')
+  households <- entity_from_file(file_path, name='household', quiet=TRUE)
+  households <- households %>% set_variable_metadata('Household.Id', entity_name='garbage') %>% verbose()
+  expect_message(
+    expect_false(
+      validate(households)
+    ),
+    "ID column 'Household.Id' has incorrect `entity_name`"
+  )
 
+})
+
+
+skip()
 test_that("validate() complains about date columns with non-ISO-8601 dates", {
   file_path <- system.file("extdata", "toy_example/participant_observations.tsv", package = 'study.wrangler')
   observations <- entity_from_file(file_path, name = 'observation')

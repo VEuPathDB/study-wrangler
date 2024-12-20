@@ -255,20 +255,21 @@ setMethod("validate", "Entity", function(object) {
       entity@name != "" &&
       all(id_col_contraventions$entity_level != 0) &&
       nrow(my_id_variable) > 0) {
-    
     if (my_id_variable %>% pull(entity_name) %>% coalesce("") != entity@name) {
-      add_feedback(glue(paste0(
+      add_feedback(glue(to_lines(
         c(
           "ID column '{my_id_variable %>% pull(variable)}' has incorrect `entity_name`.",
           "It is '{my_id_variable %>% pull(entity_name)}' and should be '{entity@name}'",
-          "[You can fix this with `set_variable_metadata('{my_id_variable %>% pull(variable)}', entity_name='{entity@name}')`]"
-        ),
-        collapse="\n"
+          "You can fix this with:",
+          indented(
+            "{global_varname} <- {global_varname} %>% set_variable_metadata('{my_id_variable %>% pull(variable)}', entity_name='{entity@name}')"
+          )
+        )
       )))
     }
   }
   
-  # Validation: check that integer columns contain integers
+  # Validation: check that integer variables' data columns contain integers
   integer_columns <- variables %>%
     filter(data_type == "integer") %>% pull(variable)
   
@@ -285,13 +286,15 @@ setMethod("validate", "Entity", function(object) {
           "To fix this, either change the column's data type to 'number' to allow non-integers:",
           indented(glue("{global_varname} <- {global_varname} %>% set_variable_metadata('{col_name}', data_type = 'number')")),
           "Or, if appropriate, you can modify the column's data to only contain integers, for example:",
-          indented(glue("{global_varname} <- {global_varname} %>% modify_data(mutate({col_name} = as.integer({col_name})))"))
+          indented(glue("{global_varname} <- {global_varname} %>% modify_data(mutate({col_name} = as.integer({col_name})))")),
+          "However, be aware of data loss. E.g. `as.integer('12 cm')` is `NA`",
+          "Fix any issues before using `as.integer()`"
         )
       ))
     }
   }
   
-  # Validation: check that number columns contain numeric values
+  # Validation: check that number variables' data columns contain numeric values
   number_columns <- variables %>%
     filter(data_type == "number") %>% pull(variable)
   
@@ -306,18 +309,36 @@ setMethod("validate", "Entity", function(object) {
         c(
           glue("The column '{col_name}' is declared as 'number' but contains non-numeric values."),
           "To fix this, you can modify the column's data to only contain numeric values, for example:",
-          indented(glue("{global_varname} <- {global_varname} %>% modify_data(mutate({col_name} = as.numeric({col_name})))"))
+          indented(glue("{global_varname} <- {global_varname} %>% modify_data(mutate({col_name} = as.numeric({col_name})))")),
+          "However, be aware of data loss. E.g. `as.numeric('12 cm')` is `NA`",
+          "Fix any issues before using `as.numeric()`"
         )
       ))
     }
   }
   
-  # Validation: check that number columns contain numeric values
+  # Validation: check that date variables' data columns are R date type
   date_columns <- variables %>%
     filter(data_type == "date") %>% pull(variable)
 
-  stop("TO DO date validation")  
+  not_dates <- data %>%
+    select(all_of(date_columns)) %>%
+    summarise(across(everything(), ~ !is_date_column(.))) %>%
+    unlist() %>% as.logical()
   
+  if (any(not_dates)) {
+    for (col_name in date_columns[not_dates]) {
+      add_feedback(to_lines(
+        c(
+          glue("The column '{col_name}' is declared as 'date' but R is not handling the data column as date."),
+          "To fix this, you can modify the column's data to only contain numeric values, for example:",
+          indented(glue("{global_varname} <- {global_varname} %>% modify_data(mutate({col_name} = as.numeric({col_name})))"))
+        )
+      ))
+    }
+  }
+    
+    
   # Validation: check that categorical columns are factors
   factor_columns <- variables %>%
     filter(data_shape != "continuous") %>% pull(variable)
@@ -345,5 +366,10 @@ setMethod("validate", "Entity", function(object) {
   give_feedback()  
   
   # Return overall validation status
-  return(invisible(get_is_valid()))
+  is_valid <- get_is_valid()
+  if (quiet) {
+    return(is_valid) # don't be *too* quiet
+  } else {
+    return(invisible(is_valid))
+  }
 })
