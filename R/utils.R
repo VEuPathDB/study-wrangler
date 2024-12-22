@@ -281,7 +281,16 @@ check_and_convert_to_date <- function(data, column_name) {
   column <- data %>% pull(column_name) # Extract column by name
 
   # Safely attempt conversion on each element
-  safe_as_date <- function(x) tryCatch(as.Date(x), error = function(e) NA)
+  safe_as_date <- function(x) {
+    # Use our own regular expression to strictly validate the YYYY-MM-DD format
+    # because as.Date()'s `format` argument allows partial matching (e.g., "31-12-31" with "%Y-%m-%d").
+    # This ensures only fully qualified dates like "2024-12-31" are processed.
+    ifelse(
+      str_detect(x, "^\\d{4}-\\d{2}-\\d{2}$"),
+      tryCatch(as.Date(x), error = function(e) NA),
+      NA
+    )
+  }
   # final as.Date() is necessary
   result <- column %>% map(safe_as_date) %>% unlist() %>% as.Date()
 
@@ -292,7 +301,7 @@ check_and_convert_to_date <- function(data, column_name) {
     stop(glue::glue(
       "All rows in column '{column_name}' failed to convert to date.\n",
       "Example invalid value: '{example_value}'.\n",
-      "Ensure the column contains valid, unambiguous date formats."
+      "Ensure the column contains only 'YYYY-MM-DD' format dates (and NAs)."
     ))
   } else if (any(failed)) {
     num_failures <- sum(failed)
