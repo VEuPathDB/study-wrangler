@@ -323,3 +323,68 @@ check_and_convert_to_date <- function(data, column_name) {
   
   return(data)
 }
+
+
+#'
+#' Generates a random-looking alphanumeric ID (never starting with a digit) 
+#'
+#' Deterministic if provided with a seed string.
+#' 
+#' Be aware that this function does not restore the prior RNG state.
+#'
+generate_alphanumeric_id <- function(length = 11, seed_string = NULL) {
+  # Seed the RNG if a seed string is provided
+  if (!is.null(seed_string)) {
+    char_values <- utf8ToInt(seed_string)
+    
+    # Define a sequence of prime numbers (at least as long as the string)
+    primes <- c(2, 3, 5, 7, 11, 13, 17, 19, 23, 29, 31, 37, 41, 43, 47, 53, 59, 61, 67, 71)
+    
+    # If the string is longer than the primes array, repeat the primes
+    if (length(char_values) > length(primes)) {
+      primes <- rep(primes, length.out = length(char_values))
+    }
+    
+    # Multiply each char value by the corresponding prime
+    seed <- sum(char_values * primes[seq_along(char_values)]) %% .Machine$integer.max
+    set.seed(seed)
+  }
+  
+  chars <- c(letters, LETTERS, 0:9)  # Define allowed characters
+  non_digit_chars <- c(letters, LETTERS)  # Characters to ensure non-digit start
+  
+  # Loop until the first character is non-digit
+  repeat {
+    result <- paste0(sample(chars, length, replace = TRUE), collapse = "")
+    if (substr(result, 1, 1) %in% non_digit_chars) {
+      return(result)
+    }
+  }
+}
+
+
+#'
+#' convenience function for JavaScript people!
+#'
+#' (do we already have something like this in veupathUtils?)
+#' 
+is_truthy <- function(x) {
+  if (length(x) > 1) {
+    stop("is_truthy() only handles scalar (single-value) inputs.")
+  }
+  if (is.null(x)) {
+    return(FALSE)  # NULL is always falsey
+  }
+  if (is.na(x)) {
+    return(FALSE)  # NA is always falsey
+  }
+  if (is.character(x)) {
+    return(nzchar(x))  # Non-empty strings are truthy
+  }
+  # Factors behave like their character equivalents
+  if (is.factor(x)) {
+    return(nzchar(as.character(x)))
+  }
+  return(as.logical(x) %in% TRUE)  # Coerce to logical and check for TRUE
+}
+
