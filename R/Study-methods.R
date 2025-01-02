@@ -10,6 +10,9 @@ setGeneric("get_study_name", function(study) standardGeneric("get_study_name"))
 setGeneric("set_study_metadata", function(study, ...) standardGeneric("set_study_metadata"))
 #' @export
 setGeneric("set_study_name", function(study, name) standardGeneric("set_study_name"))
+#' @export
+setGeneric("get_study_id", function(study) standardGeneric("get_study_id"))
+
 
 
 #' get_root_entity
@@ -133,3 +136,23 @@ setMethod("set_study_name", "Study", function(study, name) {
   if (!study@quiet) message(glue("Adding study name '{name}'..."))
   return(study %>% set_study_metadata(name = name))
 })
+
+
+#' get_study_id
+#'
+#' Gets the study's uniquely generated ID.
+#' 
+#' Fatal error if the study_name is not set
+#'
+#' @param study A `Study` object.
+#' @return A `character` string representing a generated unique ID for the study.
+#' @export
+setMethod("get_study_id", "Study", function(study) {
+  name <- study %>% get_study_name()
+  if (is_truthy(name)) {
+    return(generate_alphanumeric_id(seed_string = name))
+  } else {
+    stop("Error: not allowed to call get_study_id() on a study with no name.")
+  }
+})
+
