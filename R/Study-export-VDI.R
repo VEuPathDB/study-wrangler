@@ -1,17 +1,14 @@
-#' @export
-setGeneric("export_to_vdi", function(study, output_directory) standardGeneric("export_to_vdi"))
-
-
 #' export_to_vdi
 #'
 #' Export a `Study` object to a specified output directory, creating the directory if it doesn't exist.
 #'
-#' @param study A `Study` object.
+#' @param object A `Study` object.
 #' @param output_directory A character string containing the relative or
 #'        absolute path of the output directory (which will be created if it doesn't exist).
 #' @return The `Study` object (invisibly).
 #' @export
-setMethod("export_to_vdi", "Study", function(study, output_directory) {
+setMethod("export_to_vdi", "Study", function(object, output_directory) {
+  study <- object
   if (missing(output_directory)) {
     stop("Required argument output_directory not provided.")
   }
@@ -41,11 +38,18 @@ setMethod("export_to_vdi", "Study", function(study, output_directory) {
   # now we need to recursively populate the `entitytypegraph` table
   # first add the schema
   install_json <- append(install_json, vdi_entitytypegraph_table_def)
+  # and initialise the a list (of tibbles we will merge with bind_rows() later)
+  entitytypegraph_cache <- list()
+
   # now do the dirty work
   root_entity <- study %>% get_root_entity()
   
-  # install_json <- export_to_vdi(list(root_entity), output_directory, install_json)
+  export_data <- export_to_vdi(EntityPath(list(root_entity)), output_directory, install_json, entitytypegraph_cache)
+  install_json <- export_data$install_json
+  entitytypegraph_cache <- export_data$entitytypegraph_cache
     
+  write_tsv(entitytypegraph_cache, file = file.path(output_directory, "entitytypegraph.cache"), col_names = FALSE)
+  
   # Convert to JSON and pretty-print
   json_content <- jsonlite::toJSON(install_json, pretty = TRUE, auto_unbox = TRUE)
   

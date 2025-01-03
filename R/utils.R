@@ -140,6 +140,17 @@ validate_entity_name <- function(name) {
     grepl("^[a-zA-Z0-9]+$", name)
 }
 
+#'
+#' validate_stable_id
+#' 
+#' returns TRUE/FALSE
+#'
+validate_stable_id <- function(id) {
+  is.character(id) && 
+    length(id) > 0 && 
+    grepl("^[a-zA-Z][a-zA-Z0-9_]+$", id)
+}
+
 
 #' Custom function to force plain text output from skim()
 #'
@@ -360,6 +371,36 @@ generate_alphanumeric_id <- function(length = 11, seed_string = NULL) {
       return(result)
     }
   }
+}
+
+#'
+#' Wraps `generate_alphanumeric_id()` to add a prefix
+#'
+#' Ensures that the final ID never starts with a digit (even after the prefix).
+#' 
+#' @param prefix A character string to prepend to the generated ID. Defaults to an empty string.
+#' @param length The length of the variable part of the ID (excluding the prefix). Defaults to 11.
+#' @param seed_string Optional seed string for deterministic ID generation.
+#' @return A prefixed alphanumeric ID.
+#'
+prefixed_alphanumeric_id <- function(prefix = "", length = 11, seed_string = NULL) {
+  # Ensure the prefix is non-empty and valid
+  if (!is.character(prefix) || length(prefix) != 1) {
+    stop("The `prefix` argument must be a single character string.")
+  }
+  
+  # Generate the variable part of the ID
+  variable_part <- generate_alphanumeric_id(length = length, seed_string = seed_string)
+  
+  # Combine prefix and variable part
+  full_id <- paste0(prefix, variable_part)
+  
+  # Ensure the final ID does not start with a digit
+  if (grepl("^[0-9]", full_id)) {
+    stop("The prefix combined with the generated ID results in a digit starting the final ID. Please adjust the prefix.")
+  }
+  
+  return(full_id)
 }
 
 

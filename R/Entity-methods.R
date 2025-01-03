@@ -19,6 +19,10 @@ setGeneric("set_entity_name", function(entity, name) standardGeneric("set_entity
 #' @export
 setGeneric("get_entity_name", function(entity) standardGeneric("get_entity_name"))
 #' @export
+setGeneric("set_stable_id", function(entity, stable_id) standardGeneric("set_stable_id"))
+#' @export
+setGeneric("get_stable_id", function(entity) standardGeneric("get_stable_id"))
+#' @export
 setGeneric("get_entity_id_column", function(entity) standardGeneric("get_entity_id_column"))
 #' @export
 setGeneric("get_display_name", function(entity) standardGeneric("get_display_name"))
@@ -306,6 +310,49 @@ setMethod("set_entity_name", "Entity", function(entity, name) {
 setMethod("get_entity_name", "Entity", function(entity) {
   return(entity@name)
 })
+
+#' set_stable_id
+#' 
+#' Sets `stable_id` metadata
+#' 
+#' @param entity an Entity object
+#' @param stable_id a string value to set the stable_id to
+#' @returns modified entity
+#' @export
+setMethod("set_stable_id", "Entity", function(entity, stable_id) {
+  if (validate_stable_id(stable_id)) {
+    if (!entity@quiet) message(glue("Adding stable_id '{stable_id}'..."))
+    entity <- entity %>% set_entity_metadata(stable_id = stable_id)
+  } else {
+    warning(glue("Warning: Entity's stable_id is missing or not plain alphanumeric"))
+  }
+  return(entity)
+})
+
+#' get_stable_id
+#' 
+#' Gets the stable_id of the entity.
+#' 
+#' If no stable_id has been assigned at object construction time or with
+#' `set_stable_id(entity, stable_id)` then a placeholder will be generated
+#' on the fly (with a `message()` to inform) - but it requires entity@name
+#' to be set (it will `stop()` if it's not available)
+#' 
+#' @param entity an Entity object
+#' @returns a single character string (name of the entity)
+#' @export
+setMethod("get_stable_id", "Entity", function(entity) {
+  stable_id <- entity@stable_id
+  if (is_truthy(stable_id)) {
+    return(stable_id)
+  }
+  if (is_truthy(entity@name)) {
+    message(glue("Generating temporary stable_id for entity '{entity@name}'"))
+    return(prefixed_alphanumeric_id(prefix = "ENT_", seed_string = entity@name, length = 8))
+  }
+  stop(glue("Could not generate temporary stable_id for entity- entity_name required"))
+})
+
 
 #' get_entity_id_column
 #' 
