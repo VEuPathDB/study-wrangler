@@ -100,3 +100,27 @@ entity <- function(data,
   
   do.call(new, c("Entity", metadata))
 }
+
+
+### entity path helper ###
+
+setClass("EntityPath", contains = "list")
+
+# Validate the list when creating it
+setValidity("EntityPath", function(object) {
+  if (!all(sapply(object, function(x) is(x, "Entity")))) {
+    return("All elements of 'EntityPath' must be of class 'Entity'.")
+  }
+  TRUE
+})
+
+# constructor
+EntityPath <- function(entities) {
+  if (!is.list(entities)) {
+    stop("The input to EntityPath must be a list.")
+  }
+  if (!all(sapply(entities, function(x) is(x, "Entity")))) {
+    stop("All elements of the input list must be of class 'Entity'.")
+  }
+  new("EntityPath", entities)
+}
