@@ -10,3 +10,5 @@ dist/
 inst/doc
 /doc/
 /Meta/
+
+tmp/
