@@ -3,6 +3,8 @@ setGeneric("get_root_entity", function(study) standardGeneric("get_root_entity")
 #' @export
 setGeneric("get_entities", function(study) standardGeneric("get_entities"))
 #' @export
+setGeneric("get_entity_names", function(study) standardGeneric("get_entity_names"))
+#' @export
 setGeneric("get_entity", function(study, ...) standardGeneric("get_entity"))
 #' @export
 setGeneric("get_study_name", function(study) standardGeneric("get_study_name"))
@@ -12,6 +14,8 @@ setGeneric("set_study_metadata", function(study, ...) standardGeneric("set_study
 setGeneric("set_study_name", function(study, name) standardGeneric("set_study_name"))
 #' @export
 setGeneric("get_study_id", function(study) standardGeneric("get_study_id"))
+#' @export
+setGeneric("get_entity_abbreviation", function(study, entity_name) standardGeneric("get_entity_abbreviation"))
 
 
 
@@ -37,6 +41,16 @@ setMethod("get_entities", "Study", function(study) {
   return(flatten_entities(study@root_entity))
 })
 
+#' get_entity_names
+#'
+#' Gets a list of the names of the entities returned by get_entities()
+#'
+#' @param study A `Study` object.
+#' @return list of entity names (`character`).
+#' @export
+setMethod("get_entity_names", "Study", function(study) {
+  return(sapply(get_entities(study), get_entity_name))
+})
 
 #' get_entity
 #'
@@ -154,5 +168,14 @@ setMethod("get_study_id", "Study", function(study) {
   } else {
     stop("Error: not allowed to call get_study_id() on a study with no name.")
   }
+})
+
+
+# This implementation generates abbreviations on the fly.
+# Consider adding caching for performance optimization if needed.
+setMethod("get_entity_abbreviation", "Study", function(study, entity_name) {
+  entity_names <- get_entity_names(study)
+  abbreviations <- abbreviate(entity_names, minlength = 4)
+  return(abbreviations[entity_name])
 })
 

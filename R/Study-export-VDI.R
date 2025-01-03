@@ -21,6 +21,10 @@ setMethod("export_to_vdi", "Study", function(study, output_directory) {
     dir.create(output_directory, recursive = TRUE)  # Use recursive = TRUE for nested directories
   }
   
+  # do the actual export here, including recursing into the entity tree, writing 
+  # tab-delimited data files into the output_directory and finally writing
+  # `install.json` which describes the table structures and indexes.
+  
   # Return the study object invisibly
   return(invisible(study))
 })
