@@ -15,6 +15,8 @@ setGeneric("set_study_name", function(study, name) standardGeneric("set_study_na
 #' @export
 setGeneric("get_study_id", function(study) standardGeneric("get_study_id"))
 #' @export
+setGeneric("get_study_abbreviation", function(study) standardGeneric("get_study_abbreviation"))
+#' @export
 setGeneric("get_entity_abbreviation", function(study, entity_name) standardGeneric("get_entity_abbreviation"))
 
 
@@ -167,6 +169,26 @@ setMethod("get_study_id", "Study", function(study) {
     return(generate_alphanumeric_id(seed_string = name))
   } else {
     stop("Error: not allowed to call get_study_id() on a study with no name.")
+  }
+})
+
+#' get_study_abbreviation
+#'
+#' Gets an SQL-friendly string to use in table names.
+#' Depends on get_study_id()
+#' Output is only 8 characters long but should still be unique.
+#' 
+#' Fatal error if the study_id is not available
+#'
+#' @param study A `Study` object.
+#' @return A `character` string representing a short generated unique ID for the study for use in table names.
+#' @export
+setMethod("get_study_abbreviation", "Study", function(study) {
+  id <- study %>% get_study_id()
+  if (is_truthy(id)) {
+    return(generate_alphanumeric_id(seed_string = id, length = 8))
+  } else {
+    stop("Error: not allowed to call get_study_abbreviation() on a study with no study_id.")
   }
 })
 

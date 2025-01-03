@@ -75,3 +75,30 @@ test_that("get_entity_abbreviation() is stable across invocations", {
     second_abbreviations
   )
 })
+
+
+test_that("get_study_abbreviation() is stable across invocations", {
+  expect_no_error(
+    study <- make_study(name = 'my cool study')
+  )
+  
+  first_abbreviation <- study %>% get_study_abbreviation()
+  second_abbreviation <- study %>% get_study_abbreviation()
+  
+  expect_equal(
+    first_abbreviation,
+    second_abbreviation
+  )
+})
+
+
+test_that("get_study_abbreviation() throws an error when there's no study_id (due to no name at the moment)", {
+  expect_no_error(
+    study <- make_study()
+  )
+
+  expect_error(  
+    abbreviation <- study %>% get_study_abbreviation(),
+    "not allowed to call get_study_id.+on a study with no name"
+  )
+})
