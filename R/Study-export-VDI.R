@@ -50,7 +50,7 @@ setMethod("export_to_vdi", "Study", function(object, output_directory) {
   # now do the dirty work
   root_entity <- study %>% get_root_entity()
   
-  export_data <- export_entity_recursively(
+  export_data <- export_entity_to_vdi_recursively(
     EntityPath(list(root_entity)),
     output_directory,
     install_json,
@@ -74,7 +74,7 @@ setMethod("export_to_vdi", "Study", function(object, output_directory) {
 })
 
 
-export_entity_recursively <- function(
+export_entity_to_vdi_recursively <- function(
   object,
   output_directory,
   install_json,
@@ -100,10 +100,12 @@ export_entity_recursively <- function(
   )
   entitytypegraph_cache <- append(entitytypegraph_cache, list(entity_entry))
   
+  install_json <- export_ancestors_to_vdi(entities, output_directory, install_json, study)
+  
   # Recurse into child entities
   child_entities <- current_entity %>% get_children()
   for (child in child_entities) {
-    updated_data <- export_entity_recursively(
+    updated_data <- export_entity_to_vdi_recursively(
       EntityPath(c(entities, list(child))),
       output_directory,
       install_json,
@@ -119,5 +121,15 @@ export_entity_recursively <- function(
     install_json = install_json,
     entitytypegraph_cache = entitytypegraph_cache
   )
+}
+
+#'
+#' dump the ancestors_{study_abbrev}_{entity_abbrev}.cache file and append
+#' install_json with the table info
+#'
+#'
+export_ancestors_to_vdi <- function(entities, output_directory, install_json, study) {
+  
+  
 }
 
