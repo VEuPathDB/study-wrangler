@@ -1,3 +1,9 @@
+#'
+#' for Study and EntityPath objects
+#'
+setGeneric("export_to_vdi", function(object, output_directory) standardGeneric("export_to_vdi"))
+
+
 #' export_to_vdi
 #'
 #' Export a `Study` object to a specified output directory, creating the directory if it doesn't exist.
@@ -44,10 +50,16 @@ setMethod("export_to_vdi", "Study", function(object, output_directory) {
   # now do the dirty work
   root_entity <- study %>% get_root_entity()
   
-  export_data <- export_to_vdi(EntityPath(list(root_entity)), output_directory, install_json, entitytypegraph_cache)
+  export_data <- export_entity_recursively(
+    EntityPath(list(root_entity)),
+    output_directory,
+    install_json,
+    entitytypegraph_cache,
+    study
+  )
   install_json <- export_data$install_json
-  entitytypegraph_cache <- export_data$entitytypegraph_cache
-    
+  entitytypegraph_cache <- export_data$entitytypegraph_cache %>% bind_rows()
+
   write_tsv(entitytypegraph_cache, file = file.path(output_directory, "entitytypegraph.cache"), col_names = FALSE)
   
   # Convert to JSON and pretty-print
@@ -60,3 +72,52 @@ setMethod("export_to_vdi", "Study", function(object, output_directory) {
   # Return the study object invisibly
   return(invisible(study))
 })
+
+
+export_entity_recursively <- function(
+  object,
+  output_directory,
+  install_json,
+  entitytypegraph_cache,
+  study
+) {
+  entities <- object
+  current_entity <- entities[[length(entities)]]
+  parent_entity <- if (length(entities) > 1) entities[[length(entities) - 1]] else NULL
+
+  # Add current entity to `entitytypegraph_cache`
+  entity_entry <- tibble(
+    stable_id = current_entity %>% get_stable_id(),
+    study_stable_id = study %>% get_study_id(),
+    parent_stable_id = if (is.null(parent_entity)) NA else parent_entity %>% get_stable_id(),
+    internal_abbrev = study %>% get_entity_abbreviation(current_entity %>% get_entity_name()),
+    description = current_entity %>% get_description(),
+    display_name = current_entity %>% get_display_name(),
+    display_name_plural = current_entity %>% get_display_name_plural(),
+    has_attribute_collections = NA, # Placeholder for now
+    is_many_to_one_with_parent = NA, # Placeholder for now
+    cardinality = NA # Placeholder for now
+  )
+  entitytypegraph_cache <- append(entitytypegraph_cache, list(entity_entry))
+  
+  # Recurse into child entities
+  child_entities <- current_entity %>% get_children()
+  for (child in child_entities) {
+    updated_data <- export_entity_recursively(
+      EntityPath(c(entities, list(child))),
+      output_directory,
+      install_json,
+      entitytypegraph_cache,
+      study
+    )
+    install_json <- updated_data$install_json
+    entitytypegraph_cache <- updated_data$entitytypegraph_cache
+  }
+  
+  # Return updated `install_json` and `entitytypegraph_cache`
+  list(
+    install_json = install_json,
+    entitytypegraph_cache = entitytypegraph_cache
+  )
+}
+

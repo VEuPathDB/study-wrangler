@@ -29,11 +29,3 @@ setGeneric("verbose", function(object, ...) standardGeneric("verbose"))
 #' @returns a Boolean indicating success or failure
 #' @export
 setGeneric("validate", function(object) standardGeneric("validate"))
-
-
-#'
-#' for Study and EntityPath objects
-#'
-setGeneric("export_to_vdi", function(object, output_directory, install_json = NULL, entitytypegraph_cache = NULL) {
-  standardGeneric("export_to_vdi")
-})

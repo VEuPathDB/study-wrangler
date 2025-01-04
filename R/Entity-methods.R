@@ -19,6 +19,8 @@ setGeneric("set_entity_name", function(entity, name) standardGeneric("set_entity
 #' @export
 setGeneric("get_entity_name", function(entity) standardGeneric("get_entity_name"))
 #' @export
+setGeneric("get_description", function(entity) standardGeneric("get_description"))
+#' @export
 setGeneric("set_stable_id", function(entity, stable_id) standardGeneric("set_stable_id"))
 #' @export
 setGeneric("get_stable_id", function(entity) standardGeneric("get_stable_id"))
@@ -310,6 +312,18 @@ setMethod("set_entity_name", "Entity", function(entity, name) {
 setMethod("get_entity_name", "Entity", function(entity) {
   return(entity@name)
 })
+
+#' get_description
+#' 
+#' Gets the description of the entity
+#' 
+#' @param entity an Entity object
+#' @returns a single character string (description of the entity)
+#' @export
+setMethod("get_description", "Entity", function(entity) {
+  return(entity@description)
+})
+
 
 #' set_stable_id
 #' 
