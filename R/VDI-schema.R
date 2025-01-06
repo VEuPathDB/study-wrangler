@@ -112,3 +112,11 @@ vdi_entitytypegraph_table_def <- list(
     )
   )
 )
+
+ancestors_table_field_def <- list(
+  name = "####_stable_id",
+  type = "SQL_VARCHAR",
+  maxLength = "200",
+  isNullable = "NO",
+  cacheFileIndex = NA
+)

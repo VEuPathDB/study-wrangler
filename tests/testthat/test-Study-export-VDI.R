@@ -27,8 +27,14 @@ test_that("Study exports to VDI artifact", {
   # Verify the directory was created
   expect_true(dir.exists(output_dir))
   
-  # more tests here
+  # List files in the output directory
+  output_files <- list.files(output_dir, full.names = FALSE)
   
+  # Verify the presence of files
+  expect_true(length(grep("^ancestors.*\\.cache$", output_files)) == 3)  # 3 ancestors*.cache files
+  expect_true("entitytypegraph.cache" %in% output_files)
+  expect_true("install.json" %in% output_files)
+  expect_true("study.cache" %in% output_files)
   
   # Clean up
   unlink(output_dir, recursive = TRUE)

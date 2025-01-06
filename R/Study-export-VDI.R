@@ -31,7 +31,7 @@ setMethod("export_to_vdi", "Study", function(object, output_directory) {
   install_json <- list()
 
   # study table schema
-  install_json <- append(install_json, vdi_study_table_def) 
+  install_json <- append(install_json, list(vdi_study_table_def)) 
   # study table data
   study_cache <- tibble(
     user_dataset_id = "@USER_DATASET_ID@",
@@ -42,8 +42,8 @@ setMethod("export_to_vdi", "Study", function(object, output_directory) {
   write_tsv(study_cache, file = file.path(output_directory, "study.cache"), col_names = FALSE)
 
   # now we need to recursively populate the `entitytypegraph` table
-  # first add the schema
-  install_json <- append(install_json, vdi_entitytypegraph_table_def)
+  # first add the schema (schema defs and templates can be found in VDI-schema.R)
+  install_json <- append(install_json, list(vdi_entitytypegraph_table_def))
   # and initialise the a list (of tibbles we will merge with bind_rows() later)
   entitytypegraph_cache <- list()
 
@@ -129,7 +129,55 @@ export_entity_to_vdi_recursively <- function(
 #'
 #'
 export_ancestors_to_vdi <- function(entities, output_directory, install_json, study) {
+  current_entity <- entities[[length(entities)]]
   
+  # Map the list of entities to a list of tibbles `ids`
+  ids <- map(entities, function(entity) {
+    entity_data <- entity %>% get_data()
+    
+    if (is.null(entity %>% get_parent_id_column())) {
+      # If the entity has no parent, output a single-column tibble
+      entity_data %>% select(entity %>% get_entity_id_column())
+    } else {
+      # If the entity has a parent, output a two-column tibble
+      entity_data %>% 
+        select(
+          get_parent_id_column(entity),
+          get_entity_id_column(entity)
+        )
+    }
+  })
   
-}
+  # Reduce the list of tibbles to a single tibble of ancestors by joining
+  ancestors <- reduce(ids, ~ right_join(.x, .y, by = intersect(names(.x), names(.y))))
+  
+  # Output the data
+  tablename <- glue("ancestors_{study %>% get_study_abbreviation()}_{study %>% get_entity_abbreviation(current_entity %>% get_entity_name())}")
+  filename <- glue("{tablename}.cache")
+  write_tsv(ancestors, file.path(output_directory, filename), col_names = FALSE)
+  
+  # Create the table definition JSON
+  
+  # Map the list of entities to a list of field definitions
+  field_defs <- map2(entities, seq_along(entities) - 1, function(entity, index_minus_one) {
+    field_def <- ancestors_table_field_def
+    
+    # Set the field name to {entity_abbreviation}_stable_id
+    field_def$name <- glue("{study %>% get_entity_abbreviation(entity %>% get_entity_name())}_stable_id")
+    
+    # Set the cacheFileIndex to the entity's index (starting at zero)
+    field_def$cacheFileIndex <- index_minus_one
+    
+    return(field_def)
+  })
+  
+  ancestors_table_def <- list(
+    name = tablename,
+    fields = field_defs,
+    type = "table"
+  )
 
+  install_json <- append(install_json, list(ancestors_table_def))
+
+  return(install_json)
+}
