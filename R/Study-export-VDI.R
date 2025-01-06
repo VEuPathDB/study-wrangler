@@ -101,6 +101,8 @@ export_entity_to_vdi_recursively <- function(
   entitytypegraph_cache <- append(entitytypegraph_cache, list(entity_entry))
   
   install_json <- export_ancestors_to_vdi(entities, output_directory, install_json, study)
+  install_json <- export_attributegraph_to_vdi(entities, output_directory, install_json, study)
+  
   
   # Recurse into child entities
   child_entities <- current_entity %>% get_children()
@@ -179,5 +181,74 @@ export_ancestors_to_vdi <- function(entities, output_directory, install_json, st
 
   install_json <- append(install_json, list(ancestors_table_def))
 
+  # TO DO: indexes for this table
+  
   return(install_json)
+}
+
+
+#'
+#' dump the entity variable metadata into the
+#' attributegraph_{study_abbrev}_{entity_abbrev}.cache file and append
+#' install_json with the table info
+#'
+#'
+export_attributegraph_to_vdi <- function(entities, output_directory, install_json, study) {
+  current_entity <- entities[[length(entities)]]
+  
+  # `metadata` has a column `variable` containing the internal variable name
+  # and about 30 other columns with metadata about display names, min/max ranges etc
+  metadata <- current_entity %>% get_variable_metadata()
+  
+  # data has column names that correspond to the `variable` names in `metadata`
+  data <- current_entity %>% get_data()
+
+  # For the rows (variables) in `metadata` where `data_shape != 'continuous'`
+  # the corresponding column in `data` should contain factor values.
+  # We need to add a vocabulary column to `metadata` that contains a JSON string
+  # of the values of the factor for those variables, and NA otherwise.
+  
+  # For the rows (variables) in `metadata` where `data_shape != 'continuous'`,
+  # the corresponding column in `data` should contain factor values.
+  # We need to add a vocabulary column to `metadata` that contains a JSON string
+  # of the factor levels for those variables, and NA otherwise.
+  
+  metadata <- metadata %>%
+    rowwise() %>% # Row-wise operation since we process individual rows
+    mutate(
+      vocabulary = if_else(
+        # For non-continuous variables, encode levels as JSON
+        data_shape != 'continuous',
+        as.character(
+          jsonlite::toJSON(
+            levels(data %>% pull(variable)), 
+            auto_unbox = FALSE
+          )
+        ),
+        # Otherwise, set vocabulary to NA
+        NA_character_
+      )
+    ) %>%
+    ungroup()
+
+  # get the column names in order (sort by cacheFileIndex)
+  column_names <- attributegraph_table_fields %>%
+    map(~ list(name = .x$name, cacheFileIndex = .x$cacheFileIndex)) %>%
+    bind_rows() %>%
+    arrange(cacheFileIndex) %>%
+    pull(name)
+  
+  # get the metadata in the correct column order ready for dumping to .cache file
+  metadata <- metadata %>% select(all_of(column_names))
+  
+  # Output the data
+  tablename <- glue("attributegraph_{study %>% get_study_abbreviation()}_{study %>% get_entity_abbreviation(current_entity %>% get_entity_name())}")
+  filename <- glue("{tablename}.cache")
+  write_tsv(metadata, file.path(output_directory, filename), col_names = FALSE)
+
+  # TO DO: need to set `maxLength` to max from data for all type="SQL_VARCHAR"
+  # in `attributegraph_table_fields` before adding to `install_json`
+  
+    
+  return(install_json)   
 }

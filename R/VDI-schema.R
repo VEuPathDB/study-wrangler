@@ -120,3 +120,254 @@ ancestors_table_field_def <- list(
   isNullable = "NO",
   cacheFileIndex = NA
 )
+
+
+attributegraph_table_fields <- list(
+  list(
+    cacheFileIndex = 0,
+    isNullable = "YES",
+    maxLength = "6",
+    name = "bin_width_computed",
+    type = "SQL_VARCHAR"
+  ),
+  list(
+    cacheFileIndex = 1,
+    isNullable = "YES",
+    maxLength = "1",
+    name = "bin_width_override",
+    type = "SQL_VARCHAR"
+  ),
+  list(
+    cacheFileIndex = 2,
+    isNullable = "YES",
+    maxLength = "11",
+    name = "data_shape",
+    type = "SQL_VARCHAR"
+  ),
+  list(
+    cacheFileIndex = 3,
+    isNullable = "YES",
+    maxLength = "9",
+    name = "data_type",
+    type = "SQL_VARCHAR"
+  ),
+  list(
+    cacheFileIndex = 4,
+    isNullable = "YES",
+    maxLength = "4000",
+    name = "definition",
+    type = "SQL_VARCHAR"
+  ),
+  list(
+    cacheFileIndex = 5,
+    isNullable = "YES",
+    maxLength = "1500",
+    name = "display_name",
+    type = "SQL_VARCHAR"
+  ),
+  list(
+    cacheFileIndex = 6,
+    isNullable = "YES",
+    name = "display_order",
+    prec = 3,
+    type = "SQL_NUMBER"
+  ),
+  list(
+    cacheFileIndex = 7,
+    isNullable = "YES",
+    maxLength = "16",
+    name = "display_range_max",
+    type = "SQL_VARCHAR"
+  ),
+  list(
+    cacheFileIndex = 8,
+    isNullable = "YES",
+    maxLength = "16",
+    name = "display_range_min",
+    type = "SQL_VARCHAR"
+  ),
+  list(
+    cacheFileIndex = 9,
+    isNullable = "YES",
+    maxLength = "20",
+    name = "display_type",
+    type = "SQL_VARCHAR"
+  ),
+  list(
+    cacheFileIndex = 10,
+    isNullable = "YES",
+    name = "distinct_values_count",
+    prec = 10,
+    type = "SQL_NUMBER"
+  ),
+  list(
+    cacheFileIndex = 11,
+    isNullable = "YES",
+    name = "has_study_dependent_vocabulary",
+    prec = 1,
+    type = "SQL_NUMBER"
+  ),
+  list(
+    cacheFileIndex = 12,
+    isNullable = "YES",
+    name = "has_values",
+    prec = 10,
+    type = "SQL_NUMBER"
+  ),
+  list(
+    cacheFileIndex = 13,
+    isNullable = "YES",
+    maxLength = "64",
+    name = "hidden",
+    type = "SQL_VARCHAR"
+  ),
+  list(
+    cacheFileIndex = 14,
+    isNullable = "YES",
+    name = "impute_zero",
+    prec = 1,
+    type = "SQL_NUMBER"
+  ),
+  list(
+    cacheFileIndex = 15,
+    isNullable = "YES",
+    name = "is_featured",
+    prec = 1,
+    type = "SQL_NUMBER"
+  ),
+  list(
+    cacheFileIndex = 16,
+    isNullable = "YES",
+    name = "is_merge_key",
+    prec = 1,
+    type = "SQL_NUMBER"
+  ),
+  list(
+    cacheFileIndex = 17,
+    isNullable = "YES",
+    name = "is_multi_valued",
+    prec = "NA",
+    type = "SQL_NUMBER"
+  ),
+  list(
+    cacheFileIndex = 18,
+    isNullable = "YES",
+    name = "is_repeated",
+    prec = 1,
+    type = "SQL_NUMBER"
+  ),
+  list(
+    cacheFileIndex = 19,
+    isNullable = "YES",
+    name = "is_temporal",
+    prec = 1,
+    type = "SQL_NUMBER"
+  ),
+  list(
+    cacheFileIndex = 20,
+    isNullable = "YES",
+    maxLength = "16",
+    name = "lower_quartile",
+    type = "SQL_VARCHAR"
+  ),
+  list(
+    cacheFileIndex = 21,
+    isNullable = "YES",
+    maxLength = "16",
+    name = "mean",
+    type = "SQL_VARCHAR"
+  ),
+  list(
+    cacheFileIndex = 22,
+    isNullable = "YES",
+    maxLength = "16",
+    name = "median",
+    type = "SQL_VARCHAR"
+  ),
+  list(
+    cacheFileIndex = 23,
+    isNullable = "YES",
+    maxLength = "255",
+    name = "parent_stable_id",
+    type = "SQL_VARCHAR"
+  ),
+  list(
+    cacheFileIndex = 24,
+    isNullable = "YES",
+    name = "precision",
+    prec = 10,
+    type = "SQL_NUMBER"
+  ),
+  list(
+    cacheFileIndex = 25,
+    isNullable = "YES",
+    maxLength = "4000",
+    name = "provider_label",
+    type = "SQL_VARCHAR"
+  ),
+  list(
+    cacheFileIndex = 26,
+    isNullable = "YES",
+    maxLength = "16",
+    name = "range_max",
+    type = "SQL_VARCHAR"
+  ),
+  list(
+    cacheFileIndex = 27,
+    isNullable = "YES",
+    maxLength = "16",
+    name = "range_min",
+    type = "SQL_VARCHAR"
+  ),
+  list(
+    cacheFileIndex = 28,
+    isNullable = "YES",
+    maxLength = "1",
+    name = "scale",
+    type = "SQL_VARCHAR"
+  ),
+  list(
+    cacheFileIndex = 29,
+    isNullable = "NO",
+    maxLength = "255",
+    name = "stable_id",
+    type = "SQL_VARCHAR"
+  ),
+  list(
+    cacheFileIndex = 30,
+    isNullable = "YES",
+    maxLength = "1",
+    name = "unit",
+    type = "SQL_VARCHAR"
+  ),
+  list(
+    cacheFileIndex = 31,
+    isNullable = "YES",
+    maxLength = "16",
+    name = "upper_quartile",
+    type = "SQL_VARCHAR"
+  ),
+  list(
+    cacheFileIndex = 32,
+    isNullable = "YES",
+    maxLength = "200",
+    name = "variable_spec_to_impute_zeroes_for",
+    type = "SQL_VARCHAR"
+  ),
+  list(
+    cacheFileIndex = 33,
+    isNullable = "YES",
+    maxLength = "66",
+    name = "vocabulary",
+    type = "SQL_VARCHAR"
+  ),
+  list(
+    cacheFileIndex = 34,
+    isNullable = "YES",
+    maxLength = "200",
+    name = "weighting_variable_spec",
+    type = "SQL_VARCHAR"
+  )
+)
+
+

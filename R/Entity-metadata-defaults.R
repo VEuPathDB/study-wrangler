@@ -35,7 +35,7 @@ variable_metadata_defaults <- tibble(
   hidden = factor(NA, levels = c("download", "variableTree", "map", "everywhere")),
   is_featured = FALSE,
   is_merge_key = FALSE,
-  is_multi_value = FALSE,
+  is_multi_valued = FALSE,
   multi_value_delimiter = NA_character_,
   is_repeated = FALSE,
   is_temporal = FALSE,
@@ -43,5 +43,6 @@ variable_metadata_defaults <- tibble(
   has_study_dependent_vocabulary = NA,
   impute_zero = NA,
   weighting_variable_spec = NA_character_,
-  variable_spec_to_impute_zeroes_for = NA_character_
+  variable_spec_to_impute_zeroes_for = NA_character_,
+  unit = NA_character_
 )
