@@ -361,7 +361,7 @@ setMethod("get_stable_id", "Entity", function(entity) {
     return(stable_id)
   }
   if (is_truthy(entity@name)) {
-    message(glue("Generating temporary stable_id for entity '{entity@name}'"))
+    message_without_dupes$send(glue("Generating temporary stable_id for entity '{entity@name}'"))
     return(prefixed_alphanumeric_id(prefix = "ENT_", seed_string = entity@name, length = 8))
   }
   stop(glue("Could not generate temporary stable_id for entity- entity_name required"))

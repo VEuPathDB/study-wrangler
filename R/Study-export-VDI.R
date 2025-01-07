@@ -18,6 +18,8 @@ setMethod("export_to_vdi", "Study", function(object, output_directory) {
   if (missing(output_directory)) {
     stop("Required argument output_directory not provided.")
   }
+  # reset the warning message deduplicator
+  message_without_dupes$reset()
   
   # Check if the directory exists, and create it if necessary
   if (!dir.exists(output_directory)) {
@@ -217,7 +219,7 @@ export_attributegraph_to_vdi <- function(entities, output_directory, install_jso
   # the corresponding column in `data` should contain factor values.
   # We need to add a vocabulary column to `metadata` that contains a JSON string
   # of the factor levels for those variables, and NA otherwise.
-  
+  # We also need to set default stable_id and parent_stable_id if not provided
   metadata <- metadata %>%
     rowwise() %>% # Row-wise operation since we process individual rows
     mutate(
@@ -232,12 +234,20 @@ export_attributegraph_to_vdi <- function(entities, output_directory, install_jso
         ),
         # Otherwise, set vocabulary to NA
         NA_character_
+      ),
+      stable_id = if_else(
+        is.na(stable_id),
+        prefixed_alphanumeric_id(prefix = "VAR_", length = 8, seed_string = variable),
+        stable_id
+      ),
+      parent_stable_id = if_else(
+        is.na(parent_stable_id),
+        current_entity %>% get_stable_id(),
+        parent_stable_id
       )
     ) %>%
     ungroup()
 
-  cat(metadata %>% pull(vocabulary))
-  
   # get the column names in order (sort by cacheFileIndex)
   column_names <- attributegraph_table_fields %>%
     map(~ list(name = .x$name, cacheFileIndex = .x$cacheFileIndex)) %>%

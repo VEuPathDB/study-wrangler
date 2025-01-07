@@ -429,3 +429,29 @@ is_truthy <- function(x) {
   return(as.logical(x) %in% TRUE)  # Coerce to logical and check for TRUE
 }
 
+#'
+#' utility function that tracks and outputs only unique messages
+#'
+#' usage: `message_without_dupes$send("this message will appear only once")`
+#' 
+#' and: `message_without_dupes$reset()`
+#' which resets the state so you can see the same messages again.
+#'
+#'
+message_without_dupes <- local({
+  seen_messages <- character()
+  
+  list(
+    send = function(msg) {
+      if (!msg %in% seen_messages) {
+        message(msg)
+        seen_messages <<- c(seen_messages, msg)
+      }
+    },
+    reset = function() {
+      seen_messages <<- character()  # Clear the list of seen messages
+    }
+  )
+})
+
+
