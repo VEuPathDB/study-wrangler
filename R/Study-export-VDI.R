@@ -60,7 +60,12 @@ setMethod("export_to_vdi", "Study", function(object, output_directory) {
   install_json <- export_data$install_json
   entitytypegraph_cache <- export_data$entitytypegraph_cache %>% bind_rows()
 
-  write_tsv(entitytypegraph_cache, file = file.path(output_directory, "entitytypegraph.cache"), col_names = FALSE)
+  write_tsv(
+    entitytypegraph_cache,
+    file = file.path(output_directory, "entitytypegraph.cache"),
+    col_names = FALSE,
+    escape = 'none' # just in case there are double-quotes in the display names
+  )
   
   # Convert to JSON and pretty-print
   json_content <- jsonlite::toJSON(install_json, pretty = TRUE, auto_unbox = TRUE)
@@ -231,6 +236,8 @@ export_attributegraph_to_vdi <- function(entities, output_directory, install_jso
     ) %>%
     ungroup()
 
+  cat(metadata %>% pull(vocabulary))
+  
   # get the column names in order (sort by cacheFileIndex)
   column_names <- attributegraph_table_fields %>%
     map(~ list(name = .x$name, cacheFileIndex = .x$cacheFileIndex)) %>%
@@ -244,7 +251,8 @@ export_attributegraph_to_vdi <- function(entities, output_directory, install_jso
   # Output the data
   tablename <- glue("attributegraph_{study %>% get_study_abbreviation()}_{study %>% get_entity_abbreviation(current_entity %>% get_entity_name())}")
   filename <- glue("{tablename}.cache")
-  write_tsv(metadata, file.path(output_directory, filename), col_names = FALSE)
+  # `escape = 'none'` prevents doubling of double-quotes
+  write_tsv(metadata, file.path(output_directory, filename), col_names = FALSE, escape = 'none')
 
   # TO DO: need to set `maxLength` to max from data for all type="SQL_VARCHAR"
   # in `attributegraph_table_fields` before adding to `install_json`
