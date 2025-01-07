@@ -32,6 +32,8 @@ test_that("Study exports to VDI artifact", {
   
   # Verify the presence of files
   expect_true(length(grep("^ancestors.*\\.cache$", output_files)) == 3)  # 3 ancestors*.cache files
+  expect_true(length(grep("^attributegraph.*\\.cache$", output_files)) == 3)  # 3 attributegraph*.cache files
+  expect_true(length(grep("^attributevalue.*\\.cache$", output_files)) == 3)  # 3 attributevalue*.cache files
   expect_true("entitytypegraph.cache" %in% output_files)
   expect_true("install.json" %in% output_files)
   expect_true("study.cache" %in% output_files)
