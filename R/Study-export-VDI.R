@@ -264,9 +264,33 @@ export_attributegraph_to_vdi <- function(entities, output_directory, install_jso
   # `escape = 'none'` prevents doubling of double-quotes
   write_tsv(metadata, file.path(output_directory, filename), col_names = FALSE, escape = 'none')
 
-  # TO DO: need to set `maxLength` to max from data for all type="SQL_VARCHAR"
+  # set `maxLength` to max from data for all type="SQL_VARCHAR"
   # in `attributegraph_table_fields` before adding to `install_json`
   
-    
+  # TO DO: similar treatment for `prec` field for "SQL_NUMBER" fields?
+  
+  field_defs <- attributegraph_table_fields %>%
+    map(function(field_def) {
+      if (field_def$type == "SQL_VARCHAR") {
+        column_values <- metadata %>% pull(field_def$name) %>% as.character()
+        
+        maxLength <- if (all(is.na(column_values))) {
+          1
+        } else {
+          column_values %>% nchar() %>% max(na.rm = TRUE)
+        }
+        field_def$maxLength <- maxLength
+      }
+      return(field_def)
+    })
+  
+  attribute_graph_table_def <- list(
+    name = tablename,
+    type = "table",
+    fields = field_defs
+  )
+  
+  install_json <- append(install_json, list(attribute_graph_table_def))
+  
   return(install_json)   
 }
