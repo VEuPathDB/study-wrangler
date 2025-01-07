@@ -370,4 +370,40 @@ attributegraph_table_fields <- list(
   )
 )
 
+attributevalue_table_fields <- list(
+  list(
+    maxLength = 200,
+    cacheFileIndex = 0,
+    isNullable = "NO",
+    type = "SQL_VARCHAR",
+    name = "####_stable_id"
+  ),
+  list(
+    name = "attribute_stable_id",
+    isNullable = "NO",
+    type = "SQL_VARCHAR",
+    maxLength = 255,
+    cacheFileIndex = 1
+  ),
+  list(
+    cacheFileIndex = 2,
+    maxLength = 1000,
+    name = "string_value",
+    type = "SQL_VARCHAR",
+    isNullable = "YES"
+  ),
+  list(
+    cacheFileIndex = 3,
+    name = "number_value",
+    prec = "NA",
+    isNullable = "YES",
+    type = "SQL_NUMBER"
+  ),
+  list(
+    name = "date_value",
+    isNullable = "YES",
+    type = "SQL_DATE",
+    cacheFileIndex = 4
+  )
+)
 

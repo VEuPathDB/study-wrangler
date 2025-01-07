@@ -66,6 +66,7 @@ setMethod("export_to_vdi", "Study", function(object, output_directory) {
     entitytypegraph_cache,
     file = file.path(output_directory, "entitytypegraph.cache"),
     col_names = FALSE,
+    na = '',
     escape = 'none' # just in case there are double-quotes in the display names
   )
   
@@ -91,13 +92,14 @@ export_entity_to_vdi_recursively <- function(
   entities <- object
   current_entity <- entities[[length(entities)]]
   parent_entity <- if (length(entities) > 1) entities[[length(entities) - 1]] else NULL
-
+  entity_abbreviation <- study %>% get_entity_abbreviation(current_entity %>% get_entity_name())
+  
   # Add current entity to `entitytypegraph_cache`
   entity_entry <- tibble(
     stable_id = current_entity %>% get_stable_id(),
     study_stable_id = study %>% get_study_id(),
     parent_stable_id = if (is.null(parent_entity)) NA else parent_entity %>% get_stable_id(),
-    internal_abbrev = study %>% get_entity_abbreviation(current_entity %>% get_entity_name()),
+    internal_abbrev = entity_abbreviation,
     description = current_entity %>% get_description(),
     display_name = current_entity %>% get_display_name(),
     display_name_plural = current_entity %>% get_display_name_plural(),
@@ -108,7 +110,7 @@ export_entity_to_vdi_recursively <- function(
   entitytypegraph_cache <- append(entitytypegraph_cache, list(entity_entry))
   
   install_json <- export_ancestors_to_vdi(entities, output_directory, install_json, study)
-  install_json <- export_attributegraph_to_vdi(entities, output_directory, install_json, study)
+  install_json <- export_attributes_to_vdi(entities, output_directory, install_json, study)
   
   
   # Recurse into child entities
@@ -139,6 +141,7 @@ export_entity_to_vdi_recursively <- function(
 #'
 export_ancestors_to_vdi <- function(entities, output_directory, install_json, study) {
   current_entity <- entities[[length(entities)]]
+  entity_abbreviation <- study %>% get_entity_abbreviation(current_entity %>% get_entity_name())
   
   # Map the list of entities to a list of tibbles `ids`
   ids <- map(entities, function(entity) {
@@ -161,7 +164,7 @@ export_ancestors_to_vdi <- function(entities, output_directory, install_json, st
   ancestors <- reduce(ids, ~ right_join(.x, .y, by = intersect(names(.x), names(.y))))
   
   # Output the data
-  tablename <- glue("ancestors_{study %>% get_study_abbreviation()}_{study %>% get_entity_abbreviation(current_entity %>% get_entity_name())}")
+  tablename <- glue("ancestors_{study %>% get_study_abbreviation()}_{entity_abbreviation}")
   filename <- glue("{tablename}.cache")
   write_tsv(ancestors, file.path(output_directory, filename), col_names = FALSE)
   
@@ -172,7 +175,7 @@ export_ancestors_to_vdi <- function(entities, output_directory, install_json, st
     field_def <- ancestors_table_field_def
     
     # Set the field name to {entity_abbreviation}_stable_id
-    field_def$name <- glue("{study %>% get_entity_abbreviation(entity %>% get_entity_name())}_stable_id")
+    field_def$name <- glue("{entity_abbreviation}_stable_id")
     
     # Set the cacheFileIndex to the entity's index (starting at zero)
     field_def$cacheFileIndex <- index_minus_one
@@ -199,17 +202,24 @@ export_ancestors_to_vdi <- function(entities, output_directory, install_json, st
 #' attributegraph_{study_abbrev}_{entity_abbrev}.cache file and append
 #' install_json with the table info
 #'
+#' AND...
+#' 
+#' dump the entity variables' values to attributevalue_{study_abbrev}_{entity_abbrev}.cache
+#' and append install_json
 #'
-export_attributegraph_to_vdi <- function(entities, output_directory, install_json, study) {
+export_attributes_to_vdi <- function(entities, output_directory, install_json, study) {
   current_entity <- entities[[length(entities)]]
+  entity_abbreviation <- study %>% get_entity_abbreviation(current_entity %>% get_entity_name())
   
   # `metadata` has a column `variable` containing the internal variable name
   # and about 30 other columns with metadata about display names, min/max ranges etc
   metadata <- current_entity %>% get_variable_metadata()
-  
+
   # data has column names that correspond to the `variable` names in `metadata`
   data <- current_entity %>% get_data()
 
+  ### metadata to attributegraph.cache ###
+  
   # For the rows (variables) in `metadata` where `data_shape != 'continuous'`
   # the corresponding column in `data` should contain factor values.
   # We need to add a vocabulary column to `metadata` that contains a JSON string
@@ -256,13 +266,19 @@ export_attributegraph_to_vdi <- function(entities, output_directory, install_jso
     pull(name)
   
   # get the metadata in the correct column order ready for dumping to .cache file
-  metadata <- metadata %>% select(all_of(column_names))
+  metadata_only <- metadata %>% select(all_of(column_names))
   
   # Output the data
-  tablename <- glue("attributegraph_{study %>% get_study_abbreviation()}_{study %>% get_entity_abbreviation(current_entity %>% get_entity_name())}")
+  tablename <- glue("attributegraph_{study %>% get_study_abbreviation()}_{entity_abbreviation}")
   filename <- glue("{tablename}.cache")
   # `escape = 'none'` prevents doubling of double-quotes
-  write_tsv(metadata, file.path(output_directory, filename), col_names = FALSE, escape = 'none')
+  write_tsv(
+    metadata_only,
+    file.path(output_directory, filename),
+    col_names = FALSE,
+    na = '',
+    escape = 'none'
+  )
 
   # set `maxLength` to max from data for all type="SQL_VARCHAR"
   # in `attributegraph_table_fields` before adding to `install_json`
@@ -272,25 +288,118 @@ export_attributegraph_to_vdi <- function(entities, output_directory, install_jso
   field_defs <- attributegraph_table_fields %>%
     map(function(field_def) {
       if (field_def$type == "SQL_VARCHAR") {
-        column_values <- metadata %>% pull(field_def$name) %>% as.character()
-        
-        maxLength <- if (all(is.na(column_values))) {
-          1
-        } else {
-          column_values %>% nchar() %>% max(na.rm = TRUE)
-        }
-        field_def$maxLength <- maxLength
+        column_values <- metadata %>%
+          pull(field_def$name) %>% as.character()
+        field_def$maxLength <- column_values %>%
+          nchar() %>% replace(is.na(.), 1) %>% max(na.rm = TRUE)
       }
       return(field_def)
     })
   
-  attribute_graph_table_def <- list(
+  attributegraph_table_def <- list(
     name = tablename,
     type = "table",
     fields = field_defs
   )
+  install_json <- append(install_json, list(attributegraph_table_def))
+
+  ### actual values to attributevalue.cache ###
+
+  # make a variable name to stable_id lookup before we start messing with `metadata`
+  stable_ids <- metadata %>% select(variable, stable_id) %>% deframe()
+
+  # the different value columns need to be handled separately because
+  # pivot_longer doesn't seem to be able to handle this complex case:
+  # string, number, then date (order is important!)
   
-  install_json <- append(install_json, list(attribute_graph_table_def))
+  # the ID column needs to be renamed to the following:
+  id_col <- current_entity %>% get_entity_id_column()
+  id_col_vdi <- glue("{entity_abbreviation}_stable_id")
+  
+  # Handle string variables
+  string_variables <- metadata %>% filter(data_type == 'string') %>% pull(variable)
+  string_data <- if (length(string_variables) > 0) {
+    data %>%
+      # rename the ID column to `id_col_vdi`
+      select(!!id_col_vdi := !!id_col, all_of(string_variables)) %>%
+      pivot_longer(
+        all_of(string_variables),
+        names_transform = function(name) stable_ids[name],
+        names_to = "attribute_stable_id",
+        values_to = "string_value"
+      )
+  } else {
+    tibble(!!id_col_vdi := character(), attribute_stable_id = character(), string_value = character())
+  }
+  
+  # Handle number variables
+  number_variables <- metadata %>% filter(data_type %in% c("integer", "number", "longitude")) %>% pull(variable)
+  number_data <- if (length(number_variables) > 0) {
+    data %>%
+      select(!!id_col_vdi := !!id_col, all_of(number_variables)) %>%
+      pivot_longer(
+        all_of(number_variables),
+        names_transform = function(name) stable_ids[name],
+        names_to = "attribute_stable_id",
+        values_to = "number_value"
+      )
+  } else {
+    tibble(!!id_col_vdi := character(), attribute_stable_id = character(), number_value = numeric())
+  }
+  
+  # Handle date variables
+  date_variables <- metadata %>% filter(data_type == "date") %>% pull(variable)
+  date_data <- if (length(date_variables) > 0) {
+    data %>%
+      select(!!id_col_vdi := !!id_col, all_of(date_variables)) %>%
+      pivot_longer(
+        all_of(date_variables),
+        names_transform = function(name) stable_ids[name],
+        names_to = "attribute_stable_id",
+        values_to = "date_value"
+      )
+  } else {
+    tibble(!!id_col_vdi := character(), attribute_stable_id = character(), date_value = as.Date(character()))
+  }
+  
+  # Combine all data types
+  attribute_values_data <- bind_rows(string_data, number_data, date_data) %>%
+    arrange(!!sym(id_col_vdi))
+  # TO DO: find out if the sort (arrange) is necessary/desirable.
+  
+  # Output the data
+  tablename <- glue("attributevalue_{study %>% get_study_abbreviation()}_{entity_abbreviation}")
+  filename <- glue("{tablename}.cache")
+  # `escape = 'none'` prevents doubling of double-quotes
+  write_tsv(
+    attribute_values_data,
+    file.path(output_directory, filename),
+    col_names = FALSE,
+    na = '',
+    escape = 'none'
+  )
+  
+  
+  # write tsv and append install_json (making sure `fields[1]$name` is changed to `id_col_vdi`)
+  field_defs <- attributevalue_table_fields
+  
+  # set the first column name to "hshl_stable_id" or simialr
+  field_defs[[1]]$name <- id_col_vdi
+  
+  # set the max length of string values
+  field_defs[[3]]$maxLength <- attribute_values_data %>%
+    pull(string_value) %>%
+    as.character() %>%
+    nchar() %>%
+    replace(is.na(.), 1) %>%
+    max()
+  
+  attributevalues_table_def <- list(
+    name = tablename,
+    type = 'table',
+    fields = field_defs
+  )
+  install_json <- append(install_json, list(attributevalues_table_def))
   
   return(install_json)   
 }
