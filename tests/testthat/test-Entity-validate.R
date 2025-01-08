@@ -217,14 +217,28 @@ test_that("validate() warns about mangled variable metadata columns", {
   expect_error(
     households <- households %>%
       set_variable_metadata('Household.Id', entity_level = 1.5),
-    "Assigned data `y` must be compatible with existing data"
+    "Cannot assign.+because it takes an integer"
+  )
+
+  # and definitely not a string
+  expect_error(
+    households <- households %>%
+      set_variable_metadata('Household.Id', entity_level = "parent"),
+    "Cannot assign.+because it takes an integer"
   )
   
   # and we can't mess up data_type either :-)  
   expect_error(
     households <- households %>%
       set_variable_metadata('Household.Id', data_type = 'sparkles'),
-    "Assigned data `y` must be compatible with existing data"
+    "Cannot assign.+because it takes a factor"
+  )
+  
+  # nor data_shape
+  expect_error(
+    households <- households %>%
+      set_variable_metadata('Household.Id', data_shape = 'circle'),
+    "Cannot assign.+because it takes a factor"
   )
   
 })

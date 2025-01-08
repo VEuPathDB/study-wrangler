@@ -124,8 +124,8 @@ setMethod("infer_missing_data_shapes", "Entity", function(entity) {
     data_shape = if_else(
       variable %in% cols_to_infer,
       case_when(
-        data_type %in% c('number', 'integer', 'date') ~ 'continuous',
-        .default = 'categorical'
+        data_type %in% c('number', 'integer', 'date') ~ fct_mutate(data_shape, 'continuous'),
+        TRUE ~ fct_mutate(data_shape, 'categorical')
       ),
       data_shape
     )
@@ -523,7 +523,36 @@ setMethod("set_variable_metadata", "Entity", function(entity, variable_name, ...
   walk2(
     names(updates), 
     updates,
-    \(x, y) variables[row_number, x] <<- y
+    function(x, y) {
+      tryCatch({
+        variables[row_number, x] <<- y
+      }, error = function(e) {
+        if (grepl("Can't convert.+to.+factor", e$parent$message)) {
+          stop(to_lines(
+            glue("Error: Cannot assign value '{y}' to metadata field '{x}' because it takes a factor"),
+            glue("value and '{y}' (type: {typeof(y)}) is not allowed."),
+            glue("Allowed values are: {variables %>% pull(x) %>% levels() %>% paste(collapse = ', ')}")
+          ), call. = FALSE)
+        } else if (grepl("Can't convert.+to.+integer", e$parent$message)) {
+          stop(to_lines(
+            glue("Error: Cannot assign value '{y}' to metadata field '{x}' because it takes an integer"),
+            glue("value and '{y}' (type: {typeof(y)}) is not allowed.")
+          ), call. = FALSE)
+        } else if (grepl("Can't convert.+to.+double", e$parent$message)) {
+          stop(to_lines(
+            glue("Error: Cannot assign value '{y}' to metadata field '{x}' because it takes a number"),
+            glue("value and '{y}' (type: {typeof(y)}) is not allowed.")
+          ), call. = FALSE)
+        } else if (grepl("Can't convert.+to.+character", e$parent$message)) {
+          stop(to_lines(
+            glue("Error: Cannot assign value '{y}' to metadata field '{x}' because it takes a string"),
+            glue("value and '{y}' (type: {typeof(y)}) is not allowed.")
+          ), call. = FALSE)
+        } else {
+          stop(e)
+        }
+      })
+    }
   )
   if (!entity@quiet) message(glue("Made metadata update(s) to '{names(updates)}' for '{variable_name}'"))
 
