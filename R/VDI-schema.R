@@ -1,3 +1,5 @@
+### TABLES and FIELDS ###
+
 vdi_study_table_def <- list(
   name = "study",
   type = "table",
@@ -407,3 +409,61 @@ attributevalue_table_fields <- list(
   )
 )
 
+### INDEXES ###
+
+# Primary key index for the ancestors table
+ancestors_pkey_def <- list(
+  isPrimary = 1,
+  isUnique = 1,
+  tableName = "####",
+  type = "index",
+  name = "####_pkey",
+  orderedColumns = list("####_stable_id")
+)
+
+# Primary key index for the attributegraph table
+attributegraph_pkey_def <- list(
+  isPrimary = 1,
+  isUnique = 1,
+  tableName = "####",
+  type = "index",
+  name = "####_pkey",
+  orderedColumns = list("stable_id")
+)
+
+# Secondary indexes for attributevalue table
+# (it has no primary key)
+attributevalue_index_defs <- list(
+  list(
+    isPrimary = 0,
+    isUnique = 0,
+    tableName = "####",
+    type = "index",
+    name = "####_ix1",
+    orderedColumns = list("attribute_stable_id", "####_stable_id")
+  ),
+  list(
+    isPrimary = 0,
+    isUnique = 0,
+    tableName = "####",
+    type = "index",
+    name = "####_ix2",
+    orderedColumns = list("attribute_stable_id", "string_value", "####_stable_id")
+  ),
+  list(
+    isPrimary = 0,
+    isUnique = 0,
+    tableName = "####",
+    type = "index",
+    name = "####_ix3",
+    orderedColumns = list("attribute_stable_id", "date_value", "####_stable_id")
+  ),
+  list(
+    isPrimary = 0,
+    isUnique = 0,
+    tableName = "####",
+    type = "index",
+    name = "####_ix4",
+    orderedColumns = list("attribute_stable_id", "number_value", "####_stable_id")
+  )
+)

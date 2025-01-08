@@ -191,7 +191,12 @@ export_ancestors_to_vdi <- function(entities, output_directory, install_json, st
 
   install_json <- append(install_json, list(ancestors_table_def))
 
-  # TO DO: indexes for this table
+  # add index
+  index_def <- ancestors_pkey_def
+  index_def$tableName <- tablename
+  index_def$name <- gsub('####', tablename, index_def$name, fixed = TRUE)
+  index_def$orderedColumns <- list(gsub('####', entity_abbreviation, index_def$orderedColumns, fixed = TRUE))
+  install_json <- append(install_json, list(index_def))
   
   return(install_json)
 }
@@ -303,6 +308,12 @@ export_attributes_to_vdi <- function(entities, output_directory, install_json, s
   )
   install_json <- append(install_json, list(attributegraph_table_def))
 
+  # take care of the index
+  index_def <- attributegraph_pkey_def
+  index_def$tableName <- tablename
+  index_def$name <- gsub('####', tablename, index_def$name, fixed = TRUE)
+  install_json <- append(install_json, list(index_def))
+  
   ### actual values to attributevalue.cache ###
 
   # make a variable name to stable_id lookup before we start messing with `metadata`
@@ -383,7 +394,7 @@ export_attributes_to_vdi <- function(entities, output_directory, install_json, s
   # write tsv and append install_json (making sure `fields[1]$name` is changed to `id_col_vdi`)
   field_defs <- attributevalue_table_fields
   
-  # set the first column name to "hshl_stable_id" or simialr
+  # set the first column name to "hshl_stable_id" or similar
   field_defs[[1]]$name <- id_col_vdi
   
   # set the max length of string values
@@ -400,6 +411,20 @@ export_attributes_to_vdi <- function(entities, output_directory, install_json, s
     fields = field_defs
   )
   install_json <- append(install_json, list(attributevalues_table_def))
+  
+  # and the indexes
+  index_defs <- map(
+    attributevalue_index_defs,
+    function(index_def) {
+      index_def$tableName <- tablename
+      index_def$name <- gsub('####', tablename, index_def$name, fixed = TRUE)
+      index_def$orderedColumns <- list(
+        gsub('####', entity_abbreviation, index_def$orderedColumns, fixed = TRUE)
+      )
+      return(index_def)
+    }
+  )
+  install_json <- append(install_json, index_defs)
   
   return(install_json)   
 }
