@@ -1,12 +1,5 @@
 FROM rocker/tidyverse:4
 
-## Set a default user. Available via runtime flag `--user rserve`
-## User should also have & own a home directory (for rstudio or linked volumes to work properly).
-RUN apt-get update && apt-get install -y \
-	libglpk-dev \
-    libxml2-dev \
-    librdf-query-client-perl
-
 COPY . /study.wrangler
 WORKDIR /study.wrangler
 
