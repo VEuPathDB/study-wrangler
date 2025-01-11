@@ -82,11 +82,11 @@ entity_from_file <- function(file_path, preprocess_fn = NULL, ...) {
     data <- preprocess_fn(data)
   }
 
-  # Original column names
-  provider_labels <- colnames(data)
-  
-  # Generate unique, R-friendly names
-  clean_names <- make.names(provider_labels, unique = TRUE)
+  # Original column names - convert to a (potentially) multi-valued list
+  provider_labels <- colnames(data) %>% map(list)
+
+  # rename data tibble columns with unique, R-friendly names
+  clean_names <- make.names(colnames(data), unique = TRUE)
   colnames(data) <- clean_names
   
   # Warn if duplicates exist in provider labels

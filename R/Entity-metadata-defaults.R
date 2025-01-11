@@ -6,7 +6,7 @@ variable_metadata_defaults <- tibble(
   entity_name = NA_character_,
   entity_level = as.integer(0),
   # EDA variable metadata
-  provider_label = NA_character_,
+  provider_label = list(character(0)),
   display_name = NA_character_,
   definition = NA_character_,
   stable_id = NA_character_,

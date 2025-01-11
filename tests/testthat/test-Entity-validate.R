@@ -240,7 +240,16 @@ test_that("validate() warns about mangled variable metadata columns", {
       set_variable_metadata('Household.Id', data_shape = 'circle'),
     "Cannot assign.+because it takes a factor"
   )
+
+  # nor a multi-valued metadata like provider_label - this must be given a list
+  # and the help message shows you how
+  expect_error(
+    households <- households %>%
+      set_variable_metadata('Household.Id', provider_label = 'something'),
+    "Cannot assign.+because it takes a list.+set_variable_metadata.+list"
+  )
   
+    
 })
 
 

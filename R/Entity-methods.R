@@ -456,7 +456,7 @@ setMethod("sync_variable_metadata", "Entity", function(entity) {
       # and we'll set the provider_label to the same name because that's all we have
       # and the entity@name if we have it
       mutate(
-        provider_label = missing_variables,
+        provider_label = missing_variables %>% map(list),
         entity_name = entity@name,
       )
 
@@ -518,39 +518,58 @@ setMethod("set_variable_metadata", "Entity", function(entity, variable_name, ...
   if (length(row_number) > 1) {
     stop(glue("Error: multiple metadata rows found for variable '{variable_name}'"))
   }
-    
+  
+  # name of variable to use in fix-it command suggestions  
+  global_varname = find_global_varname(entity, 'entity')
+  
   # Update the specified row and columns
   walk2(
     names(updates), 
     updates,
     function(x, y) {
       tryCatch({
-        variables[row_number, x] <<- y
-      }, error = function(e) {
-        if (grepl("Can't convert.+to.+factor", e$parent$message)) {
-          stop(to_lines(
-            glue("Error: Cannot assign value '{y}' to metadata field '{x}' because it takes a factor"),
-            glue("value and '{y}' (type: {typeof(y)}) is not allowed."),
-            glue("Allowed values are: {variables %>% pull(x) %>% levels() %>% paste(collapse = ', ')}")
-          ), call. = FALSE)
-        } else if (grepl("Can't convert.+to.+integer", e$parent$message)) {
-          stop(to_lines(
-            glue("Error: Cannot assign value '{y}' to metadata field '{x}' because it takes an integer"),
-            glue("value and '{y}' (type: {typeof(y)}) is not allowed.")
-          ), call. = FALSE)
-        } else if (grepl("Can't convert.+to.+double", e$parent$message)) {
-          stop(to_lines(
-            glue("Error: Cannot assign value '{y}' to metadata field '{x}' because it takes a number"),
-            glue("value and '{y}' (type: {typeof(y)}) is not allowed.")
-          ), call. = FALSE)
-        } else if (grepl("Can't convert.+to.+character", e$parent$message)) {
-          stop(to_lines(
-            glue("Error: Cannot assign value '{y}' to metadata field '{x}' because it takes a string"),
-            glue("value and '{y}' (type: {typeof(y)}) is not allowed.")
-          ), call. = FALSE)
+        if (is.list(y)) {
+          # For list columns, assign as a list
+          variables[[row_number, x]] <<- list(y)
         } else {
-          stop(e)
+          # For non-list columns, assign directly
+          variables[row_number, x] <<- y
         }
+      }, error = function(e) {
+        if (is_truthy(e$parent$message)) {
+          if (grepl("Can't convert.+to.+factor", e$parent$message)) {
+            stop(to_lines(
+              glue("Error: Cannot assign value '{y}' to metadata field '{x}' because it takes a factor"),
+              glue("value and '{y}' (type: {typeof(y)}) is not allowed."),
+              glue("Allowed values are: {variables %>% pull(x) %>% levels() %>% paste(collapse = ', ')}")
+            ), call. = FALSE)
+          } else if (grepl("Can't convert.+to.+integer", e$parent$message)) {
+            stop(to_lines(
+              glue("Error: Cannot assign value '{y}' to metadata field '{x}' because it takes an integer"),
+              glue("value and '{y}' (type: {typeof(y)}) is not allowed.")
+            ), call. = FALSE)
+          } else if (grepl("Can't convert.+to.+double", e$parent$message)) {
+            stop(to_lines(
+              glue("Error: Cannot assign value '{y}' to metadata field '{x}' because it takes a number"),
+              glue("value and '{y}' (type: {typeof(y)}) is not allowed.")
+            ), call. = FALSE)
+          } else if (grepl("Can't convert.+to.+character", e$parent$message)) {
+            stop(to_lines(
+              glue("Error: Cannot assign value '{y}' to metadata field '{x}' because it takes a string"),
+              glue("value and '{y}' (type: {typeof(y)}) is not allowed.")
+            ), call. = FALSE)
+          } else if (grepl("Can't convert.+to.+list", e$parent$message)) {
+            stop(to_lines(
+              glue("Error: Cannot assign value '{y}' to metadata field '{x}' because it takes a list"),
+              glue("value and '{y}' (type: {typeof(y)}) is not allowed."),
+              glue("Even single values must be wrapped in a `list()`, for example:"),
+              indented(
+                glue("{global_varname} <- {global_varname} %>% set_variable_metadata('{variable_name}', {x} = list('{y}'))")
+              )
+            ), call. = FALSE)
+          }
+        }
+        stop(e)
       })
     }
   )
@@ -650,6 +669,7 @@ setMethod("set_variable_display_names_from_provider_labels", "Entity", function(
 
   # Update the display_name for rows matching the mask
   variables <- variables %>%
+    mutate(provider_label = map_chr(provider_label, ~ .x[[1]])) %>%
     mutate(display_name = if_else(mask, provider_label, display_name))
   
   if (!entity@quiet) message(glue("Copied provider_label over to display_name for {sum(mask, na.rm = TRUE)} variables"))
