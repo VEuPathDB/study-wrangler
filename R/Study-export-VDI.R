@@ -259,7 +259,9 @@ export_attributes_to_vdi <- function(entities, output_directory, install_json, s
         is.na(parent_stable_id),
         current_entity %>% get_stable_id(),
         parent_stable_id
-      )
+      ),
+      # without the `unlist()` the export is too nested: "[['label1', 'label2']]"
+      provider_label = as.character(jsonlite::toJSON(unlist(provider_label))) 
     ) %>%
     ungroup()
 
