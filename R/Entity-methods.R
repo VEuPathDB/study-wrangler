@@ -1019,7 +1019,9 @@ setMethod("get_hydrated_variable_metadata", "Entity", function(entity) {
         data_type == 'integer' ~ 0,
         data_type == 'number' ~ data %>% pull(variable) %>% max_decimals(),
         TRUE ~ NA
-      )
+      ),
+      # do this for everything for now?
+      distinct_values_count = data %>% pull(variable) %>% unique() %>% length()
     ) %>% ungroup()
   
   return(metadata)
