@@ -11,6 +11,8 @@ library(knitr)
 setMethod("inspect", "Entity", function(object, variable_name = NULL) {
   entity <- object
 
+  global_varname <- find_global_varname(object, 'entity')
+  
   if (!is.null(variable_name)) {
     # Delegate to inspect_variable and return early
     return(inspect_variable(entity, variable_name))
@@ -26,7 +28,7 @@ setMethod("inspect", "Entity", function(object, variable_name = NULL) {
   }
   
   ids_metadata <- get_id_column_metadata(entity)
-  variables_metadata <- get_variable_metadata(entity)
+  variables_metadata <- get_hydrated_variable_metadata(entity)
 
   # entity level metadata  
   slots_list <- as_list(entity)
@@ -76,7 +78,7 @@ If there are ID columns missing above, you may need to use:
       kable(variables_metadata %>%
         select(variable, provider_label, data_type, data_shape, display_name, stable_id)),
       "~~~~",
-      "Use `inspect(entity, 'variable.name')` for more detail on individual variables",
+      glue("Use `{global_varname} %>% inspect('variable.name')` for more detail on individual variables"),
       
       heading("Variable annotation summary"),
       kable(
