@@ -455,3 +455,23 @@ message_without_dupes <- local({
 })
 
 
+max_decimals <- function(x) {
+  if (!is.numeric(x)) return(0)
+  
+  # Format the numbers with a fixed precision, avoiding scientific notation
+  formatted_numbers <- format(x, scientific = FALSE, digits = 15, trim = TRUE)
+  
+  # Extract the fractional part by removing the integer part and trailing zeros
+  fractional_strings <- sub("^-?\\d*\\.?|0+$", "", formatted_numbers)
+  
+  # Count the number of decimal places
+  nchar_fractions <- nchar(fractional_strings)
+  
+  # Handle cases where there are no fractional parts
+  nchar_fractions[fractional_strings == ""] <- 0
+  
+  return(max(nchar_fractions))
+}
+
+
+

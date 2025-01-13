@@ -984,6 +984,7 @@ setMethod("set_variable_as_date", "Entity", function(entity, column_name) {
 #' * vocabulary 
 #' * stable_id
 #' * parent_stable_id
+#' * precision for number and integer vars
 #' 
 #' Treat this data as read-only (use set_xxx methods to make changes)
 #' 
@@ -1013,6 +1014,11 @@ setMethod("get_hydrated_variable_metadata", "Entity", function(entity) {
         is.na(parent_stable_id),
         entity %>% get_stable_id(),
         parent_stable_id
+      ),
+      precision = case_when(
+        data_type == 'integer' ~ 0,
+        data_type == 'number' ~ data %>% pull(variable) %>% max_decimals(),
+        TRUE ~ NA
       )
     ) %>% ungroup()
   

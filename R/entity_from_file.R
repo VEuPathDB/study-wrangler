@@ -1,6 +1,5 @@
 library(tidyverse)
 
-#' Create an Entity Object from a Tabular Data File
 #'
 #' @description
 #' Reads a tabular data file (e.g., TSV) and converts it into an Entity object.

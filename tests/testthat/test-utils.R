@@ -112,3 +112,59 @@ test_that("High volume of IDs are unique and start with a non-digit", {
   expect_true(all(non_digit_starts), info = "All IDs should start with a non-digit")
 })
 
+test_that("max_decimals() works as intended", {
+  
+  expect_no_error(
+    expect_equal(
+      max_decimals(c("hello", "world")),
+      0
+    )
+  )
+
+  expect_equal(
+    max_decimals(c(-1,0,1)),
+    0
+  )
+  
+  expect_equal(
+    max_decimals(c(-100.123, 0.12345, 50.12)),
+    5
+  )
+
+  # it can't count more than 15 places intentionally
+  # ideally it would warn about this but I don't think that's worth implementing
+  expect_no_warning(
+    expect_no_error(
+      expect_equal(
+        max_decimals(0.1234567890123456789),
+        15
+      )
+    )
+  )
+    
+  # Zeros with trailing decimals
+  expect_equal(
+    max_decimals(c(0.0, 0.00, 0.000)),
+    0
+  )
+  
+  # Very small numbers (avoiding scientific notation issues)
+  expect_equal(
+    max_decimals(c(1e-5, 1e-10, 1e-15)),
+    15
+  )
+  
+  # Mixed zeros and decimals
+  expect_equal(
+    max_decimals(c(0, 0.123, 1.0)),
+    3
+  )
+  
+  # Non-numeric coerced to numeric
+  expect_no_error(
+    expect_equal(
+      max_decimals(as.numeric(c("1.23", "4.567", "0.12345"))),
+      5
+    )
+  )  
+})
