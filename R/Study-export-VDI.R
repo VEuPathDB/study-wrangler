@@ -260,16 +260,17 @@ export_attributes_to_vdi <- function(entities, output_directory, install_json, s
 
   # set `maxLength` to max from data for all type="SQL_VARCHAR"
   # in `attributegraph_table_fields` before adding to `install_json`
-  
-  # TO DO: similar treatment for `prec` field for "SQL_NUMBER" fields?
+  # also similar treatment for `prec` field for "SQL_NUMBER" fields?
   
   field_defs <- attributegraph_table_fields %>%
     map(function(field_def) {
+      column_values <- metadata %>% pull(field_def$name) %>% as.character()
+      max_length <- column_values %>%
+        nchar() %>% replace(is.na(.), 1) %>% max(na.rm = TRUE)
       if (field_def$type == "SQL_VARCHAR") {
-        column_values <- metadata %>%
-          pull(field_def$name) %>% as.character()
-        field_def$maxLength <- column_values %>%
-          nchar() %>% replace(is.na(.), 1) %>% max(na.rm = TRUE)
+        field_def$maxLength <- max_length
+      } else if (field_def$type == "SQL_NUMBER") {
+        field_def$prec <- max_length
       }
       return(field_def)
     })
