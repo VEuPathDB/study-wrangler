@@ -218,48 +218,19 @@ export_attributes_to_vdi <- function(entities, output_directory, install_json, s
   
   # `metadata` has a column `variable` containing the internal variable name
   # and about 30 other columns with metadata about display names, min/max ranges etc
-  metadata <- current_entity %>% get_variable_metadata()
+  # hydrated means that default IDs are generated
+  metadata <- current_entity %>% get_hydrated_variable_metadata()
 
   # data has column names that correspond to the `variable` names in `metadata`
   data <- current_entity %>% get_data()
 
   ### metadata to attributegraph.cache ###
-  
-  # For the rows (variables) in `metadata` where `data_shape != 'continuous'`
-  # the corresponding column in `data` should contain factor values.
-  # We need to add a vocabulary column to `metadata` that contains a JSON string
-  # of the values of the factor for those variables, and NA otherwise.
-  
-  # For the rows (variables) in `metadata` where `data_shape != 'continuous'`,
-  # the corresponding column in `data` should contain factor values.
-  # We need to add a vocabulary column to `metadata` that contains a JSON string
-  # of the factor levels for those variables, and NA otherwise.
-  # We also need to set default stable_id and parent_stable_id if not provided
+
+  # JSONify some array fields of metadata  
   metadata <- metadata %>%
     rowwise() %>% # Row-wise operation since we process individual rows
     mutate(
-      vocabulary = if_else(
-        # For non-continuous variables, encode levels as JSON
-        data_shape != 'continuous',
-        as.character(
-          jsonlite::toJSON(
-            levels(data %>% pull(variable)), 
-            auto_unbox = FALSE
-          )
-        ),
-        # Otherwise, set vocabulary to NA
-        NA_character_
-      ),
-      stable_id = if_else(
-        is.na(stable_id),
-        prefixed_alphanumeric_id(prefix = "VAR_", length = 8, seed_string = variable),
-        stable_id
-      ),
-      parent_stable_id = if_else(
-        is.na(parent_stable_id),
-        current_entity %>% get_stable_id(),
-        parent_stable_id
-      ),
+      vocabulary = if_else(length(vocabulary) == 0, '', as.character(jsonlite::toJSON(vocabulary))),
       # without the `unlist()` the export is too nested: "[['label1', 'label2']]"
       provider_label = as.character(jsonlite::toJSON(unlist(provider_label))) 
     ) %>%

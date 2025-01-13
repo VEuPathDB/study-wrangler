@@ -35,7 +35,7 @@ setGeneric("sync_variable_metadata", function(entity) standardGeneric("sync_vari
 #' @export
 setGeneric("set_variable_metadata", function(entity, ...) standardGeneric("set_variable_metadata"))
 #' @export
-setGeneric("get_variable_metadata", function(entity, ...) standardGeneric("get_variable_metadata"))
+setGeneric("get_variable_metadata", function(entity) standardGeneric("get_variable_metadata"))
 #' @export
 setGeneric("get_id_column_metadata", function(entity, ...) standardGeneric("get_id_column_metadata"))
 #' @export
@@ -62,6 +62,9 @@ setGeneric("check_parent_child_join", function(parent, child) standardGeneric("c
 setGeneric("remove_children", function(entity) standardGeneric("remove_children"))
 #' @export
 setGeneric("set_variable_as_date", function(entity, column_name) standardGeneric("set_variable_as_date"))
+# not exported
+setGeneric("get_hydrated_variable_metadata", function(entity) standardGeneric("get_hydrated_variable_metadata"))
+
 
 #' infer_missing_data_types
 #' 
@@ -589,7 +592,7 @@ setMethod("set_variable_metadata", "Entity", function(entity, variable_name, ...
 #' @param entity an Entity object
 #' @returns tibble of metadata for variables
 #' @export
-setMethod("get_variable_metadata", "Entity", function(entity, ...) {
+setMethod("get_variable_metadata", "Entity", function(entity) {
   return(
     entity@variables %>%
       filter(data_type != 'id') %>%
@@ -973,3 +976,47 @@ setMethod("set_variable_as_date", "Entity", function(entity, column_name) {
   
   return(entity)
 })
+
+#' get_hydrated_variable_metadata
+#' 
+#' Returns a metadata tibble for variables with sensible defaults
+#' imputed for
+#' * vocabulary 
+#' * stable_id
+#' * parent_stable_id
+#' 
+#' Treat this data as read-only (use set_xxx methods to make changes)
+#' 
+#' @param entity an Entity object
+#' @returns tibble of metadata for variables
+#' not exported
+setMethod("get_hydrated_variable_metadata", "Entity", function(entity) {
+  data <- entity %>% get_data()
+  
+  metadata <- entity %>%
+    get_variable_metadata() %>%
+    rowwise() %>% # because functions applied below aren't vectorized
+    mutate(
+      # For the rows (variables) in `metadata` where `data_shape != 'continuous'`,
+      # the corresponding column in `data` should contain factor values.
+      vocabulary = if_else(
+        data_shape != 'continuous',
+        list(levels(data %>% pull(variable))),
+        list(character(0))
+      ),
+      stable_id = if_else(
+        is.na(stable_id),
+        prefixed_alphanumeric_id(prefix = "VAR_", length = 8, seed_string = variable),
+        stable_id
+      ),
+      parent_stable_id = if_else(
+        is.na(parent_stable_id),
+        entity %>% get_stable_id(),
+        parent_stable_id
+      )
+    ) %>% ungroup()
+  
+  return(metadata)
+})
+
+
