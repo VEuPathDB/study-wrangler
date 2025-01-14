@@ -25,9 +25,7 @@ setMethod("inspect_variable", "Entity", function(entity, variable_name) {
   }
   
   # Extract metadata for the specified variable
-  variable_metadata <- entity %>%
-    get_hydrated_variable_metadata() %>%
-    filter(variable == variable_name)
+  variable_metadata <- entity@variables %>% filter(variable == variable_name)
   
   # Extract data for the specified variable
   variable_data <- entity@data[[variable_name]]

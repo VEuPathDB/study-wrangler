@@ -28,7 +28,7 @@ setMethod("inspect", "Entity", function(object, variable_name = NULL) {
   }
   
   ids_metadata <- get_id_column_metadata(entity)
-  variables_metadata <- get_hydrated_variable_metadata(entity)
+  variables_metadata <- get_variable_metadata(entity)
 
   # entity level metadata  
   slots_list <- as_list(entity)
