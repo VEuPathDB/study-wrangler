@@ -1003,7 +1003,7 @@ setMethod("get_hydrated_variable_metadata", "Entity", function(entity) {
       vocabulary = if_else(
         data_shape != 'continuous',
         list(levels(data %>% pull(variable))),
-        list(character(0))
+        NA
       ),
       stable_id = if_else(
         is.na(stable_id),
@@ -1020,8 +1020,12 @@ setMethod("get_hydrated_variable_metadata", "Entity", function(entity) {
         data_type == 'number' ~ data %>% pull(variable) %>% max_decimals(),
         TRUE ~ NA
       ),
-      # do this for everything for now?
-      distinct_values_count = data %>% pull(variable) %>% unique() %>% length()
+      # do this for all actual variables
+      distinct_values_count = if_else(
+        has_values,
+        data %>% pull(variable) %>% unique() %>% length(),
+        NA
+      )
     ) %>% ungroup()
   
   return(metadata)

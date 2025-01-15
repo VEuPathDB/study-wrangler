@@ -230,7 +230,8 @@ export_attributes_to_vdi <- function(entities, output_directory, install_json, s
   metadata <- metadata %>%
     rowwise() %>% # Row-wise operation since we process individual rows
     mutate(
-      vocabulary = if_else(length(vocabulary) == 0, '', as.character(jsonlite::toJSON(vocabulary))),
+      # need to catch NAs specifically otherwise they end up as "{}" in the output
+      vocabulary = if_else(all(is.na(vocabulary)), '', as.character(jsonlite::toJSON(vocabulary))),
       # without the `unlist()` the export is too nested: "[['label1', 'label2']]"
       provider_label = as.character(jsonlite::toJSON(unlist(provider_label))) 
     ) %>%
