@@ -19,13 +19,19 @@ setGeneric("inspect_variable", function(entity, variable_name) standardGeneric("
 #' @param variable_name The name of the variable to inspect, as a character string.
 #' @export
 setMethod("inspect_variable", "Entity", function(entity, variable_name) {
+  variables_metadata <- entity %>% get_hydrated_variable_metadata()
+  
   # Validate input
-  if (!variable_name %in% entity@variables$variable) {
+  if (!variable_name %in% variables_metadata$variable) {
+    if (variable_name %in% entity@variables$variable) {
+      # it must be an ID column if it's not a variable
+      stop(glue("Error: '{variable_name}' is an ID column, not a variable column."))
+    }
     stop(glue("Error: variable name '{variable_name}' not found in Entity variables' metadata."))
   }
   
   # Extract metadata for the specified variable
-  variable_metadata <- entity@variables %>% filter(variable == variable_name)
+  variable_metadata <- variables_metadata %>% filter(variable == variable_name)
   
   # Extract data for the specified variable
   variable_data <- entity@data[[variable_name]]

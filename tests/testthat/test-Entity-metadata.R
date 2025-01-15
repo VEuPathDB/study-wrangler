@@ -41,6 +41,7 @@ test_that("get_stable_id() and set_stable_id() work", {
   households <- entity_from_file(file_path, name = 'household')
   
   # Check if a stable_id is generated when none is set
+  message_without_dupes$reset()
   expect_message(
     generated_id <- households %>% get_stable_id(),
     "Generating temporary stable_id for entity 'household'"

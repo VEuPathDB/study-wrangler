@@ -36,9 +36,13 @@ test_that("set_variable_as_date() works", {
   )
   
   # now it gets detected as a date column
-  expect_output(
-    observations %>% inspect_variable('Observation.date'),
-    "data_type\\s+date"
+  expect_message(
+    expect_output(
+      observations %>% inspect_variable('Observation.date'),
+      "data_type\\s+date"
+    ),
+    "Generating temporary stable_id for entity 'observation'"
+    # we'll use quiet mode below to suppress this message ^^
   )
   
   # let's make one bad date
@@ -73,7 +77,7 @@ test_that("See how non-ISO-8601 inputs work - YYYY/MM/DD", {
   
   # so it gets detected as a date column
   expect_output(
-    observations %>% inspect_variable('Observation.date'),
+    observations %>% quiet() %>% inspect_variable('Observation.date'),
     "data_type\\s+date"
   )
 
@@ -100,9 +104,9 @@ test_that("See how non-ISO-8601 inputs work - YY-MM-DD", {
   observations <- entity_from_file(file_path, name = 'observation', preprocess_fn = date_changer)
   
   # so it gets detected as an ID column - that's better than it getting detected as a date :-)
-  expect_output(
-    observations %>% inspect_variable('Observation.date'),
-    "data_type\\s+id"
+  expect_error(
+    observations %>% quiet() %>% inspect_variable('Observation.date'),
+    "'Observation.date' is an ID column, not a variable column"
   )
   
   # redetect as a variable
@@ -113,7 +117,7 @@ test_that("See how non-ISO-8601 inputs work - YY-MM-DD", {
 
   # now it's a string - phew - we didn't want it to be a date
   expect_output(
-    observations %>% inspect_variable('Observation.date'),
+    observations %>% quiet() %>% inspect_variable('Observation.date'),
     "data_type\\s+string"
   )
   

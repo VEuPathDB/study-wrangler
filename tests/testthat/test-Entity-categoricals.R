@@ -40,7 +40,7 @@ test_that("Using forcats manipulations on categoricals does not break validation
     )  
   expect_true(households %>% quiet() %>% validate())
   expect_output(
-    inspect_variable(households, "Owns.property"),
+    households %>% quiet() %>% inspect_variable("Owns.property"),
     "It's complicated"
   )
 })
@@ -57,7 +57,7 @@ test_that("Even very large vocabularies are reported in inspect_variable", {
     )
   expect_true(households %>% quiet() %>% validate())
   expect_output(
-    inspect_variable(households, "Owns.property"),
+    households %>% quiet() %>% inspect_variable("Owns.property"),
     "zzz"
   )
 })
