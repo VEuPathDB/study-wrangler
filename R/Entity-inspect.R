@@ -28,8 +28,17 @@ setMethod("inspect", "Entity", function(object, variable_name = NULL) {
   }
   
   ids_metadata <- get_id_column_metadata(entity)
-  variables_metadata <- get_variable_metadata(entity)
 
+  variables_metadata <- if (entity %>% get_entity_name() %>% is_truthy()) {
+    get_hydrated_variable_metadata(entity)
+  } else {
+    message(to_lines(c(
+      "Warning: because this entity has no `name`, default `stable_id` attributes cannot be generated.",
+      glue("Run `validate({global_varname})` for more details.")
+    )))
+    get_variable_metadata(entity)
+  }
+  
   # entity level metadata  
   slots_list <- as_list(entity)
   character_slots <- slots_list[lapply(slots_list, class) == "character"]

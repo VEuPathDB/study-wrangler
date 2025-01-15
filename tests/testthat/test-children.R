@@ -38,7 +38,7 @@ test_that("set_parents() works and the result validates", {
   expect_true(participants %>% quiet() %>% validate())
 
   # but Household.Id is still a regular variable
-  output <- capture.output(inspect(participants))
+  output <- capture.output(participants %>% quiet() %>% inspect())
   expect_true(any(grepl("Total number of variables\\s+5\\b", output)))
   expect_true(any(grepl("Household.Id\\s+string\\s+categorical\\b", output)))
   
@@ -49,7 +49,7 @@ test_that("set_parents() works and the result validates", {
   )
 
   # Household.Id is no longer a regular variable
-  output <- capture.output(inspect(participants))
+  output <- capture.output(participants %>% quiet() %>% inspect())
   expect_true(any(grepl("Total number of variables\\s+4\\b", output)))
   expect_false(any(grepl("Household.Id\\s+string\\s+categorical\\b", output)))
   
@@ -63,7 +63,7 @@ test_that("participant_observations fixture loads and validates", {
   observations <- entity_from_file(file_path, name="observation")
   
   expect_output(
-    inspect(observations),
+    observations %>% quiet() %>% inspect(),
     "Total number of variables\\s+7\\b"
   )
 
@@ -84,7 +84,7 @@ test_that("participant_observations fixture loads and validates", {
   )
   
   expect_output(
-    inspect(observations),
+    observations %>% quiet() %>% inspect(),
     "Total number of variables\\s+5\\b"
   )
   

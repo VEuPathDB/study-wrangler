@@ -6,7 +6,10 @@ test_that("inspect(entity) outputs categorical values in full", {
   # Create an Entity object
   households <- entity_from_file(file_path)
   # inspect it and grab the output
-  output <- capture.output(inspect(households))
+  expect_message(
+    output <- capture.output(inspect(households)),
+    "this entity has no `name`, default `stable_id` attributes cannot be generated"
+  )
   # Make sure it contains a factor value longer than three characters
   expect_true(any(grepl("Concrete", output)))
   # TO DO nearer release time... (when things have settled)
@@ -20,7 +23,10 @@ test_that("inspect(entity) counts annotations properly", {
   # Create an Entity object
   households <- entity_from_file(file_path, name='household')
   
-  output <- capture.output(inspect(households))
+  expect_message(
+    output <- capture.output(inspect(households)),
+    "Generating temporary stable_id for entity"
+  )
   
   # expect 4 variables with no annotations
   expect_true(any(grepl('Total number of variables\\s*\\b4\\b', output, perl=TRUE)))

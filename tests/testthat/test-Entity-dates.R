@@ -36,6 +36,7 @@ test_that("set_variable_as_date() works", {
   )
   
   # now it gets detected as a date column
+  message_without_dupes$reset()
   expect_message(
     expect_output(
       observations %>% inspect_variable('Observation.date'),
