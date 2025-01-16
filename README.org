@@ -2,33 +2,51 @@
 
 study.wranger R package for tidying data in a way compatible with VEuPathDB workflows for EDA loading.
 
-To build a docker image:
+To build a docker image
 #+begin_example
-docker build -t study-wrangler .
+docker build -t veupathdb/study-wrangler .
 #+end_example
+
+Build notes:
+* add `--progress=plain` if you want to see the errors more easily
+* each `remotes::install_github()` command in the Dockerfile eats into a rate limit for anonymous users at GitHub (60 per hour!) - so if you are playing around with things you almost certainly will hit the limit
+* setting up credentials for a higher limit seems not worth the cost
 
 To run in docker:
 #+begin_example
-docker run --rm -ti -e PASSWORD=somepassword -p 8787:8787 study-wrangler
-# Then in your web browser navigate to localhost:8787 and login with "rstudio" and "somepassword"
+docker run --rm -ti -e PASSWORD=password -p 8989:8787 veupathdb/study-wrangler
+# Then in your web browser navigate to localhost:8989 and login with "rstudio" and "password"
 #+end_example
 
 To add R functions to the repo (using docker):
 #+begin_example
-docker run --rm -ti -v /home/$user/project_home/study-wrangler:/study.wrangler -e PASSWORD=somepassword -p 8787:8787 jbrestel/study-wrangler
-# Then in your web browser navigate to localhost:8787 and login with "rstudio" and "somepassword"
+docker run --rm -ti -v $PWD:/study.wrangler -e PASSWORD=password -p 8888:8787 veupathdb/study-wrangler
+# Then in your web browser navigate to localhost:8888 and login with "rstudio" and "password"
 
 # at the RStudio prompt
 > library(devtools)
-> load_all("/study.wrangler")
+# then in the file browser:
+# 1. navigate into ./study.wrangler directory
+# 2. Set As Working Directory (gear icon in file browser)
+# 3. (or do `setwd("~/study.wrangler")` in console)
+> devtools::test()
+# actually just `test()` will work
 
-# add functions to R directory in this repo and then:
-> document("/study.wrangler")
+# If running commands in console, you will need to do
+> load_all()
+# after making changes in the code.
 
-
-# see devtools documentation on best practices for making functions and documentation
+# To update the documentation and/or NAMESPACE file
+> document()
+> build(path='dist')
+> install()
+# Note that we are not committing the man/*.Rd files to the repo at the moment
 #+end_example
 
 
-Alternatively, should also be able to install into local RStudio using "remotes" package
-> remotes::install_github('VEuPathDB/study-wrangler','0.0.0.9000')
+Alternatively, should also be able to install into local RStudio using "remotes" package (where `v0.0.0.9000` is a version tag in the repo`)
+
+#+begin_example
+> remotes::install_github('VEuPathDB/study-wrangler@v0.0.0.9000')
+#+end_example
+

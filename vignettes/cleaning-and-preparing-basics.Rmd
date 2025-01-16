@@ -1,0 +1,391 @@
+---
+title: "Cleaning and Preparing Data: The Basics"
+output: rmarkdown::html_vignette
+vignette: >
+  %\VignetteIndexEntry{Cleaning and Preparing Data: The Basics}
+  %\VignetteEngine{knitr::rmarkdown}
+  %\VignetteEncoding{UTF-8}
+---
+
+<style type="text/css">
+body {
+  min-width: 60em;
+  margin: auto;
+}
+body > p {
+  max-width: 45em;
+}
+</style>
+
+```{r, include = FALSE}
+knitr::opts_chunk$set(
+  collapse = TRUE,
+  comment = "#>"
+)
+```
+
+In this tutorial we will work through the basic steps of loading and cleaning a
+single data file that represents one "entity". By this we mean one table of data
+that describes one thing, e.g. a household, or a study participant. If you have a
+file of data that describes study participants *and* the households they belong
+to (most likely redundantly with data in household columns repeated), then
+this is a **multi-entity situation** that we will cover later.
+
+```{r setup}
+library(tidyverse)
+library(knitr)
+# during development
+devtools::load_all()
+# or
+# library(study.wrangler)
+```
+
+So let's start loading a tab-delimited file of toy data. Here we get the location
+of the file from the data bundled with this package. You can simply provide
+a relative or absolute path to any tab-delimited data file.
+
+```{r}
+
+households_file_path <- system.file("extdata", "toy_example/households.tsv", package = 'study.wrangler')
+households_file_path
+
+```
+Now let's load it in with one of the wrangler's main functions:
+
+```{r}
+
+households <- entity_from_file(households_file_path)
+
+```
+
+If there are no warnings or errors, we now have an "entity object": `households`.
+
+We can use the wrangler's `inspect()` function to see what is inside it.
+
+```{r}
+
+inspect(households)
+
+```
+
+There's a lot to unpack there, but we'll come back to that 
+
+Now inspect an individual variable in detail
+
+```{r}
+
+inspect_variable(households, 'Construction.material')
+
+```
+
+And validate it
+
+```{r}
+
+validate(households)
+
+```
+
+Aha - something is wrong. Let's follow the advice and fix it.
+
+```{r}
+
+households <- households %>% set_entity_name('household')
+validate(households)
+
+```
+
+Yay - now it validates. Let's have a closer look inside:
+
+```{r}
+
+inspect(households)
+
+```
+
+You can see that some top-level information about the entity is now filled in:
+
+```
+### Entity-level metadata ###
+
+Field                 Value      
+--------------------  -----------
+name                  household  
+description           NA         
+display_name          household  
+display_name_plural   households 
+parent_name           NA         
+```
+
+And some basic row count stats:
+
+```
+### Row counts ###
+
+Type                                 Count
+----------------------------------  ------
+Total                                    3
+Complete data (no missing values)        3
+```
+
+And that the ID column table has assigned the 'Household.Id' column to the
+correct entity (this one, level=0). Previously it was NA.
+
+```
+### ID columns ###
+
+variable       entity_name    entity_level
+-------------  ------------  -------------
+Household.Id   household                 0
+```
+
+What else can we see from the `inspect(households)` report?
+
+Well, there's a summary of what we know about the variables (non-ID-columns):
+
+```
+### Key variable metadata ###
+
+variable                provider_label          data_type   data_shape    display_name   stable_id 
+----------------------  ----------------------  ----------  ------------  -------------  ----------
+Number.of.animals       Number of animals       integer     continuous    NA             NA        
+Owns.property           Owns property           string      categorical   NA             NA        
+Enrollment.date         Enrollment date         date        continuous    NA             NA        
+Construction.material   Construction material   string      categorical   NA             NA        
+```
+
+The `provider_label` is the original column heading in the input file. From now
+on we will refer to variables with their R-friendly names, in the `variable`
+column above.
+
+The wrangler has done a good job at auto-detecting the integer, date and string types.
+We will explain how to correct erroneously inferred types later.
+
+We'll come back to `data_shape` later too.
+
+The next part of the report gently slaps our wrists for not providing display_names
+and definitions (which make the variables more user-friendly in the UI)
+
+```
+### Variable annotation summary ###
+
+Type                         Count
+--------------------------  ------
+Total number of variables        4
+display_name provided*           0
+definition provided              0
+~~~~
+* use `set_variable_display_names_from_provider_labels()` to use original column headings as-is.
+```
+
+Let's fix that according to the guidance, and also add a definition using the
+generic `set_variable_metadata()` function. We can chain these together using the
+magrittr pipe `%>%` when both functions operate on and return entity objects. 
+
+```{r}
+
+households <- households %>%
+  set_variable_display_names_from_provider_labels() %>%
+  set_variable_metadata('Owns.property', definition="The occupant owns the property either outright or via a mortgage")
+
+inspect(households)
+
+```
+
+Yay, now we have `display_names` for all the variables and the second table shows one definition provided.
+
+```
+### Key variable metadata ###
+
+variable                provider_label          data_type   data_shape    display_name            stable_id 
+----------------------  ----------------------  ----------  ------------  ----------------------  ----------
+Number.of.animals       Number of animals       integer     continuous    Number of animals       NA        
+Owns.property           Owns property           string      categorical   Owns property           NA        
+Enrollment.date         Enrollment date         date        continuous    Enrollment date         NA        
+Construction.material   Construction material   string      categorical   Construction material   NA        
+~~~~
+Use `inspect(entity, 'variable.name')` for more detail on individual variables
+
+
+### Variable annotation summary ###
+
+Type                         Count
+--------------------------  ------
+Total number of variables        4
+display_name provided*           4
+definition provided              1
+```
+
+You can inspect annotations like `definition` with `inspect(households, 'Owns.property')` but we won't run that again.
+
+Maybe we need a convenience function `show_variables_missing_metadata(entity, 'definition')`?
+
+For now we can do:
+
+```{r}
+
+households %>% get_variable_metadata() %>% filter(is.na(definition)) %>% pull(variable) %>% cat(sep="\n")
+
+```
+So what if there was data that needed cleaning?
+
+First let's see what happens if there are major problems with the TSV file.
+
+Here's a simple example with an extra column in one row:
+
+```{r}
+
+broken_file_path <- system.file("extdata", "toy_example/brokenHouseholds.tsv", package = 'study.wrangler')
+
+tryCatch(
+  {
+    result <- entity_from_file(broken_file_path, name = "household")
+  },
+  error = function(e) {
+    warning("Error captured: ", e$message)
+  }
+)
+
+```
+
+We had to wrap it in `expect_error` so that the notebook execution isn't interrupted.
+
+The error message would look something like this:
+
+```
+ Error in entity_from_file(broken_file_path) : 
+  Error: Issues were encountered while parsing the file:
+ row   col  expected    actual      file                                                          
+----  ----  ----------  ----------  --------------------------------------------------------------
+   2     6  5 columns   6 columns   /study.wrangler/inst/extdata/toy_example/brokenHouseholds.tsv
+```
+
+
+There's not much we can do in R with a badly broken file, so in this case the file will
+need fixing before we can proceed.
+
+However, we hope to be able to fix all other problems with the wrangler.
+
+For example, a non-existent date in the input file.
+
+We can spoof this the `preprocess_fn` hook of `entity_from_file()` - which makes a change to
+the raw data before any type inference (e.g. date detection) or column name clean-up is done.
+We'll also go back to using the non-broken input file.
+
+```{r}
+
+spoof_bad_date <- function(data) {
+  data$`Enrollment date`[2] <- "2021-02-29" # Invalid date
+  return(data)
+}
+
+# we'll also provide the entity_name directly to save having to set it later
+households <- entity_from_file(households_file_path, name = 'household', preprocess_fn = spoof_bad_date)
+
+```
+
+That's good. R changed one of our values to `NA` but told us about it.
+
+We can view the damage with
+
+```{r}
+
+households %>% get_data()
+
+```
+
+Or if there's a lot of rows and columns we can filter and select/pull what's important:
+
+```{r}
+
+households %>% get_data() %>% filter(is.na(Enrollment.date)) %>% pull(Household.Id) %>% cat(sep="\n")
+
+```
+
+So we now have an opportunity to fix it. Maybe this time we will exclude all rows with bad dates.
+An alternative might be to make a `preprocess_fn` that massaged the bad dates into good ones.
+
+```{r}
+
+households <- households %>%
+ modify_data(filter(!is.na(Enrollment.date)))
+
+```
+
+We have to operate directly on the `data` slot of the entity object. But don't worry,
+validation will let you know if you've messed it up!
+
+```{r}
+
+validate(households)
+
+```
+Woo!
+
+Let's break the data in another way and fix it:
+
+```{r}
+
+introduce_typo <- function(data) {
+  # duplicate the last row but with a new ID and a dodgy typo
+  data <- data %>%
+    bind_rows(slice_tail(., n = 1) %>%
+                mutate('Household Id' = 'H004', 'Construction material' = "Concerte"))
+  return(data)
+}
+
+households <- entity_from_file(households_file_path, name = 'household', preprocess_fn = introduce_typo)
+validate(households)
+
+```
+
+However, just because it validates, it doesn't mean it's clean data!
+
+```{r}
+
+inspect(households)
+
+```
+
+You can see there's a problem in the values of `Construction.material`
+
+```
+Summary of factor variables:
+variable                 n_missing   complete_rate  ordered    n_unique  top_counts                         
+----------------------  ----------  --------------  --------  ---------  -----------------------------------
+Owns.property                    0               1  FALSE             2  Yes: 3, No: 1                      
+Construction.material            0               1  FALSE             3  Concrete: 2, Concrte: 1, Timber: 1 
+```
+
+If this was a categorical variable with many values, we might need to look at all of them, which we
+can do with `inspect(entity, variable_name)` - but we don't need to for this toy example.
+
+We can go ahead and fix the data. But first let's take a look at the dodgy column:
+
+```{r}
+
+households %>% get_data() %>% pull(Construction.material)
+
+```
+
+Note that `entity_from_file()` detected this was a categorical variable and converted the
+column into an R factor.  If we use factor-manipulation functions we can avoid introducing
+further problem values. If we accidentally manipulate categorical variable data so that
+it reverts to a regular `character` type, the validator will fail and let us know. 
+
+Let's fix the typo with `fct_recode()` from the `forcats` tidyverse library.
+
+```{r}
+
+households <- households %>% 
+  modify_data(
+    mutate(Construction.material = fct_recode(Construction.material, 'Concrete' = 'Concerte'))
+  )
+validate(households)
+households %>% get_data() %>% pull(Construction.material)
+
+```
+
+Note that both the values and the allowed "levels" (aka vocabulary in EDA-speak)
+have been changed.
+
