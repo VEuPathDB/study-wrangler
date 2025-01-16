@@ -19,7 +19,8 @@ Imports:
     tidyverse (>= 2.0.0),
     skimr,
     glue,
-    knitr
+    knitr,
+    plot.data
 Suggests: 
     testthat (>= 3.0.0),
     roxygen2,

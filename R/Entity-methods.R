@@ -994,6 +994,31 @@ setMethod("set_variable_as_date", "Entity", function(entity, column_name) {
 setMethod("get_hydrated_variable_metadata", "Entity", function(entity) {
   data <- entity %>% get_data()
   
+  safe_fn <- function(x, fn) {
+    if (!is.factor(x)) {
+      fn(x, na.rm = TRUE)
+    } else {
+      NA
+    }
+  }
+  
+  safe_fivenum <- function(x, is_date = FALSE) {
+    if (is.factor(x)) {
+      # Return NA if input is a factor
+      return(rep(NA_real_, 5))
+    } else if (is_date) {
+      # Handle date input by converting to numeric and back to Date
+      stats <- as.Date(stats::fivenum(as.numeric(x)), origin = "1970-01-01")
+      return(stats)
+    } else if (is.numeric(x)) {
+      # Standard numeric input
+      return(stats::fivenum(x, na.rm = TRUE))
+    } else {
+      # Return NA for unsupported types
+      return(rep(NA_real_, 5))
+    }
+  }
+  
   metadata <- entity %>%
     get_variable_metadata() %>%
     rowwise() %>% # because functions applied below aren't vectorized
@@ -1016,7 +1041,7 @@ setMethod("get_hydrated_variable_metadata", "Entity", function(entity) {
         parent_stable_id
       ),
       precision = case_when(
-        data_type == 'integer' ~ 0,
+        data_type == 'integer' ~ 0L,
         data_type == 'number' ~ data %>% pull(variable) %>% max_decimals(),
         TRUE ~ NA
       ),
@@ -1025,9 +1050,32 @@ setMethod("get_hydrated_variable_metadata", "Entity", function(entity) {
         has_values,
         data %>% pull(variable) %>% unique() %>% length(),
         NA
-      )
-    ) %>% ungroup()
-  
+      ),
+      mean = if_else(
+        data_shape == 'continuous',
+        data %>% pull(variable) %>% safe_fn(mean) %>% as.character(),
+        NA_character_
+      ),
+      bin_width_computed = if_else(
+        data_shape == 'continuous',
+        data %>% pull(variable) %>% safe_fn(plot.data::findBinWidth) %>% as.character(),
+        NA_character_
+      ),
+      # Use fivenum() for continuous data to get summary statistics
+      summary_stats = if_else(
+        data_shape == 'continuous',
+        list(safe_fivenum(data %>% pull(variable), is_date = data_type == "date")),
+        list(rep(NA_real_, 5))
+      ),
+      range_min = if_else(data_shape == 'continuous', as.character(summary_stats[[1]]), NA_character_),
+      lower_quartile = if_else(data_shape == 'continuous', as.character(summary_stats[[2]]), NA_character_),
+      median = if_else(data_shape == 'continuous', as.character(summary_stats[[3]]), NA_character_),
+      upper_quartile = if_else(data_shape == 'continuous', as.character(summary_stats[[4]]), NA_character_),
+      range_max = if_else(data_shape == 'continuous', as.character(summary_stats[[5]]), NA_character_)
+    ) %>% 
+    ungroup() %>%
+    select(-summary_stats)
+
   return(metadata)
 })
 

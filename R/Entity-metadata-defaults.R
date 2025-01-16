@@ -19,13 +19,6 @@ variable_metadata_defaults <- tibble(
   scale = factor(NA, levels = c("log", "log2", "ln")),
   # the following are character type so they can handle dates and numbers :-(
   # dates should be ISO-8601 strings YYYY-MM-DD only
-  range_min = NA_character_,
-  lower_quartile = NA_character_,
-  mean = NA_character_,
-  median = NA_character_,
-  upper_quartile = NA_character_,
-  range_max = NA_character_,
-  bin_width_computed = NA_character_, # for dates this should be "week", "month" or "year"
   bin_width_override = NA_character_, # for dates this should be "week", "month" or "year"
   display_range_max = NA_character_,
   display_range_min = NA_character_,

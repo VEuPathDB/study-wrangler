@@ -11,17 +11,21 @@ setMethod("validate", "Study", function(object) {
   root_entity <- study@root_entity
   quiet <- study@quiet
 
+  entities <- get_entities(study)
+  
   # name of caller's object for code suggestions after violations
   global_varname = find_global_varname(study, fallback = 'study')
   
-  tools <- create_feedback_tools(quiet = quiet)
+  tools <- create_feedback_tools(
+    quiet = quiet,
+    success_message = glue("Study and its {length(entities)} {ifelse(length(entities) == 1, 'entity', 'entities')} are valid.")
+  )
   # the following can be made nicer with library(zeallot)
   add_feedback <- tools$add_feedback
   give_feedback <- tools$give_feedback
   get_is_valid <- tools$get_is_valid
 
   # Validate all entities  
-  entities <- get_entities(study)
   
   entities %>% map(
     function(entity) {

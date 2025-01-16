@@ -1,4 +1,4 @@
-create_feedback_tools <- function(quiet = FALSE) {
+create_feedback_tools <- function(quiet = FALSE, success_message = "Validation successful!") {
   # Internal state, private to the closures
   is_valid <- TRUE
   feedback <- character()
@@ -15,7 +15,7 @@ create_feedback_tools <- function(quiet = FALSE) {
     if (is.character(fatal_message)) {
       warning("Fatal issue encountered:\n", fatal_message, call. = FALSE)
     } else if (!quiet && length(feedback) == 0) {
-      message("Entity is valid.")
+      message(success_message)
     }
   }
   

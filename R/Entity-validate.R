@@ -13,7 +13,7 @@ setMethod("validate", "Entity", function(object) {
   variables <- entity@variables
   quiet <- entity@quiet
   
-  tools <- create_feedback_tools(quiet = quiet)
+  tools <- create_feedback_tools(quiet = quiet, success_message = "Entity is valid.")
   # the following can be made nicer with library(zeallot)
   add_feedback <- tools$add_feedback
   give_feedback <- tools$give_feedback

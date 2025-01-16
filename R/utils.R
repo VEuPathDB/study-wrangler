@@ -455,8 +455,12 @@ message_without_dupes <- local({
 })
 
 
+#'
+#' returns an integer count of the maximum number of digits after the decimal
+#' place in the numbers of the given vector
+#'
 max_decimals <- function(x) {
-  if (!is.numeric(x)) return(0)
+  if (!is.numeric(x)) return(0L)
   
   # Format the numbers with a fixed precision, avoiding scientific notation
   formatted_numbers <- format(x, scientific = FALSE, digits = 15, trim = TRUE)
@@ -470,7 +474,7 @@ max_decimals <- function(x) {
   # Handle cases where there are no fractional parts
   nchar_fractions[fractional_strings == ""] <- 0
   
-  return(max(nchar_fractions))
+  return(as.integer(max(nchar_fractions)))
 }
 
 

@@ -6,7 +6,7 @@ test_that("validate(study) does the right thing", {
     expect_true(
       validate(study)
     ),
-    "Entity is valid"
+    "Study and its 3 entities are valid"
   )
   
 })
