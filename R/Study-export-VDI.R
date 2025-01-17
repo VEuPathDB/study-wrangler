@@ -103,9 +103,9 @@ export_entity_to_vdi_recursively <- function(
     description = current_entity %>% get_description(),
     display_name = current_entity %>% get_display_name(),
     display_name_plural = current_entity %>% get_display_name_plural(),
-    has_attribute_collections = NA, # Placeholder for now
-    is_many_to_one_with_parent = NA, # Placeholder for now
-    cardinality = NA # Placeholder for now
+    has_attribute_collections = 0L, # Placeholder for now
+    is_many_to_one_with_parent = 0L, # Placeholder for now
+    cardinality = current_entity %>% get_data() %>% nrow()
   )
   entitytypegraph_cache <- append(entitytypegraph_cache, list(entity_entry))
   
@@ -228,12 +228,13 @@ export_attributes_to_vdi <- function(entities, output_directory, install_json, s
 
   # JSONify some array fields of metadata  
   metadata <- metadata %>%
+    mutate(across(where(is.logical), as.integer)) %>% # TRUE/FALSE to 0/1
     rowwise() %>% # Row-wise operation since we process individual rows
     mutate(
       # need to catch NAs specifically otherwise they end up as "{}" in the output
       vocabulary = if_else(all(is.na(vocabulary)), '', as.character(jsonlite::toJSON(vocabulary))),
       # without the `unlist()` the export is too nested: "[['label1', 'label2']]"
-      provider_label = as.character(jsonlite::toJSON(unlist(provider_label))) 
+      provider_label = as.character(jsonlite::toJSON(unlist(provider_label)))
     ) %>%
     ungroup()
 
