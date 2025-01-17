@@ -8,9 +8,9 @@ docker build -t veupathdb/study-wrangler .
 #+end_example
 
 Build notes:
-* add `--progress=plain` if you want to see the errors more easily
-* each `remotes::install_github()` command in the Dockerfile eats into a rate limit for anonymous users at GitHub (60 per hour!) - so if you are playing around with things you almost certainly will hit the limit
-* setting up credentials for a higher limit seems not worth the cost
+- add `--progress=plain` if you want to see the errors more easily
+- each `remotes::install_github()` command in the Dockerfile eats into a rate limit for anonymous users at GitHub (60 per hour!) - so if you are playing around with things you almost certainly will hit the limit
+- setting up credentials for a higher limit seems not worth the cost
 
 To run in docker:
 #+begin_example
