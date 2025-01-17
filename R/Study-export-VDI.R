@@ -307,7 +307,9 @@ export_attributes_to_vdi <- function(entities, output_directory, install_json, s
   string_data <- if (length(string_variables) > 0) {
     data %>%
       # rename the ID column to `id_col_vdi`
-      select(!!id_col_vdi := !!id_col, all_of(string_variables)) %>%
+      select("{id_col_vdi}" := {{id_col}}, all_of(string_variables)) %>%
+      # convert to character in case it was a numeric ID column
+      mutate("{id_col_vdi}" := as.character(!!sym(id_col_vdi))) %>%
       pivot_longer(
         all_of(string_variables),
         names_transform = function(name) stable_ids[name],
@@ -315,14 +317,16 @@ export_attributes_to_vdi <- function(entities, output_directory, install_json, s
         values_to = "string_value"
       )
   } else {
-    tibble(!!id_col_vdi := character(), attribute_stable_id = character(), string_value = character())
+    tibble("{id_col_vdi}" := character(), attribute_stable_id = character(), string_value = character())
   }
   
   # Handle number variables
   number_variables <- metadata %>% filter(data_type %in% c("integer", "number", "longitude")) %>% pull(variable)
   number_data <- if (length(number_variables) > 0) {
     data %>%
-      select(!!id_col_vdi := !!id_col, all_of(number_variables)) %>%
+      select("{id_col_vdi}" := {{id_col}}, all_of(number_variables)) %>%
+      # convert to character in case it was a numeric ID column
+      mutate("{id_col_vdi}" := as.character(!!sym(id_col_vdi))) %>%
       pivot_longer(
         all_of(number_variables),
         names_transform = function(name) stable_ids[name],
@@ -330,14 +334,16 @@ export_attributes_to_vdi <- function(entities, output_directory, install_json, s
         values_to = "number_value"
       )
   } else {
-    tibble(!!id_col_vdi := character(), attribute_stable_id = character(), number_value = numeric())
+    tibble("{id_col_vdi}" := character(), attribute_stable_id = character(), number_value = numeric())
   }
-  
+
   # Handle date variables
   date_variables <- metadata %>% filter(data_type == "date") %>% pull(variable)
   date_data <- if (length(date_variables) > 0) {
     data %>%
-      select(!!id_col_vdi := !!id_col, all_of(date_variables)) %>%
+      select("{id_col_vdi}" := {{id_col}}, all_of(date_variables)) %>%
+      # convert to character in case it was a numeric ID column
+      mutate("{id_col_vdi}" := as.character(!!sym(id_col_vdi))) %>%
       pivot_longer(
         all_of(date_variables),
         names_transform = function(name) stable_ids[name],
@@ -345,9 +351,9 @@ export_attributes_to_vdi <- function(entities, output_directory, install_json, s
         values_to = "date_value"
       )
   } else {
-    tibble(!!id_col_vdi := character(), attribute_stable_id = character(), date_value = as.Date(character()))
+    tibble("{id_col_vdi}" := character(), attribute_stable_id = character(), date_value = as.Date(character()))
   }
-  
+
   # Combine all data types
   attribute_values_data <- bind_rows(string_data, number_data, date_data) %>%
     arrange(!!sym(id_col_vdi))
