@@ -33,6 +33,20 @@ test_that("set_variable_display_names_from_provider_labels() works", {
     households <- households %>% set_variable_display_names_from_provider_labels(),
     "Copied provider_label over to display_name for 0 variables"
   )
+  
+  # add a new data column and sync (bug reported by JB)
+  expect_true(
+    households %>% get_variable_metadata() %>% pull(provider_label) %>% is.list()
+  )
+  expect_no_error({
+    households <- households %>% modify_data(
+      mutate(
+        NewColumn = paste0(Owns.property, "!")
+      )
+    )
+    households <- households %>% quiet() %>% sync_variable_metadata()
+  })
+  
 })
 
 test_that("get_stable_id() and set_stable_id() work", {

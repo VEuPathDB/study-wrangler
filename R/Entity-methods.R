@@ -672,9 +672,12 @@ setMethod("set_variable_display_names_from_provider_labels", "Entity", function(
 
   # Update the display_name for rows matching the mask
   variables <- variables %>%
-    mutate(provider_label = map_chr(provider_label, ~ .x[[1]])) %>%
-    mutate(display_name = if_else(mask, provider_label, display_name))
-  
+    mutate(display_name = if_else(
+      mask,
+      map_chr(provider_label, ~ .x[[1]]), # take just the first provider_label
+      display_name
+    ))
+
   if (!entity@quiet) message(glue("Copied provider_label over to display_name for {sum(mask, na.rm = TRUE)} variables"))
   return(entity %>% initialize(variables=variables))
 })
