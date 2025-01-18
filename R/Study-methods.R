@@ -166,7 +166,7 @@ setMethod("set_study_name", "Study", function(study, name) {
 setMethod("get_study_id", "Study", function(study) {
   name <- study %>% get_study_name()
   if (is_truthy(name)) {
-    return(generate_alphanumeric_id(seed_string = name))
+    return(prefixed_alphanumeric_id(seed_string=name, prefix="STUDY_", length=10))
   } else {
     stop("Error: not allowed to call get_study_id() on a study with no name.")
   }
@@ -184,11 +184,11 @@ setMethod("get_study_id", "Study", function(study) {
 #' @return A `character` string representing a short generated unique ID for the study for use in table names.
 #' @export
 setMethod("get_study_abbreviation", "Study", function(study) {
-  id <- study %>% get_study_id()
-  if (is_truthy(id)) {
-    return(generate_alphanumeric_id(seed_string = id, length = 8))
+  name <- study %>% get_study_name()
+  if (is_truthy(name)) {
+    return(generate_alphanumeric_id(seed_string=name, length = 10))
   } else {
-    stop("Error: not allowed to call get_study_abbreviation() on a study with no study_id.")
+    stop("Error: not allowed to call get_study_abbreviation() on a study with no study name.")
   }
 })
 
