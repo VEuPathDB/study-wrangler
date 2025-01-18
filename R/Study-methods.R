@@ -186,7 +186,7 @@ setMethod("get_study_id", "Study", function(study) {
 setMethod("get_study_abbreviation", "Study", function(study) {
   name <- study %>% get_study_name()
   if (is_truthy(name)) {
-    return(generate_alphanumeric_id(seed_string=name, length = 10))
+    return(prefixed_alphanumeric_id(seed_string=name, prefix="s", length=10))
   } else {
     stop("Error: not allowed to call get_study_abbreviation() on a study with no study name.")
   }
