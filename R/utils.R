@@ -338,17 +338,11 @@ check_and_convert_to_date <- function(data, column_name) {
 
 
 #'
-#' Generates a random-looking alphanumeric ID (never starting with a digit) 
+#' Generates a truncated SHA1 digest of the seed_string argument 
 #'
-#' Deterministic if provided with a seed string.
-#' 
-#' Be aware that this function does not restore the prior RNG state.
-#'
-generate_alphanumeric_id <- function(length = 11, seed_string = NULL) {
-  # Seed the RNG if a seed string is provided
-  if (!is.null(seed_string)) {
-    return(substring(digest(seed_string, alg="sha1", serialize=FALSE), 1, length))
-  }
+generate_alphanumeric_id <- function(seed_string, length = 11) {
+  if (missing(seed_string)) stop("generate_alphanumeric_id() requires a seed string argument")
+  return(substring(digest(seed_string, alg="sha1", serialize=FALSE), 1, length))
 }
 
 #'
