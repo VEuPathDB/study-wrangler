@@ -1,5 +1,6 @@
 library(glue)
 library(knitr)
+library(digest)
 
 #' skimr shortens all factor names to three characters by default.
 #' Create a custom skimmer that doesn't do this and trims top counts to 5.
@@ -337,40 +338,11 @@ check_and_convert_to_date <- function(data, column_name) {
 
 
 #'
-#' Generates a random-looking alphanumeric ID (never starting with a digit) 
+#' Generates a truncated SHA1 digest of the seed_string argument 
 #'
-#' Deterministic if provided with a seed string.
-#' 
-#' Be aware that this function does not restore the prior RNG state.
-#'
-generate_alphanumeric_id <- function(length = 11, seed_string = NULL) {
-  # Seed the RNG if a seed string is provided
-  if (!is.null(seed_string)) {
-    char_values <- utf8ToInt(seed_string)
-    
-    # Define a sequence of prime numbers (at least as long as the string)
-    primes <- c(2, 3, 5, 7, 11, 13, 17, 19, 23, 29, 31, 37, 41, 43, 47, 53, 59, 61, 67, 71)
-    
-    # If the string is longer than the primes array, repeat the primes
-    if (length(char_values) > length(primes)) {
-      primes <- rep(primes, length.out = length(char_values))
-    }
-    
-    # Multiply each char value by the corresponding prime
-    seed <- sum(char_values * primes[seq_along(char_values)]) %% .Machine$integer.max
-    set.seed(seed)
-  }
-  
-  chars <- c(letters, LETTERS, 0:9)  # Define allowed characters
-  non_digit_chars <- c(letters, LETTERS)  # Characters to ensure non-digit start
-  
-  # Loop until the first character is non-digit
-  repeat {
-    result <- paste0(sample(chars, length, replace = TRUE), collapse = "")
-    if (substr(result, 1, 1) %in% non_digit_chars) {
-      return(result)
-    }
-  }
+generate_alphanumeric_id <- function(seed_string, length = 11) {
+  if (missing(seed_string)) stop("generate_alphanumeric_id() requires a seed string argument")
+  return(substring(digest(seed_string, alg="sha1", serialize=FALSE), 1, length))
 }
 
 #'
@@ -383,9 +355,9 @@ generate_alphanumeric_id <- function(length = 11, seed_string = NULL) {
 #' @param seed_string Optional seed string for deterministic ID generation.
 #' @return A prefixed alphanumeric ID.
 #'
-prefixed_alphanumeric_id <- function(prefix = "", length = 11, seed_string = NULL) {
+prefixed_alphanumeric_id <- function(prefix = NULL, length = 11, seed_string = NULL) {
   # Ensure the prefix is non-empty and valid
-  if (!is.character(prefix) || length(prefix) != 1) {
+  if (!is.character(prefix)) {
     stop("The `prefix` argument must be a single character string.")
   }
   

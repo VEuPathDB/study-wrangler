@@ -33,7 +33,7 @@ test_that("get_study_id() works", {
     {
       expect_equal(
         study %>% get_study_id(),
-        "GCfFdZ1SzOf"
+        "STUDY_GCfFdZ1SzOf"
       )
     }
   )
@@ -99,6 +99,6 @@ test_that("get_study_abbreviation() throws an error when there's no study_id (du
 
   expect_error(  
     abbreviation <- study %>% get_study_abbreviation(),
-    "not allowed to call get_study_id.+on a study with no name"
+    "not allowed to call get_study_abbreviation.+on a study with no study name"
   )
 })
