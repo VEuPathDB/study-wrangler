@@ -195,7 +195,8 @@ export_ancestors_to_vdi <- function(entities, output_directory, install_json, st
   index_def <- ancestors_pkey_def
   index_def$tableName <- tablename
   index_def$name <- gsub('####', tablename, index_def$name, fixed = TRUE)
-  index_def$orderedColumns <- list(gsub('####', entity_abbreviation, index_def$orderedColumns, fixed = TRUE))
+  index_def$orderedColumns <- index_def$orderedColumns %>%
+    map(~ gsub('####', entity_abbreviation, .x, fixed = TRUE))
   install_json <- append(install_json, list(index_def))
   
   return(install_json)
@@ -400,9 +401,8 @@ export_attributes_to_vdi <- function(entities, output_directory, install_json, s
     function(index_def) {
       index_def$tableName <- tablename
       index_def$name <- gsub('####', tablename, index_def$name, fixed = TRUE)
-      index_def$orderedColumns <- list(
-        gsub('####', entity_abbreviation, index_def$orderedColumns, fixed = TRUE)
-      )
+      index_def$orderedColumns <- index_def$orderedColumns %>%
+        map(~ gsub('####', entity_abbreviation, .x, fixed = TRUE))
       return(index_def)
     }
   )
