@@ -1032,7 +1032,7 @@ setMethod("get_hydrated_variable_metadata", "Entity", function(entity) {
       # For the rows (variables) in `metadata` where `data_shape != 'continuous'`,
       # the corresponding column in `data` should contain factor values.
       vocabulary = if_else(
-        data_shape != 'continuous',
+        has_values & data_shape != 'continuous',
         list(levels(data %>% pull(variable))),
         NA
       ),
@@ -1047,6 +1047,7 @@ setMethod("get_hydrated_variable_metadata", "Entity", function(entity) {
         parent_stable_id
       ),
       precision = case_when(
+        !has_values ~ NA,
         data_type == 'integer' ~ 0L,
         data_type == 'number' ~ data %>% pull(variable) %>% max_decimals(),
         TRUE ~ NA
@@ -1058,26 +1059,26 @@ setMethod("get_hydrated_variable_metadata", "Entity", function(entity) {
         NA
       ),
       mean = if_else(
-        data_shape == 'continuous',
+        has_values & data_shape == 'continuous',
         data %>% pull(variable) %>% safe_fn(mean) %>% as.character(),
         NA_character_
       ),
       bin_width_computed = if_else(
-        data_shape == 'continuous',
+        has_values & data_shape == 'continuous',
         data %>% pull(variable) %>% safe_fn(plot.data::findBinWidth) %>% as.character(),
         NA_character_
       ),
       # Use fivenum() for continuous data to get summary statistics
       summary_stats = if_else(
-        data_shape == 'continuous',
+        has_values & data_shape == 'continuous',
         list(safe_fivenum(data %>% pull(variable), is_date = data_type == "date")),
         list(rep(NA_real_, 5))
       ),
-      range_min = if_else(data_shape == 'continuous', as.character(summary_stats[[1]]), NA_character_),
-      lower_quartile = if_else(data_shape == 'continuous', as.character(summary_stats[[2]]), NA_character_),
-      median = if_else(data_shape == 'continuous', as.character(summary_stats[[3]]), NA_character_),
-      upper_quartile = if_else(data_shape == 'continuous', as.character(summary_stats[[4]]), NA_character_),
-      range_max = if_else(data_shape == 'continuous', as.character(summary_stats[[5]]), NA_character_)
+      range_min = if_else(has_values & data_shape == 'continuous', as.character(summary_stats[[1]]), NA_character_),
+      lower_quartile = if_else(has_values & data_shape == 'continuous', as.character(summary_stats[[2]]), NA_character_),
+      median = if_else(has_values & data_shape == 'continuous', as.character(summary_stats[[3]]), NA_character_),
+      upper_quartile = if_else(has_values & data_shape == 'continuous', as.character(summary_stats[[4]]), NA_character_),
+      range_max = if_else(has_values & data_shape == 'continuous', as.character(summary_stats[[5]]), NA_character_)
     ) %>% 
     ungroup() %>%
     select(-summary_stats)

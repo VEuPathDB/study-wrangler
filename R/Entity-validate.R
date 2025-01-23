@@ -44,8 +44,9 @@ setMethod("validate", "Entity", function(object) {
   }
   
   # Validation: Check column alignment
-  missing_variables <- setdiff(colnames(data), variables$variable)
-  extra_variables <- setdiff(variables$variable, colnames(data))
+  true_variables <- variables %>% filter(has_values) %>% pull(variable)
+  missing_variables <- setdiff(colnames(data), true_variables)
+  extra_variables <- setdiff(true_variables, colnames(data))
   
   if (length(missing_variables) > 0) {
     give_feedback(fatal_message=to_lines(
