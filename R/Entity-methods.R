@@ -1119,6 +1119,16 @@ setMethod("set_variable_ordinal_levels", "Entity", function(entity, variable_nam
     }
   }
   
+  # check data_type is string or integer
+  if (variables %>%
+      filter(
+        variable == variable_name,
+        data_type %in% c('string', 'integer')
+      ) %>%
+      nrow() != 1) {
+    stop(glue("Only variables with data_type 'string' or 'integer' can be ordinals, sorry."))
+  }
+  
   # make sure the data column is a factor
   data <- data %>% mutate("{variable_name}" := as.factor(!!sym(variable_name)))
 

@@ -6,6 +6,13 @@ test_that("set_variable_ordinal_levels", {
   # validate it
   expect_true(households %>% quiet() %>% validate())
   
+  # non-integer/string variables should fail before levels checks
+  expect_error(
+    households <- households %>%
+      set_variable_ordinal_levels('Enrollment.date', levels = c("hello", "world")),
+    "Only variables with data_type 'string' or 'integer' can be ordinals, sorry."
+  )
+  
   expect_no_error(
     expect_message(
       households <- households %>%
