@@ -64,6 +64,8 @@ setGeneric("remove_children", function(entity) standardGeneric("remove_children"
 setGeneric("set_variable_as_date", function(entity, column_name) standardGeneric("set_variable_as_date"))
 # not exported
 setGeneric("get_hydrated_variable_metadata", function(entity) standardGeneric("get_hydrated_variable_metadata"))
+#' @export
+setGeneric("set_variable_ordinal_levels", function(entity, variable_name, levels) standardGeneric("set_variable_ordinal_levels"))
 
 
 #' infer_missing_data_types
@@ -576,7 +578,8 @@ setMethod("set_variable_metadata", "Entity", function(entity, variable_name, ...
       })
     }
   )
-  if (!entity@quiet) message(glue("Made metadata update(s) to '{names(updates)}' for '{variable_name}'"))
+  quoted_names = names(updates) %>% map(~ glue("'{.x}'"))
+  if (!entity@quiet) message(glue("Made metadata update(s) to {paste0(quoted_names, collapse=', ')} for '{variable_name}'"))
 
   # return modified entity
   return(entity %>% initialize(variables=variables))
@@ -1083,3 +1086,67 @@ setMethod("get_hydrated_variable_metadata", "Entity", function(entity) {
 })
 
 
+
+#' set_variable_ordinal_levels
+#' 
+#' Declares a variable formally as an ordinal variable and sets the levels
+#' (order of values)
+#' 
+#' @param entity an Entity object
+#' @param variable_name a string value of the column name in `entity@data`
+#' @param levels a list or character vector of the values, in order
+#' 
+#' Will throw an error if `levels` does not include all levels seen in the data
+#' 
+#' @returns modified entity
+#' @export
+setMethod("set_variable_ordinal_levels", "Entity", function(entity, variable_name, levels) {
+  global_varname = find_global_varname(entity, "entity")
+  levels <- as.list(levels)
+  variables <- entity@variables
+  data <- entity@data
+  
+  
+  # check `variable_name` is OK
+  if (variables %>% filter(variable == variable_name) %>% nrow() != 1) {
+    if (variable_name %in% names(data)) {
+      stop(to_lines(c(
+        glue("Variable '{variable_name}' has no metadata. Run the following to fix it:"),
+        indented(glue("{global_varname} <- {global_varname} %>% sync_variable_metadata()"))
+      )))
+    } else {
+      stop(glue("No such variable '{variable_name}' - did you make a typo?"))
+    }
+  }
+  
+  # make sure the data column is a factor
+  data <- data %>% mutate("{variable_name}" := as.factor(!!sym(variable_name)))
+
+  # the data levels must be a subset of `levels`
+  # (extra levels are OK)
+  data_levels <- data %>% pull(variable_name) %>% levels()
+  missing_levels = setdiff(data_levels, levels)
+  if (length(missing_levels) > 0) {
+    stop(to_lines(c(
+      "The levels you provide must include all the observed levels in the data.",
+      glue("You must also include these levels: {paste0(missing_levels, collapse=', ')}")
+    )))
+  }
+  
+  # update the entity data column with the levels
+  entity@data <- entity@data %>%
+    mutate("{variable_name}" := factor(!!sym(variable_name), levels = levels))
+  
+  # set the appropriate metadata and return
+  former_quiet_state <- entity@quiet
+  entity <- entity %>%
+    quiet() %>%
+    set_variable_metadata(
+      variable_name,
+      data_shape = 'ordinal',
+      ordinal_levels = levels
+    )
+  entity@quiet <- former_quiet_state
+  if (!entity@quiet) message(glue("Successfully set '{variable_name}' as an ordinal variable with levels: {paste0(levels, collapse=', ')}"))
+  return(entity)
+})

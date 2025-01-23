@@ -275,7 +275,13 @@ setMethod("validate", "Entity", function(object) {
   
   not_integers <- data %>%
     select(all_of(integer_columns)) %>%
-    summarise(across(everything(), ~ !is.integer(.))) %>%
+    summarise(
+      across(
+        everything(),
+        # we allow factors as long as they are all-integer
+        ~ !(is.integer(.) | (is.factor(.) & all(as.integer(.) == ., na.rm = TRUE)))
+      )
+    ) %>%
     unlist() %>% as.logical()
   
   if (any(not_integers)) {
@@ -354,14 +360,38 @@ setMethod("validate", "Entity", function(object) {
     for (col_name in factor_columns[not_factors]) {
       add_feedback(to_lines(
         c(
-          glue("The column '{col_name}' is declared as 'factor' but is not an R factor."),
-          "To fix this, either mutate the data column back into a factor:",
+          glue("The variable '{col_name}' has a data_shape that is not 'continuous', and therefore"),
+          glue("its data column must be an R factor (it is currently {data %>% pull(col_name) %>% class()})."),
+          "To fix this, either mutate the data column into a factor:",
           indented(glue("{global_varname} <- {global_varname} %>% modify_data(mutate({col_name} = factor({col_name})))")),
           "Or you can manipulate factors using the `forcats` library:",
           indented(glue("{global_varname} <- {global_varname} %>% modify_data(mutate({col_name} = fct_recode({col_name}, 'newVal' = 'oldVal')))"))
         )
       ))
     }
+  }
+  
+  # Validation: check that data_shape == 'ordinal' columns have
+  # non-empty ordinal_levels, and non-ordinals have empty ordinal_levels
+  ordinal_issues <- variables %>%
+    mutate(
+      num_levels = map_int(ordinal_levels, length),
+      issue = case_when(
+        data_shape == 'ordinal' & num_levels == 0 ~ glue("Ordinal variable '{variable}' has no ordinal_levels defined but requires them."),
+        data_shape != 'ordinal' & num_levels > 0 ~ glue("Non-ordinal variable '{variable}' has {num_levels} ordinal_levels but should have none."),
+        TRUE ~ "OK"
+      )
+    ) %>%
+    filter(issue != 'OK') %>%
+    pull(issue)
+  
+  if (length(ordinal_issues) > 0) {
+    add_feedback(to_lines(
+      ordinal_issues,
+      "To create an ordinal variable without these issues, use:",
+      indented(glue("{global_varname} <- {global_varname} %>% set_variable_ordinal_levels(variable_name, levels)"))
+    ))
+    
   }
   
   # Output feedback to the user

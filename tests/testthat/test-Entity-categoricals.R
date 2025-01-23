@@ -14,7 +14,7 @@ test_that("validate(households) alerts to categorical variables with non-factor 
   # validate again
   expect_message(
     expect_false(validate(households)),
-    "Owns.property.+is declared as 'factor' but is not an R factor"
+    "Owns.property.+must be an R factor"
   )
 
   # now mutate it back to a factor
