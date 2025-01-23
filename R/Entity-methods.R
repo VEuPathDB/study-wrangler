@@ -66,6 +66,10 @@ setGeneric("set_variable_as_date", function(entity, column_name) standardGeneric
 setGeneric("get_hydrated_variable_metadata", function(entity) standardGeneric("get_hydrated_variable_metadata"))
 #' @export
 setGeneric("set_variable_ordinal_levels", function(entity, variable_name, levels) standardGeneric("set_variable_ordinal_levels"))
+#' @export
+setGeneric("create_variable_category", function(entity, category_name, children, ...) standardGeneric("create_variable_category"))
+
+# TO DO - delete_variable_category
 
 
 #' infer_missing_data_types
@@ -999,6 +1003,7 @@ setMethod("set_variable_as_date", "Entity", function(entity, column_name) {
 #' not exported
 setMethod("get_hydrated_variable_metadata", "Entity", function(entity) {
   data <- entity %>% get_data()
+  entity_stable_id <- entity %>% get_stable_id()
   
   safe_fn <- function(x, fn) {
     if (!is.factor(x)) {
@@ -1041,11 +1046,6 @@ setMethod("get_hydrated_variable_metadata", "Entity", function(entity) {
         prefixed_alphanumeric_id(prefix = "VAR_", length = 8, seed_string = variable),
         stable_id
       ),
-      parent_stable_id = if_else(
-        is.na(parent_stable_id),
-        entity %>% get_stable_id(),
-        parent_stable_id
-      ),
       precision = case_when(
         !has_values ~ NA,
         data_type == 'integer' ~ 0L,
@@ -1081,7 +1081,24 @@ setMethod("get_hydrated_variable_metadata", "Entity", function(entity) {
       range_max = if_else(has_values & data_shape == 'continuous', as.character(summary_stats[[5]]), NA_character_)
     ) %>% 
     ungroup() %>%
+    # remove temporary data
     select(-summary_stats)
+  
+  # now that the stable_ids are available for each variable (or category)
+  # we can do a self-join to set the parent_stable_id
+  metadata <- metadata %>%
+    left_join(
+      metadata %>% select(variable, stable_id) %>% rename(parent_stable_id = stable_id),
+      join_by(parent_variable == variable)
+    ) %>%
+    # and replace any NA parent_stable_ids with the entity's stable_id
+    mutate(
+      parent_stable_id = if_else(
+        is.na(parent_stable_id),
+        entity_stable_id,
+        parent_stable_id
+      )
+    )
 
   return(metadata)
 })
@@ -1160,4 +1177,41 @@ setMethod("set_variable_ordinal_levels", "Entity", function(entity, variable_nam
   entity@quiet <- former_quiet_state
   if (!entity@quiet) message(glue("Successfully set '{variable_name}' as an ordinal variable with levels: {paste0(levels, collapse=', ')}"))
   return(entity)
+})
+
+
+#' create_variable_category
+#' 
+#' Checks that all members of the `children` vector or list are values in variables$variable
+#' 
+#' Creates a new row in the variables metadata with
+#'   data_type = 'category',
+#'   has_values = FALSE
+#' 
+#' For all the children rows in `variables`, set parent_variable to `category_name`
+#' 
+#' @param entity an Entity object
+#' @param category_name a string value internal name for the category
+#' @param children a list or character vector of the internal names of the variables
+#'        (or categories) that belong to the new category
+#' @param ... metadata to add to the new category,
+#'        e.g. display_name = 'my category', definition = 'my fave variables', etc 
+#' 
+#' @returns modified entity
+#' @export
+setMethod("create_variable_category", "Entity", function(entity, category_name, children, ...) {
+  global_varname = find_global_varname(entity, "entity")
+  metadata <- list(...)
+  variables <- entity@variables
+
+  # Check that all members of the `children` vector or list are values in the `variable`
+  # column of `variables`.
+  # If not, stop(glue("Category cannot be created because these children variables/categories do not exist: {paste0(missing_children, separator = ', ')}"))
+  
+  
+  # Append a new row to `variables` based on the 1 row tibble `variable_metadata_defaults` but
+  # mutated with `has_values = FALSE` and `variable = category_name`
+  
+  
+  
 })

@@ -34,7 +34,7 @@ variable_metadata_defaults <- tibble(
   multi_value_delimiter = NA_character_,
   is_repeated = FALSE,
   is_temporal = FALSE,
-  parent_stable_id = NA_character_,
+  parent_variable = NA_character_,
   has_study_dependent_vocabulary = NA,
   impute_zero = NA,
   weighting_variable_spec = NA_character_,
