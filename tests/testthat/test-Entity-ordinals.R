@@ -77,6 +77,19 @@ test_that("set_variable_ordinal_levels", {
       validate()
   )
   
+  # manually setting data_shape ordinal on the wrong kind of variable should not validate
+  expect_message(
+    expect_false(
+      households %>%
+        quiet() %>%
+        set_variable_metadata('Enrollment.date', data_shape = 'ordinal') %>%
+        verbose() %>%
+        validate()
+    ),
+    "Variable 'Enrollment.date' data_shape 'ordinal' is not compatible with data_type 'date'"
+  )
+  
+  
   # check that a properly constructed ordinal number var validates!
   expect_message(
     households <- households %>%

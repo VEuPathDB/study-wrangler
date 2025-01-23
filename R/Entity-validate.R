@@ -377,6 +377,7 @@ setMethod("validate", "Entity", function(object) {
     mutate(
       num_levels = map_int(ordinal_levels, length),
       issue = case_when(
+        data_shape == 'ordinal' & !data_type %in% c("integer", "string") ~ glue("Variable '{variable}' data_shape 'ordinal' is not compatible with data_type '{data_type}'"), 
         data_shape == 'ordinal' & num_levels == 0 ~ glue("Ordinal variable '{variable}' has no ordinal_levels defined but requires them."),
         data_shape != 'ordinal' & num_levels > 0 ~ glue("Non-ordinal variable '{variable}' has {num_levels} ordinal_levels but should have none."),
         TRUE ~ "OK"
