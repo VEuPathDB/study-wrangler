@@ -139,7 +139,7 @@ If there are ID columns missing above, you may need to use:
 #' @return printable string
 #'
 variable_ascii_tree <- function(entity) {
-  metadata <- entity %>% get_hydrated_variable_and_category_metadata()
+  metadata <- entity %>% get_variable_and_category_metadata()
   
   if (metadata %>% pull(parent_variable) %>% is.na() %>% all()) {
     return(to_lines(

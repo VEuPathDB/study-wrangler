@@ -22,6 +22,11 @@ test_that("create_variable_category() works", {
     "Made metadata update.s. to 'display_name', 'definition' for 'house_vars'"
   )
   
+  # it should validate
+  expect_true(
+    households %>% quiet() %>% validate()
+  )
+  
   # inspect should still work
   expect_no_error(
     output <- capture_output(
@@ -49,6 +54,28 @@ test_that("create_variable_category() works", {
     )
   }
   
+  # make a manual mistake in the variable graph and pay the price
+  expect_message(
+    expect_false(
+      households %>%
+        quiet() %>%
+        set_variable_metadata('Number.of.animals', parent_variable = 'nonexistent') %>%
+        verbose() %>%
+        validate()
+    ),
+    "These variables or categories have 'parent_variable' values that do not exist.+Number.of.animals"
+  )
   
-  
+  # make a circular graph and also pay the price
+  expect_message(
+    expect_false(
+      households %>%
+        quiet() %>%
+        set_variable_metadata('house_vars', parent_variable = 'Owns.property') %>%
+        verbose() %>%
+        validate()
+    ),
+    "Illegal circular path detected in the parent_variable -> variable graph."
+  )
+
 })
