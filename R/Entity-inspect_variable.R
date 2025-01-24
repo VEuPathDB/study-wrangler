@@ -44,7 +44,7 @@ setMethod("inspect_variable", "Entity", function(entity, variable_name) {
   # Print detailed metadata
   cat(
     to_lines(
-      heading(glue("Metadata for {variable_name}")),
+      heading(glue("Metadata for '{variable_name}'")),
       kable(
         variable_metadata %>% 
           # select(-starts_with("entity_")) %>%            # Exclude columns that start with "entity_"
@@ -67,7 +67,7 @@ setMethod("inspect_variable", "Entity", function(entity, variable_name) {
     )
   )
       
-      
+  # if this is an actual variable with data:
   if (all(variable_metadata$has_values)) {
     # Extract data for the specified variable
     variable_data <- entity@data[[variable_name]]
@@ -75,7 +75,7 @@ setMethod("inspect_variable", "Entity", function(entity, variable_name) {
     cat(
       to_lines(
         # Print summary of data
-        heading(glue("Summary of data for {variable_name}")),
+        heading(glue("Summary of data for '{variable_name}'")),
         
         kable(
           skim(variable_data) %>%
@@ -106,6 +106,20 @@ setMethod("inspect_variable", "Entity", function(entity, variable_name) {
       )
     }
   } else {
-    message("TO DO - LIST CATEGORY CHILDREN!!")  
+    # it's a category "variable"
+    # we can list its children instead
+    cat(to_lines(
+      heading(glue("Children of category '{variable_name}'")),
+      kable(
+        hydrated_metadata %>%
+          filter(parent_variable == variable_name) %>%
+          select(variable, data_type, display_name, stable_id) %>%
+          mutate(
+            type = if_else(data_type == 'category', 'category', 'variable')
+          ) %>%
+          select(-data_type) %>%
+          relocate(type, .after = variable)
+      )
+    ))
   }
 })

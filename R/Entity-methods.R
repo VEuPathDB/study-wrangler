@@ -1063,8 +1063,8 @@ setMethod("get_hydrated_variable_and_category_metadata", "Entity", function(enti
     }
   }
   
-  # get variable metadata and fill in data-derived values
-  variable_metadata <- entity %>%
+  # start with actual-variable metadata and fill in data-derived values
+  metadata <- entity %>%
     get_variable_metadata() %>%
     rowwise() %>% # because functions applied below aren't vectorized
     mutate(
@@ -1113,8 +1113,8 @@ setMethod("get_hydrated_variable_and_category_metadata", "Entity", function(enti
     # remove temporary data
     select(-summary_stats)
 
-  # merge with category metadata and add fallback stable_id if needed
-  metadata <- variable_metadata %>%
+  # append category metadata and add fallback stable_id if needed
+  metadata <- metadata %>%
     bind_rows(entity %>% get_category_metadata()) %>%
     mutate(
       stable_id = if_else(
@@ -1245,7 +1245,7 @@ setMethod("create_variable_category", "Entity", function(entity, category_name, 
 
   # 0. Check it's not already in existence
   if (category_name %in% variables$variable) {
-    stop(glue("Category cannot be created because a variable or category of the same name exists already."))
+    stop(glue("Category cannot be created because a variable, category or ID column of the same name exists already."))
   }
   
   # 1. Check if all children exist
@@ -1264,6 +1264,16 @@ setMethod("create_variable_category", "Entity", function(entity, category_name, 
     )
   variables <- bind_rows(variables, new_row)  
 
+  # 3. set `parent_variable` to `category_name` for `children`
+  variables <- variables %>%
+    mutate(
+      parent_variable = if_else(
+        variable %in% children,
+        category_name,
+        parent_variable
+      )
+    )
+  
   # update the entity with the modified variables
   entity@variables <- variables
   
