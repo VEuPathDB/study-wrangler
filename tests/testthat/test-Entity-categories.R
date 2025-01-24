@@ -1,4 +1,4 @@
-test_that("create_variable_category() works", {
+test_that("create_variable_category() and delete_variable_category() and associated validation and inspection are working", {
   # Create a study and retrieve entities
   expect_no_error(
     study <- make_study(name = 'my study')

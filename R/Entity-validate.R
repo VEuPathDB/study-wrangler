@@ -431,8 +431,24 @@ setMethod("validate", "Entity", function(object) {
       "Illegal circular path detected in the parent_variable -> variable graph."
     )
   }
-    
+
+  # Validation: check that units are not given for non-numeric vars
+  non_numeric_vars_with_units <- entity %>%
+    get_variable_metadata() %>%
+    filter(
+      !data_type %in% c("integer", "number"),
+      !is.na(unit)
+    ) %>%
+    pull(variable)
   
+  if (length(non_numeric_vars_with_units) > 0) {
+    add_feedback(to_lines(
+      glue("These non-numeric variables should not have units: {paste0(non_numeric_vars_with_units, collapse=', ')}"),
+      "You can remove them with:",
+      # the next line is intended to be repeated for multiple vars
+      indented(glue("{global_varname} <- {global_varname} %>% set_variable_metadata('{non_numeric_vars_with_units}', unit = NA)"))
+    ))
+  }
   
   # Output feedback to the user
   give_feedback()  

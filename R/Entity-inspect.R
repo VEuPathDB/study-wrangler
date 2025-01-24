@@ -111,6 +111,7 @@ If there are ID columns missing above, you may need to use:
     )
   )
 
+  ### values ###
   if (nrow(variables_metadata)) {
     skim_data <- data %>%
       select(-all_of(ids_metadata$variable)) %>%
@@ -123,6 +124,16 @@ If there are ID columns missing above, you may need to use:
     )
   }
   
+  ### units ###
+  cat(
+    to_lines(
+      heading("Summary of units for numeric variables"),
+      units_summary(entity)
+    )
+  )
+  
+  
+  ### variable tree ###
   cat(
     to_lines(
       heading("Variable categories/organisation"),
@@ -233,3 +244,38 @@ variable_ascii_tree <- function(entity) {
     )
   )
 }
+
+
+units_summary <- function(entity) {
+  global_varname <- find_global_varname(entity, 'entity')
+  
+  numeric_vars_metadata <- entity %>%
+    get_variable_metadata() %>%
+    filter(data_type %in% c("integer", "number"))
+  
+  if (nrow(numeric_vars_metadata) == 0)
+    return("This entity has no numeric variables, so no units to summarise.")
+ 
+  advice <- if (numeric_vars_metadata %>% pull(unit) %>% is.na() %>% all()) {
+    list(
+      "~~~~",
+      "None of the variables above have units. They are optional but if you want to add them, use:",
+      indented(glue("{global_varname} <- {global_varname} %>% set_variable_metadata('variable.name', unit = 'kg')"))
+    )
+  } else {
+    ""
+  }
+  
+  return(c(
+    kable(
+      numeric_vars_metadata %>% select(
+        variable,
+        display_name,
+        unit
+      )
+    ),
+    advice
+  ))
+   
+}
+
