@@ -30,14 +30,16 @@ setMethod("inspect", "Entity", function(object, variable_name = NULL) {
   ids_metadata <- get_id_column_metadata(entity)
 
   variables_metadata <- if (entity %>% get_entity_name() %>% is_truthy()) {
-    get_hydrated_variable_metadata(entity)
+    get_hydrated_variable_and_category_metadata(entity)
   } else {
     message(to_lines(c(
       "Warning: because this entity has no `name`, default `stable_id` attributes cannot be generated.",
       glue("Run `validate({global_varname})` for more details.")
     )))
-    get_variable_metadata(entity)
+    get_variable_and_category_metadata(entity)
   }
+  
+  category_metadata <- get_category_metadata(entity)
   
   # entity level metadata  
   slots_list <- as_list(entity)
@@ -83,11 +85,11 @@ If there are ID columns missing above, you may need to use:
 `set_parents(names=c('parent_name', 'grandparent_name'), columns=c('parent.id', 'grandparent.id'))`
 "),
       
-      heading("Key variable metadata"),
+      heading("Summary of important metadata for all variables and categories"),
       kable(variables_metadata %>%
         select(variable, provider_label, data_type, data_shape, display_name, stable_id)),
       "~~~~",
-      glue("Use `{global_varname} %>% inspect('variable.name')` for more detail on individual variables"),
+      glue("Use `{global_varname} %>% inspect('variable.name')` for a lot more detail on individual variables"),
       
       heading("Variable annotation summary"),
       kable(
@@ -110,7 +112,9 @@ If there are ID columns missing above, you may need to use:
   )
 
   if (nrow(variables_metadata)) {
-    skim_data <- data %>% select(-all_of(ids_metadata$variable)) %>% skim()
+    skim_data <- data %>%
+      select(-all_of(ids_metadata$variable)) %>%
+      skim()
     cat(
       to_lines(
         heading("Summary of variable values and distributions"),

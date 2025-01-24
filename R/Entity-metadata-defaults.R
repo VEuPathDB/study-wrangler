@@ -6,14 +6,14 @@ variable_metadata_defaults <- tibble(
   entity_name = NA_character_,
   entity_level = as.integer(0),
   # EDA variable metadata
-  provider_label = list(character(0)),
+  provider_label = list(list()),
   display_name = NA_character_,
   definition = NA_character_,
   stable_id = NA_character_,
   data_type = factor(NA, levels = c("id", "string", "number", "date", "longitude", "integer", "category")),
   data_shape = factor(NA, levels = c("continuous", "categorical", "ordinal", "binary")),
   # for ordinals only
-  ordinal_levels = list(character(0)),
+  ordinal_levels = list(list()),
   # remember when dumping metadata for factor columns (data_shape != "continuous")
   # that we need to dump the levels of the factor as "vocabulary"
   display_order = NA_integer_, # for some reason this is NUMBER(3,0) on the database side, so integers -999 to 999

@@ -34,10 +34,10 @@ setGeneric("get_display_name_plural", function(entity) standardGeneric("get_disp
 setGeneric("sync_variable_metadata", function(entity) standardGeneric("sync_variable_metadata"))
 #' @export
 setGeneric("set_variable_metadata", function(entity, ...) standardGeneric("set_variable_metadata"))
-#' @export
 setGeneric("get_variable_metadata", function(entity) standardGeneric("get_variable_metadata"))
-#' @export
 setGeneric("get_id_column_metadata", function(entity, ...) standardGeneric("get_id_column_metadata"))
+setGeneric("get_category_metadata", function(entity, ...) standardGeneric("get_category_metadata"))
+setGeneric("get_variable_and_category_metadata", function(entity, ...) standardGeneric("get_variable_and_category_metadata"))
 #' @export
 setGeneric("get_data", function(entity) standardGeneric("get_data"))
 #' @export
@@ -63,7 +63,7 @@ setGeneric("remove_children", function(entity) standardGeneric("remove_children"
 #' @export
 setGeneric("set_variable_as_date", function(entity, column_name) standardGeneric("set_variable_as_date"))
 # not exported
-setGeneric("get_hydrated_variable_metadata", function(entity) standardGeneric("get_hydrated_variable_metadata"))
+setGeneric("get_hydrated_variable_and_category_metadata", function(entity) standardGeneric("get_hydrated_variable_and_category_metadata"))
 #' @export
 setGeneric("set_variable_ordinal_levels", function(entity, variable_name, levels) standardGeneric("set_variable_ordinal_levels"))
 #' @export
@@ -598,8 +598,41 @@ setMethod("set_variable_metadata", "Entity", function(entity, variable_name, ...
 #' 
 #' @param entity an Entity object
 #' @returns tibble of metadata for variables
-#' @export
 setMethod("get_variable_metadata", "Entity", function(entity) {
+  return(
+    entity@variables %>%
+      filter(!data_type %in% c('id','category')) %>%
+      select(!starts_with('entity_')) %>%
+      arrange(display_order)
+  )
+})
+
+#' get_category_metadata
+#' 
+#' Returns a metadata tibble for category 'variables' only (not ID columns or actual variables)
+#' 
+#' Treat this data as read-only (use set_xxx methods to make changes)
+#' 
+#' @param entity an Entity object
+#' @returns tibble of metadata for category columns
+setMethod("get_category_metadata", "Entity", function(entity, ...) {
+  return(
+    entity@variables %>%
+      filter(data_type == 'category') %>%
+      select(!starts_with('entity_')) %>%
+      arrange(display_order)
+  )
+})
+
+#' get_variable_and_category_metadata
+#' 
+#' Returns a metadata tibble for category 'variables' only (not ID columns or actual variables)
+#' 
+#' Treat this data as read-only (use set_xxx methods to make changes)
+#' 
+#' @param entity an Entity object
+#' @returns tibble of metadata for category columns
+setMethod("get_variable_and_category_metadata", "Entity", function(entity, ...) {
   return(
     entity@variables %>%
       filter(data_type != 'id') %>%
@@ -616,7 +649,6 @@ setMethod("get_variable_metadata", "Entity", function(entity) {
 #' 
 #' @param entity an Entity object
 #' @returns tibble of metadata for id_columns
-#' @export
 setMethod("get_id_column_metadata", "Entity", function(entity, ...) {
   return(
     entity@variables %>%
@@ -625,6 +657,7 @@ setMethod("get_id_column_metadata", "Entity", function(entity, ...) {
       arrange(entity_level)
   )
 })
+
 
 #' get_data
 #' 
@@ -987,7 +1020,7 @@ setMethod("set_variable_as_date", "Entity", function(entity, column_name) {
   return(entity)
 })
 
-#' get_hydrated_variable_metadata
+#' get_hydrated_variable_and_category_metadata
 #' 
 #' Returns a metadata tibble for variables with sensible defaults
 #' imputed for
@@ -1001,7 +1034,7 @@ setMethod("set_variable_as_date", "Entity", function(entity, column_name) {
 #' @param entity an Entity object
 #' @returns tibble of metadata for variables
 #' not exported
-setMethod("get_hydrated_variable_metadata", "Entity", function(entity) {
+setMethod("get_hydrated_variable_and_category_metadata", "Entity", function(entity) {
   data <- entity %>% get_data()
   entity_stable_id <- entity %>% get_stable_id()
   
@@ -1030,7 +1063,8 @@ setMethod("get_hydrated_variable_metadata", "Entity", function(entity) {
     }
   }
   
-  metadata <- entity %>%
+  # get variable metadata and fill in data-derived values
+  variable_metadata <- entity %>%
     get_variable_metadata() %>%
     rowwise() %>% # because functions applied below aren't vectorized
     mutate(
@@ -1040,11 +1074,6 @@ setMethod("get_hydrated_variable_metadata", "Entity", function(entity) {
         has_values & data_shape != 'continuous',
         list(levels(data %>% pull(variable))),
         NA
-      ),
-      stable_id = if_else(
-        is.na(stable_id),
-        prefixed_alphanumeric_id(prefix = "VAR_", length = 8, seed_string = variable),
-        stable_id
       ),
       precision = case_when(
         !has_values ~ NA,
@@ -1083,7 +1112,18 @@ setMethod("get_hydrated_variable_metadata", "Entity", function(entity) {
     ungroup() %>%
     # remove temporary data
     select(-summary_stats)
-  
+
+  # merge with category metadata and add fallback stable_id if needed
+  metadata <- variable_metadata %>%
+    bind_rows(entity %>% get_category_metadata()) %>%
+    mutate(
+      stable_id = if_else(
+        is.na(stable_id),
+        prefixed_alphanumeric_id(prefix = "VAR_", length = 8, seed_string = variable),
+        stable_id
+      )
+    )
+    
   # now that the stable_ids are available for each variable (or category)
   # we can do a self-join to set the parent_stable_id
   metadata <- metadata %>%
@@ -1201,17 +1241,33 @@ setMethod("set_variable_ordinal_levels", "Entity", function(entity, variable_nam
 #' @export
 setMethod("create_variable_category", "Entity", function(entity, category_name, children, ...) {
   global_varname = find_global_varname(entity, "entity")
-  metadata <- list(...)
   variables <- entity@variables
 
-  # Check that all members of the `children` vector or list are values in the `variable`
-  # column of `variables`.
-  # If not, stop(glue("Category cannot be created because these children variables/categories do not exist: {paste0(missing_children, separator = ', ')}"))
+  # 0. Check it's not already in existence
+  if (category_name %in% variables$variable) {
+    stop(glue("Category cannot be created because a variable or category of the same name exists already."))
+  }
   
+  # 1. Check if all children exist
+  missing_children <- setdiff(children, variables$variable)
+  if (length(missing_children) > 0) {
+    stop(glue("Category cannot be created because these children variables/categories do not exist: {paste(missing_children, collapse = ', ')}"))
+  }
   
-  # Append a new row to `variables` based on the 1 row tibble `variable_metadata_defaults` but
-  # mutated with `has_values = FALSE` and `variable = category_name`
+  # 2. Append a new row for the category
+  new_row <- variable_metadata_defaults %>%
+    mutate(
+      has_values = FALSE,
+      variable = category_name,
+      data_type = 'category',
+      entity_name = entity %>% get_entity_name()
+    )
+  variables <- bind_rows(variables, new_row)  
+
+  # update the entity with the modified variables
+  entity@variables <- variables
   
+  message(glue("Successfully created category '{category_name}'"))
   
-  
+  return(entity %>% set_variable_metadata(category_name, ...))
 })

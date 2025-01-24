@@ -1,7 +1,7 @@
 test_that("participants fixture loads and fails validation due to wrongly infered ID column", {
   file_path <- system.file("extdata", "toy_example/participants.tsv", package = 'study.wrangler')
   
-    expect_no_error(
+  expect_no_error(
     participants <- entity_from_file(file_path, name="participant")
   )
   expect_message(

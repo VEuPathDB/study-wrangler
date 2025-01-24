@@ -1,4 +1,4 @@
-test_that("get_hydrated_variable_metadata(entity) works", {
+test_that("get_hydrated_variable_and_category_metadata(entity) works", {
   # Create a study and retrieve entities
   expect_no_error(
     study <- make_study(name = 'my study')
@@ -12,9 +12,9 @@ test_that("get_hydrated_variable_metadata(entity) works", {
   expect_no_error(
     expect_no_message(
       {
-        households_hvmd <- households %>% get_hydrated_variable_metadata()
-        participants_hvmd <- participants %>% get_hydrated_variable_metadata()
-        observations_hvmd <- observations %>% get_hydrated_variable_metadata()
+        households_hvmd <- households %>% get_hydrated_variable_and_category_metadata()
+        participants_hvmd <- participants %>% get_hydrated_variable_and_category_metadata()
+        observations_hvmd <- observations %>% get_hydrated_variable_and_category_metadata()
       }
     )
   )
