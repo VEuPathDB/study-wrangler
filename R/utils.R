@@ -450,4 +450,64 @@ max_decimals <- function(x) {
 }
 
 
+#'
+#' helper for pretty_tree(entity)
+#'
+recursive_ascii_tree <- function(
+    entity,
+    prefix,
+    is_last,
+    is_root = FALSE,
+    get_label_fn,
+    get_children_fn
+) {
+  # Determine the prefix for this entity line
+  line_prefix <- if (is_root) {
+    prefix
+  } else if (is_last) {
+    paste0(prefix, "└── ")
+  } else {
+    paste0(prefix, "├── ")
+  }
+  
+  this_line <- paste0(line_prefix, get_label_fn(entity))
+  
+  # For children, we need to decide on the next prefix. If this entity is the last child,
+  # the next prefix for its children is prefix + "    " (4 spaces),
+  # otherwise it's prefix + "|   ".
+  children_prefix <- if (is_root) {
+    prefix
+  }  else if (is_last) {
+    paste0(prefix, "    ")
+  } else {
+    paste0(prefix, "│   ")
+  }
+  
+  children <- get_children_fn(entity)
+  
+  if (length(children) == 0) {
+    # No children, just return the current line.
+    return(this_line)
+  } else {
+    # Recursively format each child. The last child's is_last = TRUE.
+    lines_for_children <- mapply(
+      FUN = function(child, is_last_child) {
+        recursive_ascii_tree(
+          child,
+          prefix = children_prefix,
+          is_last = is_last_child,
+          get_label_fn = get_label_fn,
+          get_children_fn = get_children_fn
+        )
+      },
+      child = children,
+      is_last_child = seq_along(children) == length(children),
+      SIMPLIFY = FALSE
+    )
+    
+    # Combine this entity's line with all children's lines.
+    return(c(this_line, unlist(lines_for_children)))
+  }
+}
+
 

@@ -122,4 +122,114 @@ If there are ID columns missing above, you may need to use:
       )
     )
   }
+  
+  cat(
+    to_lines(
+      heading("Variable categories/organisation"),
+      variable_ascii_tree(entity)
+    )
+  )
 })
+
+
+#'
+#' If there are no non-NA values for parent_variable this will return
+#' a message saying there's no variable tree/hierarchy
+#' @param entity an Entity object
+#' @return printable string
+#'
+variable_ascii_tree <- function(entity) {
+  metadata <- entity %>% get_hydrated_variable_and_category_metadata()
+  
+  if (metadata %>% pull(parent_variable) %>% is.na() %>% all()) {
+    return(to_lines(
+      "This entity currently has no variable categorization.",
+      "You may optionally use `create_variable_category()` to organise your variables."
+    ))
+  }
+  
+  # add parent_variable where it is NA
+  root_name <- entity %>% get_entity_name()
+  
+  # check root_name isn't already in metadata$variable
+  # if it is, then use '_root_' instead
+  if (root_name %in% metadata$variable) {
+    root_name <- '_root_'
+  }
+  
+  metadata <- metadata %>%
+    mutate(
+      parent_variable = if_else(
+        is.na(parent_variable),
+        root_name,
+        parent_variable
+      )
+    ) %>%  # and select only the salient columns
+    select(
+      variable,
+      parent_variable,
+      display_name
+    )
+  
+  # and then add a row for '_root_'
+  metadata <- metadata %>%
+    bind_rows(
+      tibble(
+        variable = root_name,
+        parent_variable = NA,
+        display_name = entity %>% get_display_name()
+      )
+    )
+  
+  # some functions for creating an object we can use in the ascii tree
+  # function
+  
+  # a simple object that contains a tibble and a row identifier
+  # a kind of row-pointer (assumes tibble contains a column with the row name)
+  create_row_ptr <- function(tibble, row_name) {
+    list(
+      tibble = tibble,
+      row_name = row_name
+    )
+  }
+  
+  get_label_fn <- function(row_ptr) {
+    row <- row_ptr$tibble %>% filter(variable == row_ptr$row_name)
+    return(
+      glue("{row$variable}{if (is_truthy(row$display_name)) glue(' ({row$display_name})') else ''}")
+    )
+  }
+  
+  get_children_fn <- function(row_ptr) {
+    all_rows <- row_ptr$tibble
+    parent_name <- row_ptr$row_name
+    # Define how to find children based on the parent row
+    return(
+      all_rows %>%
+        filter(parent_variable == parent_name) %>%
+        pull(variable) %>%
+        map(
+          function(var) {
+            return(create_row_ptr(all_rows, var))
+          }
+        )
+    )
+  }
+  
+  root <- create_row_ptr(metadata, root_name)
+  
+  return(
+    c(
+      recursive_ascii_tree(
+        root,
+        prefix = "",
+        is_last = TRUE,
+        is_root = TRUE,
+        get_label_fn = get_label_fn,
+        get_children_fn = get_children_fn
+      ),
+      "~~~~",
+      "The entity/variable/category display_name is shown in parentheses, where available."
+    )
+  )
+}
