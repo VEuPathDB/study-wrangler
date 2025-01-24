@@ -220,7 +220,7 @@ export_attributes_to_vdi <- function(entities, output_directory, install_json, s
   # `metadata` has a column `variable` containing the internal variable name
   # and about 30 other columns with metadata about display names, min/max ranges etc
   # hydrated means that default IDs are generated
-  metadata <- current_entity %>% get_hydrated_variable_metadata()
+  metadata <- current_entity %>% get_hydrated_variable_and_category_metadata()
 
   # data has column names that correspond to the `variable` names in `metadata`
   data <- current_entity %>% get_data()

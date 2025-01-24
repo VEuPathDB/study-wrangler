@@ -41,7 +41,7 @@ test_that("set_variable_ordinal_levels", {
     households %>%
       quiet() %>%
       set_variable_ordinal_levels('Owns.property', levels = my_levels) %>%
-      get_hydrated_variable_metadata() %>%
+      get_hydrated_variable_and_category_metadata() %>%
       filter(variable == 'Owns.property') %>%
       pull(vocabulary) %>%
       unlist(),
@@ -56,7 +56,7 @@ test_that("set_variable_ordinal_levels", {
     households %>%
       quiet() %>%
       set_variable_ordinal_levels('Number.of.animals', levels = num_levels) %>%
-      get_hydrated_variable_metadata() %>%
+      get_hydrated_variable_and_category_metadata() %>%
       filter(variable == 'Number.of.animals') %>%
       pull(vocabulary) %>%
       unlist(),

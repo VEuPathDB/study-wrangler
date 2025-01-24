@@ -44,8 +44,9 @@ setMethod("validate", "Entity", function(object) {
   }
   
   # Validation: Check column alignment
-  missing_variables <- setdiff(colnames(data), variables$variable)
-  extra_variables <- setdiff(variables$variable, colnames(data))
+  true_variables <- variables %>% filter(has_values) %>% pull(variable)
+  missing_variables <- setdiff(colnames(data), true_variables)
+  extra_variables <- setdiff(true_variables, colnames(data))
   
   if (length(missing_variables) > 0) {
     give_feedback(fatal_message=to_lines(
@@ -69,7 +70,7 @@ setMethod("validate", "Entity", function(object) {
   # for variables metadata
   required_metadata_cols = c('data_shape')
   variables_with_critical_NAs <- variables %>%
-    filter(data_type != 'id') %>%
+    filter(!data_type %in% c('id', 'category')) %>%
     select('variable', all_of(required_metadata_cols)) %>%
     filter(if_any(all_of(required_metadata_cols), is.na))
   if (nrow(variables_with_critical_NAs) > 0) {
@@ -393,6 +394,60 @@ setMethod("validate", "Entity", function(object) {
       indented(glue("{global_varname} <- {global_varname} %>% set_variable_ordinal_levels(variable_name, levels)"))
     ))
     
+  }
+  
+  # Validation: check that parent_variable column in metadata
+  # always points to a real variable or category when it is not NA
+  
+  variable_relationships <- variables %>% select(variable, parent_variable)
+  
+  bad_parents <- variable_relationships %>%
+    filter(!is.na(parent_variable)) %>%
+    left_join(
+      variable_relationships,
+      join_by(parent_variable == variable),
+      keep = TRUE, # Retain both left and right versions of overlapping column names (e.g., variable.left, variable.right)
+      suffix = c(".left", ".right")
+    ) %>%
+    filter(is.na(variable.right)) %>%
+    pull(variable.left) 
+  
+  if (length(bad_parents) > 0) {
+    add_feedback(to_lines(
+      "These variables or categories have 'parent_variable' values that do not exist:",
+      indented(paste0(bad_parents, collapse=", ")),
+      "The values for 'parent_variable' should be variable names.",
+      "To avoid issues like this, create categories with `create_variable_category()`"
+    ))
+  }
+  
+  # also check for circular paths in the variable tree
+  
+  graph <- igraph::graph_from_data_frame(
+    variable_relationships %>% replace_na(list(parent_variable = '_root_'))
+  )
+  if (!igraph::is_acyclic(graph)) {
+    add_feedback(
+      "Illegal circular path detected in the parent_variable -> variable graph."
+    )
+  }
+
+  # Validation: check that units are not given for non-numeric vars
+  non_numeric_vars_with_units <- entity %>%
+    get_variable_metadata() %>%
+    filter(
+      !data_type %in% c("integer", "number"),
+      !is.na(unit)
+    ) %>%
+    pull(variable)
+  
+  if (length(non_numeric_vars_with_units) > 0) {
+    add_feedback(to_lines(
+      glue("These non-numeric variables should not have units: {paste0(non_numeric_vars_with_units, collapse=', ')}"),
+      "You can remove them with:",
+      # the next line is intended to be repeated for multiple vars
+      indented(glue("{global_varname} <- {global_varname} %>% set_variable_metadata('{non_numeric_vars_with_units}', unit = NA)"))
+    ))
   }
   
   # Output feedback to the user

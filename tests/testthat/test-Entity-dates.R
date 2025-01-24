@@ -107,7 +107,7 @@ test_that("See how non-ISO-8601 inputs work - YY-MM-DD", {
   # so it gets detected as an ID column - that's better than it getting detected as a date :-)
   expect_error(
     observations %>% quiet() %>% inspect_variable('Observation.date'),
-    "'Observation.date' is an ID column, not a variable column"
+    "'Observation.date' is an ID column, not a variable or category column"
   )
   
   # redetect as a variable

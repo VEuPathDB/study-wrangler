@@ -1,4 +1,4 @@
-test_that("get_hydrated_variable_metadata(entity) works", {
+test_that("get_hydrated_variable_and_category_metadata(entity) works", {
   # Create a study and retrieve entities
   expect_no_error(
     study <- make_study(name = 'my study')
@@ -12,9 +12,9 @@ test_that("get_hydrated_variable_metadata(entity) works", {
   expect_no_error(
     expect_no_message(
       {
-        households_hvmd <- households %>% get_hydrated_variable_metadata()
-        participants_hvmd <- participants %>% get_hydrated_variable_metadata()
-        observations_hvmd <- observations %>% get_hydrated_variable_metadata()
+        households_hvmd <- households %>% get_hydrated_variable_and_category_metadata()
+        participants_hvmd <- participants %>% get_hydrated_variable_and_category_metadata()
+        observations_hvmd <- observations %>% get_hydrated_variable_and_category_metadata()
       }
     )
   )
@@ -31,14 +31,14 @@ test_that("get_hydrated_variable_metadata(entity) works", {
     expect_true(all(hydrated_columns %in% names(hvmd)))
   }
   
-  # Test that stable_id and parent_stable_id are NA in regular metadata
+  # Test that stable_id is all NA in regular metadata
   for (entity in list(households, participants, observations)) {
     regular_metadata <- entity %>% get_variable_metadata()
     expect_true(all(is.na(regular_metadata$stable_id)))
-    expect_true(all(is.na(regular_metadata$parent_stable_id)))
   }
   
   # Test that stable_id and parent_stable_id are truthy in hydrated metadata
+  # and that other things are hydrated
   for (hvmd in list(households_hvmd, participants_hvmd, observations_hvmd)) {
     expect_true(all(!is.na(hvmd$stable_id)))
     expect_true(all(!is.na(hvmd$parent_stable_id)))
