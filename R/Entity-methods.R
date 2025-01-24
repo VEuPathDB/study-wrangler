@@ -68,8 +68,8 @@ setGeneric("get_hydrated_variable_and_category_metadata", function(entity) stand
 setGeneric("set_variable_ordinal_levels", function(entity, variable_name, levels) standardGeneric("set_variable_ordinal_levels"))
 #' @export
 setGeneric("create_variable_category", function(entity, category_name, children, ...) standardGeneric("create_variable_category"))
-
-# TO DO - delete_variable_category
+#' @export
+setGeneric("delete_variable_category", function(entity, category_name) standardGeneric("delete_variable_category"))
 
 
 #' infer_missing_data_types
@@ -1236,7 +1236,62 @@ setMethod("create_variable_category", "Entity", function(entity, category_name, 
   # update the entity with the modified variables
   entity@variables <- variables
   
-  message(glue("Successfully created category '{category_name}'"))
+  message(to_lines(
+    glue("Successfully created category '{category_name}'. If you need to revert, use:"),
+    indented(glue("{global_varname} <- {global_varname} %>% delete_variable_category('{category_name}')"))
+  ))
+
+  if (missing(...))
+    return(entity)
+  else
+    return(entity %>% set_variable_metadata(category_name, ...))
+})
+
+
+#' delete_variable_category
+#' 
+#' Deletes a category from the variables metadata of an entity.
+#' 
+#' Ensures that the category is not referenced as a parent by any other variable or category.
+#' If the category is safe to delete, it removes the corresponding row from the variables metadata
+#' and clears the `parent_variable` field of any variables that reference the deleted category.
+#' 
+#' @param entity an Entity object
+#' @param category_name a string value internal name of the category to be deleted
+#' 
+#' @returns modified entity
+#' @export
+setMethod("delete_variable_category", "Entity", function(entity, category_name) {
+  global_varname <- find_global_varname(entity, "entity")
+  variables <- entity@variables
   
-  return(entity %>% set_variable_metadata(category_name, ...))
+  # 0. Check if the category exists
+  if (!category_name %in% variables$variable) {
+    stop(glue("Category '{category_name}' does not exist in this entity."))
+  }
+  
+  # 1. Check if the category already has a parent
+  is_orphan <- variables %>%
+    filter(variable == category_name) %>%
+    pull(parent_variable) %>%
+    is.na() %>%
+    all()
+  if (!is_orphan) {
+    stop(glue("Category '{category_name}' cannot be deleted because it belongs to another category."))
+  }
+  
+  # 2. Remove the category from variables metadata
+  variables <- variables %>% filter(variable != category_name)
+  
+  # 3. Clear `parent_variable` for variables referencing this category
+  variables <- variables %>%
+    mutate(
+      parent_variable = if_else(parent_variable == category_name, NA_character_, parent_variable)
+    )
+  
+  # Update the entity with the modified variables
+  entity@variables <- variables
+  
+  message(glue("Category '{category_name}' has been deleted."))
+  return(entity)
 })

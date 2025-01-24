@@ -78,4 +78,34 @@ test_that("create_variable_category() works", {
     "Illegal circular path detected in the parent_variable -> variable graph."
   )
 
+  # add a category-of-categories
+  expect_message(
+    households <- households %>%
+      create_variable_category(
+        category_name = "vars",
+        children = c("house_vars")
+      ),
+    "Successfully created category 'vars'"
+  )
+  
+  # deleting an "internal" category isn't allowed
+  expect_error(
+    households <- households %>%
+      delete_variable_category("house_vars"),
+    "Category 'house_vars' cannot be deleted because it belongs to another category."
+  )
+  
+  # deleting them parent-most first is OK
+  expect_message(
+    households <- households %>%
+      delete_variable_category("vars"),
+    "Category 'vars' has been deleted."
+  )
+  expect_message(
+    households <- households %>%
+      delete_variable_category("house_vars"),
+    "Category 'house_vars' has been deleted."
+  )
+  
+  
 })
