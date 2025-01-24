@@ -70,6 +70,10 @@ setGeneric("set_variable_ordinal_levels", function(entity, variable_name, levels
 setGeneric("create_variable_category", function(entity, category_name, children, ...) standardGeneric("create_variable_category"))
 #' @export
 setGeneric("delete_variable_category", function(entity, category_name) standardGeneric("delete_variable_category"))
+#' @export
+setGeneric("set_variables_multivalued", function(entity, ...) standardGeneric("set_variables_multivalued"))
+#' @export
+setGeneric("set_variables_univalued", function(entity, variable_names) standardGeneric("set_variables_univalued"))
 
 
 #' infer_missing_data_types
@@ -1295,3 +1299,87 @@ setMethod("delete_variable_category", "Entity", function(entity, category_name) 
   message(glue("Category '{category_name}' has been deleted."))
   return(entity)
 })
+
+
+#' set_variables_multivalued
+#' 
+#' Sets the specified variables as multivalued by updating their metadata annotations.
+#' Specifically, sets `is_multi_valued` to TRUE and assigns the provided `multi_value_delimiter`.
+#' 
+#' @param entity An Entity object
+#' @param ... Named arguments where names are variable names and values are their delimiters
+#' 
+#' @returns Modified entity
+#' @export
+setMethod("set_variables_multivalued", "Entity", function(entity, ...) {
+  variables <- entity@variables
+  
+  # Parse named arguments
+  multivalued_vars <- list(...)
+  
+  # Validate input
+  invalid_vars <- setdiff(names(multivalued_vars), variables$variable)
+  if (length(invalid_vars) > 0) {
+    stop(glue("The following variables do not exist: {paste(invalid_vars, collapse = ', ')}"))
+  }
+  
+  ordinal_vars <- variables %>% filter(variable %in% names(multivalued_vars) & data_shape == 'ordinal')
+  if (nrow(ordinal_vars) > 0) {
+    stop(glue("The following variables cannot be multivalued because they are ordinal: {paste(ordinal_vars$variable, collapse = ', ')}"))
+  }
+  
+  # Update metadata
+  variables <- variables %>%
+    mutate(
+      is_multi_valued = if_else(
+        variable %in% names(multivalued_vars),
+        TRUE,
+        is_multi_valued
+      ),
+      multi_value_delimiter = if_else(
+        variable %in% names(multivalued_vars),
+        unlist(multivalued_vars[variable]),
+        multi_value_delimiter
+      )
+    )
+  
+  if (!entity@quiet) message(glue("Successfully marked the following variables as multi-valued: {paste(names(multivalued_vars), collapse = ', ')}"))
+
+  # Update the entity
+  entity@variables <- variables
+  return(entity)
+})
+
+#' set_variables_univalued
+#' 
+#' Resets the specified variables as univalued by updating their metadata annotations.
+#' Specifically, sets `is_multi_valued` to FALSE and removes the `multi_value_delimiter`.
+#' 
+#' @param entity An Entity object
+#' @param variable_names A character vector of variable names to reset as univalued
+#' 
+#' @returns Modified entity
+#' @export
+setMethod("set_variables_univalued", "Entity", function(entity, variable_names) {
+  variables <- entity@variables
+  
+  # Validate input
+  invalid_vars <- setdiff(variable_names, variables$variable)
+  if (length(invalid_vars) > 0) {
+    stop(glue("The following variables do not exist: {paste(invalid_vars, collapse = ', ')}"))
+  }
+  
+  # Update metadata
+  variables <- variables %>%
+    mutate(
+      is_multi_valued = if_else(variable %in% variable_names, FALSE, is_multi_valued),
+      multi_value_delimiter = if_else(variable %in% variable_names, NA_character_, multi_value_delimiter)
+    )
+
+  if (!entity@quiet) message(glue("Successfully marked the following variables as uni-valued: {paste(variable_names, collapse = ', ')}"))
+                             
+  # Update the entity
+  entity@variables <- variables
+  return(entity)
+})
+
