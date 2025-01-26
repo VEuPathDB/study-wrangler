@@ -77,6 +77,31 @@ is_date_column <- function(column) {
   return(inherits(column, "Date") || inherits(column, "POSIXct"))
 }
 
+#' convert_to_type
+#' 
+#' Converts a character vector into the appropriate type based on a provided `data_type`.
+#' Supports common data types: "date", "integer", "number", and "string".
+#' 
+#' @param x A character vector to be converted
+#' @param data_type A string indicating the target data type ("date", "integer", "number", "string")
+#' 
+#' @returns A vector of the appropriate type
+convert_to_type <- function(x, data_type) {
+  if (data_type == "date") {
+    return(as.Date(x, origin = "1970-01-01"))
+  } else if (data_type == "integer") {
+    return(as.integer(x))
+  } else if (data_type %in% c("number","longitude")) {
+    return(as.numeric(x))
+  } else if (data_type == "string") {
+    return(as.character(x))
+  } else {
+    stop(glue("Unsupported data_type: {data_type}"))
+  }
+}
+
+
+
 #'
 #' void context function that will stop() if a metadata name isn't a slot
 #' in the specified object class

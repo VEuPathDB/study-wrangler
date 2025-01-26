@@ -99,3 +99,22 @@ test_that("set_variable_ordinal_levels", {
   expect_true(households %>% quiet() %>% validate())
   
 })
+
+test_that("Even very large vocabularies are reported in inspect_variable", {
+  file_path <- system.file("extdata", "toy_example/households.tsv", package = 'study.wrangler')
+  households <- entity_from_file(file_path, name="household")
+  expect_true(households %>% quiet() %>% validate())
+  
+  # add new factor levels, "aaa":"zzz"
+  households <- households %>%
+    set_variable_ordinal_levels(
+      "Owns.property",
+      levels = c("Yes", "No", paste0(letters, letters, letters))
+    )
+  expect_true(households %>% quiet() %>% validate())
+  expect_output(
+    households %>% quiet() %>% inspect_variable("Owns.property"),
+    "zzz"
+  )
+})
+

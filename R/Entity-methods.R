@@ -121,7 +121,6 @@ function(
 #' @param entity an Entity object
 #' @returns modified entity
 setMethod("infer_missing_data_shapes", "Entity", function(entity) {
-  data <- entity@data
   variables <- entity@variables
   
   # only infer for data_shape == NA and non-ID cols
@@ -144,29 +143,8 @@ setMethod("infer_missing_data_shapes", "Entity", function(entity) {
     )
   )
 
-  # mutate non-continuous columns into factors only for
-  # columns that we previously inferred (`cols_to_infer`)
-  factor_vars <- variables %>%
-    filter(variable %in% cols_to_infer) %>%
-    filter(data_shape != "continuous") %>% pull(variable)
-
-  data <- data %>%
-    mutate(across(all_of(factor_vars), as.factor))
-  
-  # # Set the vocabulary metadata for the factor variables
-  # variables <- variables %>%
-  #   rowwise() %>% # for simplicity, not speed
-  #   mutate(vocabulary = list(
-  #     if (variable %in% factor_vars) {
-  #       levels(data[[variable]])
-  #     } else {
-  #       vocabulary
-  #     }
-  #   )) %>%
-  #   ungroup()
-  
   # clone and modify original entity argument
-  return(entity %>% initialize(data=data, variables=variables))
+  return(entity %>% initialize(variables=variables))
 })
 
 
@@ -1002,7 +980,7 @@ setMethod("get_hydrated_variable_and_category_metadata", "Entity", function(enti
   entity_stable_id <- entity %>% get_stable_id()
   
   safe_fn <- function(x, fn) {
-    if (!is.factor(x)) {
+    if (!is.factor(x) & !is.character(x)) {
       fn(x, na.rm = TRUE)
     } else {
       NA
@@ -1031,51 +1009,61 @@ setMethod("get_hydrated_variable_and_category_metadata", "Entity", function(enti
     get_variable_metadata() %>%
     rowwise() %>% # because functions applied below aren't vectorized
     mutate(
-      # For the rows (variables) in `metadata` where `data_shape != 'continuous'`,
-      # the corresponding column in `data` should contain factor values.
+      # handle multi-valued data columns
+      column_data = if_else(
+        is_multi_valued,
+        data %>%
+          pull(variable) %>%
+          as.character() %>%
+          strsplit(multi_value_delimiter) %>%
+          unlist() %>%
+          convert_to_type(data_type) %>%
+          list(), # wrap in list for type consistency
+        data %>% pull(variable) %>% list()
+      ),
       vocabulary = if_else(
         has_values & data_shape != 'continuous',
-        list(levels(data %>% pull(variable))),
+        list(levels(column_data)),
         NA
       ),
       precision = case_when(
         !has_values ~ NA,
         data_type == 'integer' ~ 0L,
-        data_type == 'number' ~ data %>% pull(variable) %>% max_decimals(),
+        data_type == 'number' ~ column_data %>% max_decimals(),
         TRUE ~ NA
       ),
       # do this for all actual variables
       distinct_values_count = if_else(
         has_values,
-        data %>% pull(variable) %>% unique() %>% length(),
+        column_data %>% unique() %>% length(),
         NA
       ),
       mean = if_else(
         has_values & data_shape == 'continuous',
-        data %>% pull(variable) %>% safe_fn(mean) %>% as.character(),
+        column_data %>% safe_fn(mean) %>% as.character(),
         NA_character_
       ),
       bin_width_computed = if_else(
         has_values & data_shape == 'continuous',
-        data %>% pull(variable) %>% safe_fn(plot.data::findBinWidth) %>% as.character(),
+        column_data %>% safe_fn(plot.data::findBinWidth) %>% as.character(),
         NA_character_
       ),
       # Use fivenum() for continuous data to get summary statistics
       summary_stats = if_else(
         has_values & data_shape == 'continuous',
-        list(safe_fivenum(data %>% pull(variable), is_date = data_type == "date")),
+        list(safe_fivenum(column_data, is_date = data_type == "date")),
         list(rep(NA_real_, 5))
       ),
       range_min = if_else(has_values & data_shape == 'continuous', as.character(summary_stats[[1]]), NA_character_),
       lower_quartile = if_else(has_values & data_shape == 'continuous', as.character(summary_stats[[2]]), NA_character_),
       median = if_else(has_values & data_shape == 'continuous', as.character(summary_stats[[3]]), NA_character_),
       upper_quartile = if_else(has_values & data_shape == 'continuous', as.character(summary_stats[[4]]), NA_character_),
-      range_max = if_else(has_values & data_shape == 'continuous', as.character(summary_stats[[5]]), NA_character_)
+      range_max = if_else(has_values & data_shape == 'continuous', as.character(summary_stats[[5]]), NA_character_),
+      column_data = NULL, # don't need this any more
+      summary_stats = NULL  # nor this
     ) %>% 
-    ungroup() %>%
-    # remove temporary data
-    select(-summary_stats)
-
+    ungroup()
+  
   # append category metadata and add fallback stable_id if needed
   metadata <- metadata %>%
     bind_rows(entity %>% get_category_metadata()) %>%

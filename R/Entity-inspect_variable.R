@@ -70,7 +70,11 @@ setMethod("inspect_variable", "Entity", function(entity, variable_name) {
   # if this is an actual variable with data:
   if (all(variable_metadata$has_values)) {
     # Extract data for the specified variable
-    variable_data <- entity@data[[variable_name]]
+    variable_data <- entity@data %>% pull(variable_name)
+
+    # convert categorical character vector to factor for nicer display
+    if (all(variable_metadata$data_shape == 'categorical'))
+      variable_data <- factor(variable_data)
     
     cat(
       to_lines(

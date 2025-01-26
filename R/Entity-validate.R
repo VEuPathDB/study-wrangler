@@ -272,7 +272,7 @@ setMethod("validate", "Entity", function(object) {
   
   # Validation: check that integer variables' data columns contain integers
   integer_columns <- variables %>%
-    filter(data_type == "integer") %>% pull(variable)
+    filter(data_type == "integer" & !is_multi_valued) %>% pull(variable)
   
   not_integers <- data %>%
     select(all_of(integer_columns)) %>%
@@ -303,7 +303,7 @@ setMethod("validate", "Entity", function(object) {
   
   # Validation: check that number variables' data columns contain numeric values
   number_columns <- variables %>%
-    filter(data_type == "number") %>% pull(variable)
+    filter(data_type == "number" & !is_multi_valued) %>% pull(variable)
   
   not_numbers <- data %>%
     select(all_of(number_columns)) %>%
@@ -326,7 +326,7 @@ setMethod("validate", "Entity", function(object) {
   
   # Validation: check that date variables' data columns are R date type
   date_columns <- variables %>%
-    filter(data_type == "date") %>% pull(variable)
+    filter(data_type == "date" & !is_multi_valued) %>% pull(variable)
 
   not_dates <- data %>%
     select(all_of(date_columns)) %>%
@@ -346,11 +346,33 @@ setMethod("validate", "Entity", function(object) {
       ))
     }
   }
-    
+
+  # Validation: check that multi-valued variables' data columns are R character type
+  multi_valued_columns <- variables %>%
+    filter(is_multi_valued) %>% pull(variable)
+  
+  not_character_cols <- data %>%
+    select(all_of(multi_valued_columns)) %>%
+    summarise(across(everything(), ~ !is.character(.))) %>%
+    unlist() %>% as.logical()
+  
+  if (any(not_character_cols)) {
+    for (col_name in multi_valued_columns[not_character_cols]) {
+      add_feedback(to_lines(
+        c(
+          glue("The column '{col_name}' is declared as multi-valued but its R data type is not 'character'."),
+          "To fix this, you can modify the column's data by converting to character, for example:",
+          indented(glue("{global_varname} <- {global_varname} %>% modify_data(mutate({col_name} = as.character({col_name})))")),
+          "You should ensure there is no unintentional data loss (e.g. precision) when manipulating data columns."
+        )
+      ))
+    }
+  }
+  
     
   # Validation: check that categorical columns are factors
   factor_columns <- variables %>%
-    filter(data_shape != "continuous") %>% pull(variable)
+    filter(data_shape == "ordinal") %>% pull(variable)
   
   not_factors <- data %>%
     select(all_of(factor_columns)) %>%
@@ -361,7 +383,7 @@ setMethod("validate", "Entity", function(object) {
     for (col_name in factor_columns[not_factors]) {
       add_feedback(to_lines(
         c(
-          glue("The variable '{col_name}' has a data_shape that is not 'continuous', and therefore"),
+          glue("The variable '{col_name}' has data_shape 'ordinal', and therefore"),
           glue("its data column must be an R factor (it is currently {data %>% pull(col_name) %>% class()})."),
           "To fix this, either mutate the data column into a factor:",
           indented(glue("{global_varname} <- {global_varname} %>% modify_data(mutate({col_name} = factor({col_name})))")),
