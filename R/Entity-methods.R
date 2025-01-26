@@ -1023,7 +1023,7 @@ setMethod("get_hydrated_variable_and_category_metadata", "Entity", function(enti
       ),
       vocabulary = if_else(
         has_values & data_shape != 'continuous',
-        list(levels(column_data)),
+        list(column_data %>% as.factor() %>% levels()),
         NA
       ),
       precision = case_when(

@@ -74,7 +74,7 @@ setMethod("inspect_variable", "Entity", function(entity, variable_name) {
 
     # convert categorical character vector to factor for nicer display
     if (all(variable_metadata$data_shape == 'categorical'))
-      variable_data <- factor(variable_data)
+      variable_data <- as.factor(variable_data)
     
     cat(
       to_lines(

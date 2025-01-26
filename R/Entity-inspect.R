@@ -113,12 +113,20 @@ If there are ID columns missing above, you may need to use:
 
   ### values ###
   if (nrow(variables_metadata)) {
+    string_columns <- variables_metadata %>%
+      filter(data_type == 'string') %>%
+      pull(variable)
     skim_data <- data %>%
       select(-all_of(ids_metadata$variable)) %>%
+      mutate(across(all_of(string_columns), as.factor)) %>%
       skim()
     cat(
       to_lines(
         heading("Summary of variable values and distributions"),
+        "Note: the following summaries are are made directly from the data table of this entity",
+        "with the skimr package. Multiple-valued variables, if present, have not been expanded and",
+        "are all handled as 'character' columns, even if they are numeric or date. Variables",
+        "with data_type = 'string' are presented as R factors for improved readability.\n",
         capture_skim(skim_data, include_summary = FALSE)
       )
     )
@@ -151,11 +159,13 @@ If there are ID columns missing above, you may need to use:
 #'
 variable_ascii_tree <- function(entity) {
   metadata <- entity %>% get_variable_and_category_metadata()
+  global_varname <- find_global_varname(entity, 'entity')
   
   if (metadata %>% pull(parent_variable) %>% is.na() %>% all()) {
     return(to_lines(
       "This entity currently has no variable categorization.",
-      "You may optionally use `create_variable_category()` to organise your variables."
+      "You may optionally use a command similar to the below to organise your variables:",
+      indented(glue("{global_varname} <- {global_varname} %>% create_variable_category('category_name', children=c('var.1', 'var.2'))"))
     ))
   }
   

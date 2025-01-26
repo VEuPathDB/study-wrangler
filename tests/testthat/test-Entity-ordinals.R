@@ -106,7 +106,7 @@ test_that("Even very large vocabularies are reported in inspect_variable", {
   expect_true(households %>% quiet() %>% validate())
   
   # add new factor levels, "aaa":"zzz"
-  households <- households %>%
+  households <- households %>% quiet() %>%
     set_variable_ordinal_levels(
       "Owns.property",
       levels = c("Yes", "No", paste0(letters, letters, letters))
