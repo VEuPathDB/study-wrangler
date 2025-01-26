@@ -46,5 +46,7 @@ test_that("get_hydrated_variable_and_category_metadata(entity) works", {
     expect_true(is.character(hvmd$parent_stable_id))
     expect_true(is.list(hvmd$vocabulary))
     expect_true(is.integer(hvmd$precision))
+    # check that all IDs are different
+    expect_false(hvmd %>% pull(stable_id) %>% duplicated() %>% any())
   }
 })
