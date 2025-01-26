@@ -1327,7 +1327,7 @@ setMethod("set_variables_multivalued", "Entity", function(entity, ...) {
   
   ordinal_vars <- variables %>% filter(variable %in% names(multivalued_vars) & data_shape == 'ordinal')
   if (nrow(ordinal_vars) > 0) {
-    stop(glue("The following variables cannot be multivalued because they are ordinal: {paste(ordinal_vars$variable, collapse = ', ')}"))
+    stop(glue("The following variables cannot be multi-valued because they are ordinal: {paste(ordinal_vars$variable, collapse = ', ')}"))
   }
   
   # Update metadata
