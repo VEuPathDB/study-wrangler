@@ -79,10 +79,10 @@ setMethod("inspect", "Entity", function(object, variable_name = NULL) {
 ~~~~
 If you see variables in the table above that should not be handled as IDs
 then you can redo the automatic column type detection with:
-`redetect_columns_as_variables(c('col_name1', 'col_name_2`))`
+  {global_varname} <- {global_varname} %>% redetect_columns_as_variables(c('col_name.1', 'col_name.2'))
 ~~~~
 If there are ID columns missing above, you may need to use:
-`set_parents(names=c('parent_name', 'grandparent_name'), columns=c('parent.id', 'grandparent.id'))`
+  {global_varname} <- {global_varname} %>% set_parents(names=c('parent_name', 'grandparent_name'), columns=c('parent.id', 'grandparent.id'))
 "),
       
       heading("Summary of important metadata for all variables and categories"),
@@ -107,7 +107,8 @@ If there are ID columns missing above, you may need to use:
         )
       ),
       "~~~~",
-      "* use `set_variable_display_names_from_provider_labels()` to use original column headings as-is."
+      "* to use original column headings for display names, use the following command:",
+      indented(glue("{global_varname} <- {global_varname} %>% set_variable_display_names_from_provider_labels()"))
     )
   )
 

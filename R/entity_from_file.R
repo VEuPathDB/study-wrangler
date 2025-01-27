@@ -109,22 +109,7 @@ entity_from_file <- function(file_path, preprocess_fn = NULL, ...) {
   # do R-based type inference on character data tibble
   # Detect column types (initially all read in as `chr`)
   # Suppress messages but intercept warnings about dates
-  data <- withCallingHandlers(
-    suppressMessages(readr::type_convert(data, guess_integer = TRUE)),
-    warning = function(w) {
-      # Check if it's a type_convert warning and embellish it
-      if (grepl("expected valid date", conditionMessage(w))) {
-        warning(paste(
-          conditionMessage(w),
-          "This date was converted to NA.\nPlease consider using `entity_from_file(filename, preprocess_fn=function)` to clean up dates.",
-          sep="\n"
-        ), call. = FALSE)
-        invokeRestart("muffleWarning")
-      } else {
-        # If not a type_convert warning, pass it through
-      }
-    }
-  )
+  data <- type_convert_quietly(data)
 
   # create `variables` with default values for every column
   # (from Entity-metadata-defaults.R)

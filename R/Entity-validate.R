@@ -219,7 +219,7 @@ setMethod("validate", "Entity", function(object) {
         "Entity level 0 is this entity. Level -1 is the parent entity, -2 is the grandparent, etc.",
         "It is likely that one or more variable columns have been incorrectly detected as ID columns.",
         "To fix this, redo the column type detection as follows:",
-        glue("{global_varname} <- {global_varname} %>% redetect_columns_as_variable(columns = c('variable1', 'variable2'))")
+        glue("{global_varname} <- {global_varname} %>% redetect_columns_as_variables(columns = c('variable1', 'variable2'))")
       ),
       collapse="\n"
     ))

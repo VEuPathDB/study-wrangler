@@ -101,10 +101,13 @@ function(
         data_type,
         is.na(data_type),
         infer_data_type(
-          data,
-          variable,
+          if (is_multi_valued) 
+            expand_multivalued_data_column(data, variable, is_multi_valued, multi_value_delimiter, .type_convert = TRUE) %>% pull(variable)
+          else
+            data %>% pull(variable),
           .allowed_data_types = .allowed_data_types,
-          .disallowed_data_types = .disallowed_data_types)
+          .disallowed_data_types = .disallowed_data_types
+        )
       )
     ) %>%
     ungroup() # remove special row-wise grouping
@@ -1010,17 +1013,13 @@ setMethod("get_hydrated_variable_and_category_metadata", "Entity", function(enti
     rowwise() %>% # because functions applied below aren't vectorized
     mutate(
       # handle multi-valued data columns
-      column_data = if_else(
+      column_data = expand_multivalued_data_column(
+        data,
+        variable,
         is_multi_valued,
-        data %>%
-          pull(variable) %>%
-          as.character() %>%
-          strsplit(multi_value_delimiter) %>%
-          unlist() %>%
-          convert_to_type(data_type) %>%
-          list(), # wrap in list for type consistency
-        data %>% pull(variable) %>% list()
-      ),
+        multi_value_delimiter,
+        data_type
+      ) %>% pull(variable) %>% list(),
       vocabulary = if_else(
         has_values & data_shape != 'continuous',
         list(column_data %>% as.factor() %>% levels()),
@@ -1296,6 +1295,9 @@ setMethod("delete_variable_category", "Entity", function(entity, category_name) 
 #' Sets the specified variables as multivalued by updating their metadata annotations.
 #' Specifically, sets `is_multi_valued` to TRUE and assigns the provided `multi_value_delimiter`.
 #' 
+#' It also attempts to determine the appropriate data_type for the variable, based on
+#' the expanded data.
+#' 
 #' @param entity An Entity object
 #' @param ... Named arguments where names are variable names and values are their delimiters
 #' 
@@ -1303,7 +1305,8 @@ setMethod("delete_variable_category", "Entity", function(entity, category_name) 
 #' @export
 setMethod("set_variables_multivalued", "Entity", function(entity, ...) {
   variables <- entity@variables
-  
+  data <- entity@data
+
   # Parse named arguments
   multivalued_vars <- list(...)
   
@@ -1317,9 +1320,10 @@ setMethod("set_variables_multivalued", "Entity", function(entity, ...) {
   if (nrow(ordinal_vars) > 0) {
     stop(glue("The following variables cannot be multi-valued because they are ordinal: {paste(ordinal_vars$variable, collapse = ', ')}"))
   }
-  
+
   # Update metadata
   variables <- variables %>%
+    rowwise() %>%
     mutate(
       is_multi_valued = if_else(
         variable %in% names(multivalued_vars),
@@ -1328,15 +1332,48 @@ setMethod("set_variables_multivalued", "Entity", function(entity, ...) {
       ),
       multi_value_delimiter = if_else(
         variable %in% names(multivalued_vars),
-        unlist(multivalued_vars[variable]),
+        pluck(multivalued_vars, variable, .default = NA_character_),
         multi_value_delimiter
-      )
-    )
-  
-  if (!entity@quiet) message(glue("Successfully marked the following variables as multi-valued: {paste(names(multivalued_vars), collapse = ', ')}"))
+      ),
+      # set type and shape to NA to trigger type/shape inference below
+      data_type = fct_mutate(
+        data_type,
+        variable %in% names(multivalued_vars),
+        NA
+      ),
+      data_shape = fct_mutate(
+        data_shape,
+        variable %in% names(multivalued_vars),
+        NA
+      ),
+    ) %>%
+    ungroup()
 
   # Update the entity
   entity@variables <- variables
+  
+  entity <- entity %>%
+    infer_missing_data_types(.disallowed_data_types = c('id')) %>%
+    infer_missing_data_shapes()
+  
+  if (!entity@quiet) {
+    variable_names <- names(multivalued_vars)
+
+    # get the data_types and data_shapes in same order as variable_names
+    filtered_metadata <- entity %>%
+      get_variable_metadata() %>%
+      filter(variable %in% variable_names) %>%
+      arrange(match(variable, variable_names)) %>%
+      select(data_type, data_shape)
+      
+    data_types <- filtered_metadata %>% pull(data_type)
+    data_shapes <- filtered_metadata %>% pull(data_shape)
+    
+    message(to_lines(
+      glue("Successfully marked the following variables as multi-valued: {paste(variable_names, collapse = ', ')}"),
+      glue("Their data_type/data_shape was detected as: {paste0(variable_names, ': ', data_types, '/', data_shapes, collapse=', ')}")
+    ))
+  }
   return(entity)
 })
 
@@ -1352,6 +1389,7 @@ setMethod("set_variables_multivalued", "Entity", function(entity, ...) {
 #' @export
 setMethod("set_variables_univalued", "Entity", function(entity, variable_names) {
   variables <- entity@variables
+  data <- entity@data
   
   # Validate input
   invalid_vars <- setdiff(variable_names, variables$variable)
@@ -1360,16 +1398,47 @@ setMethod("set_variables_univalued", "Entity", function(entity, variable_names) 
   }
   
   # Update metadata
+  # setting data_type to NA so it can be re-inferred
   variables <- variables %>%
     mutate(
       is_multi_valued = if_else(variable %in% variable_names, FALSE, is_multi_valued),
-      multi_value_delimiter = if_else(variable %in% variable_names, NA_character_, multi_value_delimiter)
+      multi_value_delimiter = if_else(variable %in% variable_names, NA_character_, multi_value_delimiter),
+      data_type = fct_mutate(
+        data_type,
+        variable %in% variable_names,
+        NA
+      ),
+      data_shape = fct_mutate(
+        data_shape,
+        variable %in% variable_names,
+        NA
+      ),
     )
 
-  if (!entity@quiet) message(glue("Successfully marked the following variables as uni-valued: {paste(variable_names, collapse = ', ')}"))
-                             
   # Update the entity
   entity@variables <- variables
+  
+  entity <- entity %>%
+    infer_missing_data_types(.disallowed_data_types = c('id')) %>%
+    infer_missing_data_shapes()
+  
+  if (!entity@quiet) {
+    # get the data_types and data_shapes in same order as variable_names
+    filtered_metadata <- entity %>%
+      get_variable_metadata() %>%
+      filter(variable %in% variable_names) %>%
+      arrange(match(variable, variable_names)) %>%
+      select(data_type, data_shape)
+    
+    data_types <- filtered_metadata %>% pull(data_type)
+    data_shapes <- filtered_metadata %>% pull(data_shape)
+    
+    message(to_lines(
+      glue("Successfully marked the following variables as uni-valued: {paste(variable_names, collapse = ', ')}"),
+      glue("Their data_type/data_shape was detected as: {paste0(variable_names, ': ', data_types, '/', data_shapes, collapse=', ')}")
+    ))
+  }
+
   return(entity)
 })
 
