@@ -1034,7 +1034,7 @@ setMethod("get_hydrated_variable_and_category_metadata", "Entity", function(enti
       # do this for all actual variables
       distinct_values_count = if_else(
         has_values,
-        column_data %>% unique() %>% length(),
+        column_data %>% n_distinct(),
         NA
       ),
       mean = if_else(

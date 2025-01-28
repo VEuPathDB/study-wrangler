@@ -29,7 +29,9 @@ setMethod("inspect", "Entity", function(object, variable_name = NULL) {
   
   ids_metadata <- get_id_column_metadata(entity)
 
-  variables_metadata <- if (entity %>% get_entity_name() %>% is_truthy()) {
+  entity_name <- entity %>% get_entity_name()
+  
+  variables_metadata <- if (is_truthy(entity_name)) {
     get_hydrated_variable_and_category_metadata(entity)
   } else {
     message(to_lines(c(
@@ -89,8 +91,11 @@ If there are ID columns missing above, you may need to use:
       kable(variables_metadata %>%
         select(variable, provider_label, data_type, data_shape, display_name, stable_id)),
       "~~~~",
-      glue("Use `{global_varname} %>% inspect('variable.name')` for a lot more detail on individual variables"),
-      
+      glue("Use `{global_varname} %>% inspect('variable.name')` for full details on individual variables"),
+      "If numeric or date variables are shown as string/categorical they may be delimited multi-value columns.",
+      "You can set them to multi-valued as follows:",
+      indented(glue("{global_varname} <- {global_varname} %>% set_variables_multivalued('variable.1.name' = 'delimiter.1', 'variable.2.name' = 'delimiter.2')")),
+
       heading("Variable annotation summary"),
       kable(
         tibble(
@@ -112,23 +117,72 @@ If there are ID columns missing above, you may need to use:
     )
   )
 
+  multivalued_metadata <- variables_metadata %>%
+    filter(has_values & is_multi_valued)
+  
   ### values ###
   if (nrow(variables_metadata)) {
-    string_columns <- variables_metadata %>%
-      filter(data_type == 'string') %>%
+    univalued_variables <- variables_metadata %>%
+      filter(has_values & !is_multi_valued) %>%
       pull(variable)
+    
+    string_variables <- variables_metadata %>%
+      filter(has_values & data_type == 'string') %>%
+      pull(variable)
+    
     skim_data <- data %>%
-      select(-all_of(ids_metadata$variable)) %>%
-      mutate(across(all_of(string_columns), as.factor)) %>%
+      select(all_of(univalued_variables)) %>%
+      mutate(across(any_of(string_variables), as.factor)) %>%
       skim()
+
     cat(
       to_lines(
         heading("Summary of variable values and distributions"),
         "Note: the following summaries are are made directly from the data table of this entity",
-        "with the skimr package. Multiple-valued variables, if present, have not been expanded and",
-        "are all handled as 'character' columns, even if they are numeric or date. Variables",
-        "with data_type = 'string' are presented as R factors for improved readability.\n",
+        "with the skimr package.",
+        if (nrow(multivalued_metadata) > 0)
+          "Multiple-valued variables, if present, are not included. See the dedicated section below."
+        else
+          "",
+        "Variables with data_type = 'string' are presented as R factors for improved readability.\n",
         capture_skim(skim_data, include_summary = FALSE)
+      )
+    )
+  }
+  
+  ### multi-valued variable summary ###
+  #   glue("of the expanded multiple values, use `{global_varname} %>% inspect('variable.name')`"),
+  if (nrow(multivalued_metadata) > 0) {
+    safe_entity_name <- if (is_truthy(entity_name)) entity_name else 'entity'
+
+    cat(
+      to_lines(
+        heading("Multi-valued variables summary"),
+        kable(
+          multivalued_metadata %>%
+            rowwise() %>%
+            mutate(
+              value_counts = list(data %>% pull(variable) %>% str_count(multi_value_delimiter) %>% + 1),
+              missing = data %>% pull(variable) %>% is.na() %>% sum(),
+              total = value_counts %>% sum(na.rm = TRUE),
+              min_values = value_counts %>% min(na.rm = TRUE),
+              median_values = value_counts %>% median(na.rm = TRUE),
+              max_values = value_counts %>% max(na.rm = TRUE),
+              "values per row (min/med/max)" = glue("{min_values} / {median_values} / {max_values}"),
+              value_counts = NULL,
+              min_values = NULL,
+              median_values = NULL,
+              max_values = NULL,
+              median = NULL, # this column wasn't "used" but appears anyway - possible bug!
+              .keep = "used"
+            ) %>%
+            ungroup() %>%
+            rename(
+              delimiter = multi_value_delimiter,
+              "NA rows" = missing,
+              "total values" = total
+            )
+        )
       )
     )
   }

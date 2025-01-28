@@ -70,7 +70,14 @@ setMethod("inspect_variable", "Entity", function(entity, variable_name) {
   # if this is an actual variable with data:
   if (all(variable_metadata$has_values)) {
     # Extract data for the specified variable
-    variable_data <- entity@data %>% pull(variable_name)
+    variable_data <- entity@data %>%
+      expand_multivalued_data_column(
+        variable_name,
+        variable_metadata$is_multi_valued,
+        variable_metadata$multi_value_delimiter,
+        .type_convert = TRUE
+      ) %>%
+      pull(variable_name)
 
     # convert categorical character vector to factor for nicer display
     if (all(variable_metadata$data_shape == 'categorical'))
@@ -80,7 +87,10 @@ setMethod("inspect_variable", "Entity", function(entity, variable_name) {
       to_lines(
         # Print summary of data
         heading(glue("Summary of data for '{variable_name}'")),
-        
+        if (variable_metadata$is_multi_valued)
+          "This is a multi-valued variable. The summary below is based on the 'expanded' values.\n"
+        else
+          "",
         kable(
           skim(variable_data) %>%
             as_tibble() %>%

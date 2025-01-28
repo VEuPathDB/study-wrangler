@@ -54,7 +54,7 @@ test_that("set_variables_multivalued() and set_variables_univalued() work", {
     households <- households %>% set_variables_multivalued("Enrollment.date"),
     "incorrect args for `set_variables_multivalued..`. Correct usage is.+variable.+delimiter"
   )
-  # now do it properly
+  # now do it properly, quietly
   expect_no_message(
     households <- households %>% quiet() %>% set_variables_multivalued("Enrollment.date" = ';')
   )
@@ -94,5 +94,39 @@ test_that("Actual multi-valued files can be processed", {
   expect_true(
     households %>% quiet() %>% validate()
   )
-    
+  
+  # now let's set something as multivalued
+  expect_message(
+    households <- households %>%
+      set_variables_multivalued("Ages.of.children" = ";"),
+    "Successfully marked the following variables as multi-valued: Ages.of.children.+Ages.of.children.+integer/continuous"
+  )
+  
+  # does it have a proper inspect_variable data summary?
+  expect_output(
+    households %>% inspect('Ages.of.children'),
+    "data_type\\s+integer.+This is a multi-valued variable.+numeric.mean.+numeric.hist"
+  )
+  
+  # let's do the other variables:
+  expect_message(
+    households <- households %>%
+      set_variables_multivalued("Distances.to.well" = ";"),
+    "Successfully marked the following variables as multi-valued: Distances.to.well.+number/continuous"
+  )
+  expect_output(
+    households %>% inspect('Distances.to.well'),
+    "data_type\\s+number.+This is a multi-valued variable.+numeric.mean.+numeric.hist"
+  )
+  expect_message(
+    households <- households %>%
+      set_variables_multivalued("Birth.dates" = ";"),
+    "Successfully marked the following variables as multi-valued: Birth.dates.+date/continuous"
+  )
+  expect_output(
+    households %>% inspect('Birth.dates'),
+    "data_type\\s+date.+This is a multi-valued variable.+Date.min.+Date.median"
+  )
+  
+  
 })
