@@ -35,6 +35,36 @@ test_that("set_variables_multivalued() and set_variables_univalued() work", {
                  filter(variable == "Construction.material") %>%
                  pull(is_multi_valued))
   
+  # check that integer and date vars still have the correct type
+  expect_message(
+    households <- households %>%
+      set_variables_multivalued("Number.of.animals" = ";"),
+    "Successfully marked the following variables as multi-valued: Number.of.animals.+Number.of.animals.+integer/continuous"
+  )
+  # double check data_type:
+  expect_equal(
+    households@variables %>%
+      filter(variable == "Number.of.animals") %>%
+      pull(data_type) %>%
+      as.character(),
+    "integer"
+  )
+  # now date, but first check that the delimiter is provided
+  expect_error(
+    households <- households %>% set_variables_multivalued("Enrollment.date"),
+    "incorrect args for `set_variables_multivalued..`. Correct usage is.+variable.+delimiter"
+  )
+  # now do it properly
+  expect_no_message(
+    households <- households %>% quiet() %>% set_variables_multivalued("Enrollment.date" = ';')
+  )
+  expect_equal(
+    households@variables %>%
+      filter(variable == "Enrollment.date") %>%
+      pull(data_type) %>%
+      as.character(),
+    "date"
+  )
   
 })
 

@@ -1306,11 +1306,19 @@ setMethod("delete_variable_category", "Entity", function(entity, category_name) 
 setMethod("set_variables_multivalued", "Entity", function(entity, ...) {
   variables <- entity@variables
   data <- entity@data
+  global_varname <- find_global_varname(entity, 'entity')
 
   # Parse named arguments
   multivalued_vars <- list(...)
-  
+
   # Validate input
+  if (is_empty(names(multivalued_vars))) {
+    stop(to_lines(
+      "Error: incorrect args for `set_variables_multivalued()`. Correct usage is:",
+      indented(glue("{global_varname} <- {global_varname} %>% set_variables_multivalued('variable.1.name' = 'delimiter.1', 'variable.2.name' = 'delimiter.2')"))
+    ))
+  }
+  
   invalid_vars <- setdiff(names(multivalued_vars), variables$variable)
   if (length(invalid_vars) > 0) {
     stop(glue("The following variables do not exist: {paste(invalid_vars, collapse = ', ')}"))
