@@ -283,6 +283,7 @@ variable_ascii_tree <- function(entity) {
     return(
       all_rows %>%
         filter(parent_variable == parent_name) %>%
+        arrange(display_order) %>%
         pull(variable) %>%
         map(
           function(var) {
