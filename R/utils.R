@@ -24,13 +24,13 @@ skim <- skimr::skim_with(
 )
 
 # Convert R column types to `data_type` metadata annotation
-infer_data_type <- function(data, column_name, 
+infer_data_type <- function(column, 
                             .allowed_data_types = NULL, 
                             .disallowed_data_types = NULL) {
   # Define allowed types as an enum-like factor
   # (excluding "string" which is always the default fallback type)
   valid_data_types <- c("date", "integer", "number", "id")
-  
+
   # Validate .allowed_data_types
   if (!is.null(.allowed_data_types) && 
       !all(.allowed_data_types %in% valid_data_types)) {
@@ -45,37 +45,103 @@ infer_data_type <- function(data, column_name,
          paste(setdiff(.disallowed_data_types, valid_data_types), collapse = ", "))
   }
   
-  # Extract column
-  column <- data %>% pull(column_name)
-  
   check_this_type <- function(type) {
     if (is_empty(.disallowed_data_types) && is_empty(.allowed_data_types)) {
       return(TRUE)
     }
     if (type %in% .disallowed_data_types) return(FALSE)
+    if (is_empty(.allowed_data_types)) return(TRUE)
     if (type %in% .allowed_data_types) return(TRUE)
     return(FALSE)
   }
-  
+
   # Dates and numbers come first so they can't be detected as IDs
-  return(
+  inferred_data_type =
     if (check_this_type("date") && is_date_column(column)) {
       "date"
     } else if (check_this_type("integer") && is.integer(column)) {
       "integer"
     } else if (check_this_type("number") && is.numeric(column)) {
       "number"
-    } else if (check_this_type("id") && n_distinct(column) == length(column)) {
+    } else if (check_this_type("id") && n_distinct(column) == length(column) && !any(is.na(column))) {
       "id" # Guess ID type only works for primary keys
     } else {
       "string" # Default fallback
     }
-  )
+  
+  return(inferred_data_type)
 }
 
 is_date_column <- function(column) {
   return(inherits(column, "Date") || inherits(column, "POSIXct"))
 }
+
+#' convert_to_type
+#' 
+#' Converts a character vector into the appropriate type based on a provided `data_type`.
+#' Supports common data types: "date", "integer", "number", and "string".
+#' 
+#' @param x A character vector to be converted
+#' @param data_type A string indicating the target data type ("date", "integer", "number", "string")
+#' 
+#' @returns A vector of the appropriate type
+convert_to_type <- function(x, data_type) {
+  if (data_type == "date") {
+    return(as.Date(x, origin = "1970-01-01"))
+  } else if (data_type == "integer") {
+    return(as.integer(x))
+  } else if (data_type %in% c("number","longitude")) {
+    return(as.numeric(x))
+  } else if (data_type == "string") {
+    return(as.character(x))
+  } else {
+    stop(glue("Unsupported data_type: {data_type}"))
+  }
+}
+
+
+#' type_convert_quietly
+#' 
+#' Converts character data in a tibble to appropriate types, suppressing messages and handling
+#' specific warnings about invalid dates gracefully. Detects column types using `readr::type_convert()`.
+#' If a column contains problematic date values, a warning is issued, and the column is left as character type.
+#' 
+#' @param data A tibble where all columns are character vectors
+#' @param guess_integer Logical. If TRUE (default), converts numbers to integer where appropriate
+#' 
+#' @returns A tibble with converted column types
+#' @export
+type_convert_quietly <- function(data, guess_integer = TRUE, global_varname = 'entity') {
+  convert_column <- function(column, column_name) {
+    tryCatch(
+      {
+        suppressMessages(readr::type_convert(tibble(value = column), guess_integer = guess_integer)$value)
+      },
+      warning = function(w) {
+        if (grepl("expected valid date", conditionMessage(w))) {
+          warning(
+            to_lines(
+              glue("Column '{column_name}' contains invalid dates."),
+              "Column will be treated as a regular string variable until the dates are cleaned up",
+              "and then formalised as dates with:",
+              indented(glue("{global_varname} <- {global_varname} %>% set_variable_as_date('{column_name}')")),
+              conditionMessage(w)
+            ),
+            call. = FALSE
+          )
+          return(column) # Return original character column
+        } else {
+          stop(w) # Stop for other unexpected warnings
+        }
+      }
+    )
+  }
+  
+  data %>%
+    mutate(across(everything(), ~ convert_column(.x, cur_column())))
+}
+
+
 
 #'
 #' void context function that will stop() if a metadata name isn't a slot
@@ -510,4 +576,37 @@ recursive_ascii_tree <- function(
   }
 }
 
+
+
+#' expand_multivalued_data_column
+#' 
+#' Expands data from a multi-valued or single-valued column.
+#' For multi-valued data, splits the input by the specified delimiter.
+#' For single-valued data, returns the original column.
+#' In both cases, a single-column tibble is returned.
+#' 
+#' If `.type_convert` is TRUE, the returned tibble will be automatically type-converted
+#' by `readr::type_convert()`
+#' 
+#' @param data a tibble of data
+#' @param variable the name of the column to process
+#' @param is_multi_valued Logical indicating whether the column is multi-valued
+#' @param multi_value_delimiter The delimiter used to split multi-valued data (if applicable)
+#' @param .type_convert Logical (default FALSE) - automatically type the expanded tibble before returning
+#' 
+#' @returns A tibble with just the `variable` column, expanded to one value per row
+expand_multivalued_data_column <- function(data, variable, is_multi_valued, multi_value_delimiter, .type_convert = FALSE) {
+  one_col_tibble <- data %>% select(all_of(variable))
+  if (is_multi_valued) {
+    one_col_tibble <- one_col_tibble %>%
+      mutate(across(everything(), as.character)) %>%
+      separate_longer_delim(all_of(variable), delim = multi_value_delimiter)
+    if (.type_convert) {
+      one_col_tibble <- one_col_tibble %>% type_convert_quietly(global_varname = find_global_varname(data, 'entity'))
+    }
+    return(one_col_tibble)
+  } else {
+    return(one_col_tibble)  # Return the original column as a tibble
+  }
+}
 

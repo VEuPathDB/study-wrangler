@@ -132,3 +132,46 @@ test_that("See how non-ISO-8601 inputs work - YY-MM-DD", {
   
 })
 
+
+test_that("Multi-valued columns with bad dates in them are handled correctly", {
+
+  date_changer <- function(data) {
+    data <- data %>% mutate(`Birth dates` = str_replace(`Birth dates`, "2018-12-10", "2018-13-10"))
+    return(data)
+  }
+  
+  file_path <- system.file("extdata", "toy_example/householdsMultiValued.tsv", package = 'study.wrangler')
+  # Create an Entity object
+  households <- entity_from_file(file_path, name='household', preprocess_fn = date_changer)
+
+  expect_message(
+    households <- households %>% redetect_columns_as_variables('Distances.to.well'),
+    "Redoing type detection"
+  )
+
+  expect_message(
+    expect_warning(
+      households <- households %>% set_variables_multivalued('Birth.dates' = ';'),
+      "Column 'Birth.dates' contains invalid dates"
+    ),
+    "Successfully marked.+multi-valued.+Birth.dates: string/categorical"
+  )
+
+  # if we follow the advice we should get given some new advice to use set_variables_multivalued()
+  expect_error(
+    households <- households %>% set_variable_as_date('Birth.dates'),
+    "This is a multi-valued variable.+not appropriate.+set_variables_multivalued"
+  )
+  
+  # fix it the data error first
+  households <- households %>% modify_data(mutate(Birth.dates = str_replace(Birth.dates, '2018-13-10', '2018-12-10')))
+  
+  # now it should detect as a multi-valued date
+  expect_message(
+    households <- households %>% set_variables_multivalued('Birth.dates' = ';'),
+    "Successfully marked.+multi-valued.+Birth.dates: date/continuous"
+  )
+  
+  expect_true(households %>% quiet() %>% validate())
+  
+})
