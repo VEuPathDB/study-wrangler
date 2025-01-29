@@ -952,6 +952,22 @@ setMethod("remove_children", "Entity", function(entity) {
 #' @param column_name The name of the column to be converted.
 #' @returns Modified Entity object.
 setMethod("set_variable_as_date", "Entity", function(entity, column_name) {
+  global_varname <- find_global_varname(entity, 'entity')
+
+  # bail if this is a multi-valued variable
+  delimiter <- entity %>% get_variable_metadata() %>%
+    filter(variable == column_name, is_multi_valued) %>%
+    select(multi_value_delimiter)
+  if (nrow(delimiter) == 1) {
+    stop(to_lines(
+      "This is a multi-valued variable and `set_variable_as_date()` is not appropriate.",
+      "If the values, after delimiter-based expansion, are all YYYY-MM-DD compliant, then",
+      "you may use the following command to configure the variable as a date:",
+      indented(glue("{global_varname} <- {global_varname} %>% set_variables_multivalued('{column_name}' = '{delimiter}')"))
+    ))
+    
+  }
+  
   # Pre-check and convert column
   data <- entity@data
   data <- check_and_convert_to_date(data, column_name)

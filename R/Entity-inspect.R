@@ -89,7 +89,7 @@ If there are ID columns missing above, you may need to use:
       
       heading("Summary of important metadata for all variables and categories"),
       kable(variables_metadata %>%
-        select(variable, provider_label, data_type, data_shape, display_name, stable_id)),
+        select(variable, provider_label, data_type, data_shape, display_name, stable_id, is_multi_valued)),
       "~~~~",
       glue("Use `{global_varname} %>% inspect('variable.name')` for full details on individual variables"),
       "If numeric or date variables are shown as string/categorical they may be delimited multi-value columns.",
