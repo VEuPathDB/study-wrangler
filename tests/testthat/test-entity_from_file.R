@@ -64,9 +64,22 @@ test_that("entity_from_file detects invalid dates", {
   }
   
   expect_warning(
-    result <- entity_from_file(file_path, preprocess_fn = spoof_bad_date),
+    result <- entity_from_file(file_path, name = 'household', preprocess_fn = spoof_bad_date),
     "expected valid date, but got" # Expected error message from readr
   )
+  # the Enrollment.date column should still be character type
+  expect_true(
+    result %>% get_data() %>% pull(Enrollment.date) %>% is.character()
+  )
+  # and should contain no NAs
+  expect_false(
+    result %>% get_data() %>% pull(Enrollment.date) %>% is.na() %>% any()
+  )
+  
+  expect_true(
+    result %>% quiet() %>% redetect_columns_as_variables('Enrollment.date') %>% validate()
+  )
+  
 })
 
 test_that("entity_from_file rejects unknown ... metadata arguments", {

@@ -104,31 +104,41 @@ convert_to_type <- function(x, data_type) {
 #' 
 #' Converts character data in a tibble to appropriate types, suppressing messages and handling
 #' specific warnings about invalid dates gracefully. Detects column types using `readr::type_convert()`.
+#' If a column contains problematic date values, a warning is issued, and the column is left as character type.
 #' 
 #' @param data A tibble where all columns are character vectors
 #' @param guess_integer Logical. If TRUE (default), converts numbers to integer where appropriate
 #' 
 #' @returns A tibble with converted column types
 #' @export
-type_convert_quietly <- function(data, guess_integer = TRUE) {
-  withCallingHandlers(
-    suppressMessages(
-      readr::type_convert(data, guess_integer = guess_integer)
-    ),
-    warning = function(w) {
-      # Check if it's a type_convert warning about dates
-      if (grepl("expected valid date", conditionMessage(w))) {
-        warning(paste(
-          conditionMessage(w),
-          "This date was converted to NA.\nPlease consider using `entity_from_file(filename, preprocess_fn=function)` to clean up dates.",
-          sep = "\n"
-        ), call. = FALSE)
-        invokeRestart("muffleWarning")
-      } else {
-        # If not a type_convert warning, pass it through
+type_convert_quietly <- function(data, guess_integer = TRUE, global_varname = 'entity') {
+  convert_column <- function(column, column_name) {
+    tryCatch(
+      {
+        suppressMessages(readr::type_convert(tibble(value = column), guess_integer = guess_integer)$value)
+      },
+      warning = function(w) {
+        if (grepl("expected valid date", conditionMessage(w))) {
+          warning(
+            to_lines(
+              glue("Column '{column_name}' contains invalid dates."),
+              "Column will be treated as a regular string variable until the dates are cleaned up",
+              "and then formalised as dates with:",
+              indented(glue("{global_varname} <- {global_varname} %>% set_variable_as_date('{column_name}')")),
+              conditionMessage(w)
+            ),
+            call. = FALSE
+          )
+          return(column) # Return original character column
+        } else {
+          stop(w) # Stop for other unexpected warnings
+        }
       }
-    }
-  )
+    )
+  }
+  
+  data %>%
+    mutate(across(everything(), ~ convert_column(.x, cur_column())))
 }
 
 
@@ -592,7 +602,7 @@ expand_multivalued_data_column <- function(data, variable, is_multi_valued, mult
       mutate(across(everything(), as.character)) %>%
       separate_longer_delim(all_of(variable), delim = multi_value_delimiter)
     if (.type_convert) {
-      one_col_tibble <- one_col_tibble %>% type_convert_quietly()
+      one_col_tibble <- one_col_tibble %>% type_convert_quietly(global_varname = find_global_varname(data, 'entity'))
     }
     return(one_col_tibble)
   } else {
