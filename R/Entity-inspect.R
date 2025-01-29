@@ -244,7 +244,8 @@ variable_ascii_tree <- function(entity) {
     select(
       variable,
       parent_variable,
-      display_name
+      display_name,
+      display_order
     )
   
   # and then add a row for '_root_'
@@ -253,7 +254,8 @@ variable_ascii_tree <- function(entity) {
       tibble(
         variable = root_name,
         parent_variable = NA,
-        display_name = entity %>% get_display_name()
+        display_name = entity %>% get_display_name(),
+        display_order = NA
       )
     )
   
