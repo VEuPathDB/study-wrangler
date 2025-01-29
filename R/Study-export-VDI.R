@@ -104,7 +104,7 @@ export_entity_to_vdi_recursively <- function(
     display_name = current_entity %>% get_display_name(),
     display_name_plural = current_entity %>% get_display_name_plural(),
     has_attribute_collections = 0L, # Placeholder for now
-    is_many_to_one_with_parent = 0L, # Placeholder for now
+    is_many_to_one_with_parent = as.integer(is_many_to_one_with_ancestor(current_entity)),
     cardinality = current_entity %>% get_data() %>% nrow()
   )
   entitytypegraph_cache <- append(entitytypegraph_cache, list(entity_entry))
@@ -116,6 +116,7 @@ export_entity_to_vdi_recursively <- function(
   # Recurse into child entities
   child_entities <- current_entity %>% get_children()
   for (child in child_entities) {
+
     updated_data <- export_entity_to_vdi_recursively(
       EntityPath(c(entities, list(child))),
       output_directory,
@@ -134,6 +135,27 @@ export_entity_to_vdi_recursively <- function(
   )
 }
 
+#' is_many_to_one_with_ancestor
+#' 
+#' Determines whether the entity has a many-to-one relationship with its parent.
+#' 
+#' @param entity An entity object
+#' 
+#' @returns Logical. TRUE if the entity has a many-to-one relationship with its parent, FALSE otherwise.
+#' @export
+is_many_to_one_with_ancestor <- function(entity) {
+  parent_id_column <- get_parent_id_column(entity)
+  
+  if (is.null(parent_id_column)) {
+    return(FALSE)
+  }
+  
+  parent_ids <- entity %>% get_data() %>% pull(parent_id_column)
+  
+  return(any(duplicated(parent_ids)))
+}
+
+
 #'
 #' dump the ancestors_{study_abbrev}_{entity_abbrev}.cache file and append
 #' install_json with the table info
@@ -147,16 +169,16 @@ export_ancestors_to_vdi <- function(entities, output_directory, install_json, st
   ids <- map(entities, function(entity) {
     entity_data <- entity %>% get_data()
     
-    if (is.null(entity %>% get_parent_id_column())) {
+    if (is.null(get_parent_id_column(entity))) {
       # If the entity has no parent, output a single-column tibble
-      entity_data %>% select(entity %>% get_entity_id_column())
+      entity_data %>% select(all_of(entity %>% get_entity_id_column()))
     } else {
       # If the entity has a parent, output a two-column tibble
       entity_data %>% 
-        select(
+        select(all_of(c(
           get_parent_id_column(entity),
           get_entity_id_column(entity)
-        )
+        )))
     }
   })
   

@@ -38,6 +38,13 @@ test_that("Study exports to VDI artifact", {
   expect_true("install.json" %in% output_files)
   expect_true("study.cache" %in% output_files)
   
+  # check the is_many_to_one_with_parent column is correct
+  entitytypegraph.cache <- file.path(output_dir, 'entitytypegraph.cache')
+  expect_equal(
+    entitytypegraph.cache %>% readr::read_tsv(col_names = FALSE, show_col_types = FALSE) %>% pull(9),
+    c(0,1,1)
+  )
+  
   # Clean up
   unlink(output_dir, recursive = TRUE)
 })
