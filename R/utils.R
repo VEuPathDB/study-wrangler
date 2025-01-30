@@ -610,3 +610,28 @@ expand_multivalued_data_column <- function(data, variable, is_multi_valued, mult
   }
 }
 
+#' Convert a tibble to a list of row-wise sparse objects
+#'
+#' This function converts a tibble into a list of named lists, where each row
+#' becomes a list object with column names as keys. Any `NA` values in atomic
+#' vectors are omitted, while list-columns remain unchanged.
+#'
+#' @param tibble A tibble or data frame to convert.
+#' @return A list of lists, where each list represents a row with `NA` values removed.
+#' @examples
+#' library(tibble)
+#' df <- tibble(
+#'   name = c("Alice", "Bob"),
+#'   age = c(25, NA),
+#'   city = c("New York", "London"),
+#'   tags = list(c("vip", "member"), NULL) # Example of a list-column
+#' )
+#' tibble_to_sparse_object(df)
+#'
+#' @export
+tibble_to_sparse_object <- function(tibble) {
+  tibble %>% pmap(
+    ~ list(...) %>%
+      discard(~ length(.x) == 1 && is.na(.x))
+  )
+}
