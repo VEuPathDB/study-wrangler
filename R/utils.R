@@ -57,7 +57,7 @@ infer_data_type <- function(column,
 
   # Dates and numbers come first so they can't be detected as IDs
   inferred_data_type =
-    if (check_this_type("date") && is_date_column(column)) {
+    if (check_this_type("date") && is.Date(column)) {
       "date"
     } else if (check_this_type("integer") && is.integer(column)) {
       "integer"
@@ -70,10 +70,6 @@ infer_data_type <- function(column,
     }
   
   return(inferred_data_type)
-}
-
-is_date_column <- function(column) {
-  return(inherits(column, "Date") || inherits(column, "POSIXct"))
 }
 
 #' convert_to_type

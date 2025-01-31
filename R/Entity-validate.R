@@ -330,7 +330,7 @@ setMethod("validate", "Entity", function(object) {
 
   not_dates <- data %>%
     select(all_of(date_columns)) %>%
-    summarise(across(everything(), ~ !is_date_column(.))) %>%
+    summarise(across(everything(), ~ !is.Date(.))) %>%
     unlist() %>% as.logical()
   
   if (any(not_dates)) {

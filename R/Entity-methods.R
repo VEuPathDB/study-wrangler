@@ -747,6 +747,7 @@ setMethod("set_parents", "Entity", function(entity, names, columns) {
   variables <- variables %>%
     mutate(
       data_type = fct_mutate(data_type, variable %in% columns, 'id'),
+      data_shape = fct_mutate(data_shape, variable %in% columns, NA),
       entity_name = if_else(variable %in% columns, names[match(variable, columns)], entity_name),
       entity_level = if_else(variable %in% columns, -match(variable, columns), entity_level)
     )

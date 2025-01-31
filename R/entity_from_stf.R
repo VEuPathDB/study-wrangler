@@ -23,6 +23,9 @@ entity_from_stf <- function(tsv_path, yaml_path = NULL) {
   # set the data column names
   colnames(data) <- clean_headers
   
+  # do basic R type detection on columns
+  data <- data %>% type_convert_quietly()
+  
   # Initialize placeholders
   variables <- NULL
   entity_metadata <- NULL
@@ -34,7 +37,42 @@ entity_from_stf <- function(tsv_path, yaml_path = NULL) {
     }
     
     metadata_list %>%
-      map(~ tibble(!!!modifyList(as.list(variable_metadata_defaults), .x))) %>%
+      map(function(row_object) {
+        # Merge defaults with the row's metadata
+        merged <- modifyList(as.list(variable_metadata_defaults), row_object)
+        
+        if (length(merged) != ncol(variable_metadata_defaults) + 1)
+          stop("Error: unused fields in YAML are not allowed")
+        # TO DO: handle this more cleanly. Validate YAML and report issues before attempting to load?
+        
+        # Convert each element based on its default type
+        merged <- map2(
+          merged,
+          c(as.list(variable_metadata_defaults), list(variable = NA_character_)),
+          function(value, default) {
+            if (is.factor(default)) {
+              # If default is factor, convert value to factor using levels from default.
+              # This works even if `value` is already a factor.
+              return(factor(value, levels = levels(default)))
+            }
+            if (is.integer(default)) {
+              return(as.integer(value))
+            }
+            if (is.numeric(default)) {
+              return(as.numeric(value))
+            }
+            if (inherits(default, "Date")) {
+              return(as.Date(value))
+            }
+            # For any other type (including character), leave the value as is.
+            return(value)
+          }
+        )
+        
+        tibble(
+          !!!merged
+        )
+      }) %>%
       reduce(bind_rows) %>%
       relocate(variable)
   }
@@ -88,8 +126,8 @@ entity_from_stf <- function(tsv_path, yaml_path = NULL) {
     
     # Process `ids`, `variables`, and `categories`, skipping empty ones
     variables <- list(
-      process_metadata_list(metadata$ids),
-      process_metadata_list(metadata$variables),
+      process_metadata_list(metadata$ids %>% map(~ modifyList(.x, list(data_type = factor('id'))))),
+      process_metadata_list(metadata$variables %>% map(~ modifyList(.x, list(entity_name = entity_metadata$name)))),
       process_metadata_list(metadata$categories)
     ) %>%
       compact() %>%   # Remove NULLs to avoid unnecessary binds
