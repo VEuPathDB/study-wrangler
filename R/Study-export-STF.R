@@ -109,15 +109,13 @@ write_stf_data <- function(entity, output_directory) {
   ncols <- length(headers)
   is_tall <- ncols > nrow(data) && ncols >= 200
   
-  # Replace ID column headers with entity names and the special
+  # Replace the last ID column headers with the special
   # STF ID column header which tells us which orientation the file is in
   # and tells us when the entity names stop and variable names begin
-  entity_names <- ids_metadata %>% pull(entity_name)
-  headers[seq_along(entity_names)] <- entity_names
-  headers[length(entity_names)] <- if (is_tall) {
+  headers[length(id_column_names)] <- if (is_tall) {
     glue("Descriptors \\\\ {entity_name}")
   } else {
-    glue("{entity_names[length(entity_names)]} \\\\ Descriptors")
+    glue("{id_column_names[length(id_column_names)]} \\\\ Descriptors")
   }
   
   # Convert everything to character and add headers as row 1
