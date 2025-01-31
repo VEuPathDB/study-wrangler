@@ -69,7 +69,7 @@ entity_from_stf <- function(tsv_path, yaml_path = NULL) {
     
     variables_metadata <- map(
       variable_column_names,
-      ~ list(variable = .x, entity_name = this_entity_name, entity_level = 0)
+      ~ list(variable = .x, entity_name = this_entity_name, entity_level = 0L)
     ) %>%
       process_metadata_list()
     
@@ -101,7 +101,7 @@ entity_from_stf <- function(tsv_path, yaml_path = NULL) {
   entity <- do.call(entity, constructor_args) %>%
     quiet() %>%
     sync_variable_metadata() %>%
-    infer_missing_data_types() %>%
+    infer_missing_data_types(.disallowed_data_types = c('id')) %>%
     infer_missing_data_shapes() %>%
     verbose()
   
