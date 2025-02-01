@@ -24,3 +24,37 @@ make_study <- function(...) {
   study <- do.call(study_from_entities, args)
   return(study)
 }
+
+#' makes a study and munges the ID column names to be the same as the entity
+#' names and then exports to STF and deletes the YAML files
+#'
+#' these very minimal files should load and be able to form a study
+#' (via `study_from_stf()`) although variables will lack all specialised
+#' annnotations.
+#' 
+make_minimal_stf <- function(output_directory) {
+  study <- make_study(name = 'minimal stf demo')
+  
+  households <- study %>% get_entity('household') %>%
+    modify_data(rename(household = Household.Id)) %>% sync_variable_metadata()
+  
+  participants <- study %>% get_entity('participant') %>%
+    modify_data(rename(household = Household.Id, participant = Participant.Id)) %>%
+    sync_variable_metadata() %>%
+    redetect_column_as_id('participant') %>%
+    set_parents('household', 'household')
+  
+  observations <- study %>% get_entity('observation') %>%
+    modify_data(rename(household = Household.Id, participant = Participant.Id, observation = Part..Obs..Id)) %>%
+    sync_variable_metadata() %>%
+    redetect_column_as_id('participant') %>%
+    redetect_column_as_id('household') %>%
+    set_parents(c('participant', 'household'), c('participant', 'household'))
+  
+  study_from_entities(list(households, participants, observations)) %>%
+    export_to_stf(output_directory)
+  
+  # remove all the yaml files
+  list.files(output_directory, pattern = "\\.yaml$", full.names = TRUE) %>% unlink()
+  
+}

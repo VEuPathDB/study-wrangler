@@ -21,6 +21,25 @@ test_that("Study exports to STF directory", {
   
 })
 
-## Note: the main test will be a round trip
-
+test_that("Minimal STF (no YAML metadata) loads and validates", {
+  stf_directory <- 'tmp/stf-minimal'
+  make_minimal_stf(stf_directory)
+  
+  expect_no_error(
+    study <- study_from_stf(stf_directory)
+  )
+  
+  # all it lacks is a name
+  expect_message(
+    validate(study),
+    "Study name is missing"
+  )
+  
+  study <- study %>% quiet() %>% set_study_name('minimal')
+  
+  # should now validate
+  expect_true(validate(study))
+  
+  unlink(stf_directory, recursive = TRUE)
+})
 
