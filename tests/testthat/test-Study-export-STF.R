@@ -43,3 +43,13 @@ test_that("Minimal STF (no YAML metadata) loads and validates", {
   unlink(stf_directory, recursive = TRUE)
 })
 
+test_that("The basic study roundtrips via regular STF", {
+  stf_directory <- 'tmp/stf-full'
+  study1 <- make_study()
+  study1 %>% export_to_stf(stf_directory)
+  study2 <- study_from_stf(stf_directory)
+  expect_equal(study1, study2)
+  
+  unlink(stf_directory, recursive = TRUE)
+  
+})
