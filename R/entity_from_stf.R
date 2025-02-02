@@ -33,14 +33,14 @@ entity_from_stf <- function(tsv_path, yaml_path = NULL) {
   # Function to process metadata lists safely
   process_metadata_list <- function(metadata_list) {
     if (length(metadata_list) == 0) {
-      return(NULL)  # Return NULL to prevent unwanted bindings
+      return(NULL)  # Return NULL so `bind_rows()` later skips empty sections
     }
-    
+
     metadata_list %>%
       map(function(row_object) {
         # Merge defaults with the row's metadata
-        merged <- modifyList(as.list(variable_metadata_defaults), row_object)
-        
+        merged <- list_modify(as.list(variable_metadata_defaults), !!!row_object)
+
         if (length(merged) != ncol(variable_metadata_defaults) + 1)
           stop("Error: unused fields in YAML are not allowed")
         # TO DO: handle this more cleanly. Validate YAML and report issues before attempting to load?
@@ -50,6 +50,10 @@ entity_from_stf <- function(tsv_path, yaml_path = NULL) {
           merged,
           c(as.list(variable_metadata_defaults), list(variable = NA_character_)),
           function(value, default) {
+            # TO DO: explain why list-of-empty-list is handled differently
+            if (is.list(default) && !identical(value, list(list()))) {
+              return(list(as.list(value)))
+            }
             if (is.factor(default)) {
               # If default is factor, convert value to factor using levels from default.
               # This works even if `value` is already a factor.
@@ -68,7 +72,7 @@ entity_from_stf <- function(tsv_path, yaml_path = NULL) {
             return(value)
           }
         )
-        
+
         tibble(
           !!!merged
         )
@@ -133,15 +137,15 @@ entity_from_stf <- function(tsv_path, yaml_path = NULL) {
       compact() %>%   # Remove NULLs to avoid unnecessary binds
       bind_rows()
   }
-  
+
   # Construct entity
   constructor_args <- c(list(data = data, variables = variables), entity_metadata)
-  entity <- do.call(entity, constructor_args) %>%
-    quiet() %>%
-    sync_variable_metadata() %>%
-    infer_missing_data_types(.disallowed_data_types = c('id')) %>%
-    infer_missing_data_shapes() %>%
-    verbose()
+  entity <- do.call(entity, constructor_args)# %>%
+    # quiet() %>%
+    # sync_variable_metadata() %>%
+    # infer_missing_data_types(.disallowed_data_types = c('id')) %>%
+    # infer_missing_data_shapes() %>%
+    # verbose()
   
   return(entity)
 }

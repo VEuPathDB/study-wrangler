@@ -45,11 +45,28 @@ test_that("Minimal STF (no YAML metadata) loads and validates", {
 
 test_that("The basic study roundtrips via regular STF", {
   stf_directory <- 'tmp/stf-full'
-  study1 <- make_study()
+  study1 <- make_study(quiet_entities = FALSE)
   study1 %>% export_to_stf(stf_directory)
   study2 <- study_from_stf(stf_directory)
   expect_equal(study1, study2)
   
   unlink(stf_directory, recursive = TRUE)
   
+})
+
+
+test_that("A study with ordinals roundtrips OK", {
+  
+  stf_directory <- 'tmp/stf-ordinal'
+  study1 <- make_study(quiet_entities = FALSE)
+  households <- study1 %>% get_entity('household')
+  participants <- study1 %>% get_entity('participant')
+  observations <- study1 %>% get_entity('observation')
+  
+  households <- households %>%
+    set_variable_ordinal_levels('Number.of.animals', levels = num_levels)
+  
+  study1 <- study_from_entities(list(households, participants, observations))
+  
+  study1 %>% export_to_stf(stf_directory)
 })

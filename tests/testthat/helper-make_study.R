@@ -1,4 +1,4 @@
-make_study <- function(...) {
+make_study <- function(quiet_entities = TRUE, ...) {
   metadata <- list(...)
   validate_object_metadata_names('Study', metadata)
   
@@ -7,17 +7,19 @@ make_study <- function(...) {
   observations_path <- system.file("extdata", "toy_example/participant_observations.tsv", package = 'study.wrangler')
   
   # quiet entities suppress output
-  households <- entity_from_file(households_path, name="household", quiet=TRUE)
+  households <- entity_from_file(households_path, name="household", quiet=quiet_entities)
 
   participants <- entity_from_file(participants_path, name="participant", quiet=TRUE) %>%
     redetect_columns_as_variables('Name') %>%
-    set_parents(names=c("household"), columns=c("Household.Id"))
+    set_parents(names=c("household"), columns=c("Household.Id")) %>%
+    set_quiet(quiet_entities)
 
   observations <- entity_from_file(observations_path, name="observation", quiet=TRUE) %>%
     set_parents(
       names=c("participant","household"), 
       columns=c("Participant.Id","Household.Id")
-    )
+    ) %>%
+    set_quiet(quiet_entities)
 
   # call study_from_entities with 'spread' metadata 
   args = c(list(entities = c(households, participants, observations)), metadata)
