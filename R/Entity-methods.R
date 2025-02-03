@@ -74,6 +74,8 @@ setGeneric("delete_variable_category", function(entity, category_name) standardG
 setGeneric("set_variables_multivalued", function(entity, ...) standardGeneric("set_variables_multivalued"))
 #' @export
 setGeneric("set_variables_univalued", function(entity, variable_names) standardGeneric("set_variables_univalued"))
+#' @export
+setGeneric("sync_ordinal_data", function(entity) standardGeneric("sync_ordinal_data"))
 
 
 #' infer_missing_data_types
@@ -92,7 +94,7 @@ function(
 ) {
   variables <- entity@variables
   data <- entity@data
-  
+
   # use infer_column_data_type(data_column) to fill in NAs in variables$data_type column
   variables <- variables %>%
     rowwise() %>% # performance is not critical here
@@ -108,6 +110,12 @@ function(
           .allowed_data_types = .allowed_data_types,
           .disallowed_data_types = .disallowed_data_types
         )
+      ),
+      # remove provider labels from id columns
+      provider_label = if_else(
+        data_type == 'id',
+        list(list()),
+        list(provider_label)
       )
     ) %>%
     ungroup() # remove special row-wise grouping
@@ -693,13 +701,18 @@ setMethod("set_variable_display_names_from_provider_labels", "Entity", function(
   variables <- entity@variables
   
   # Define the logical mask for rows that need updating
-  mask <- variables %>% transmute(data_type != 'id' & is.na(display_name)) %>% pull()
+  mask <- variables %>%
+    mutate(
+      data_type != 'id' & is.na(display_name),
+      .keep = "none"
+    ) %>%
+    pull()
 
   # Update the display_name for rows matching the mask
   variables <- variables %>%
     mutate(display_name = if_else(
       mask,
-      map_chr(provider_label, ~ .x[[1]]), # take just the first provider_label
+      map_chr(provider_label, ~ if (length(.x) > 0) .x[[1]] else NA_character_),
       display_name
     ))
 
@@ -749,7 +762,9 @@ setMethod("set_parents", "Entity", function(entity, names, columns) {
       data_type = fct_mutate(data_type, variable %in% columns, 'id'),
       data_shape = fct_mutate(data_shape, variable %in% columns, NA),
       entity_name = if_else(variable %in% columns, names[match(variable, columns)], entity_name),
-      entity_level = if_else(variable %in% columns, -match(variable, columns), entity_level)
+      entity_level = if_else(variable %in% columns, -match(variable, columns), entity_level),
+      # remove provider labels for ID columns
+      provider_label = map_if(provider_label, variable %in% columns, ~ list())
     )
   
   if (!entity@quiet) message("Parent entity relationships and columns have been set")
@@ -1464,6 +1479,56 @@ setMethod("set_variables_univalued", "Entity", function(entity, variable_names) 
     ))
   }
 
+  return(entity)
+})
+
+
+#' sync_ordinal_data
+#'
+#' Converts character columns to factors for `data_shape == 'ordinal'` variables,
+#' applying `levels = ordinal_levels` from the metadata.
+#'
+#' @param entity an Entity object
+#' @returns modified entity
+#' @export
+setMethod("sync_ordinal_data", "Entity", function(entity) {
+  variables <- entity@variables
+  data <- entity@data
+  
+  # Identify ordinal variables that are character columns in the data
+  ordinal_vars <- variables %>%
+    filter(data_shape == "ordinal") %>%
+    pull(variable)
+  
+  # find the data columns that need to be converted to factors
+  # (only character and integer allowed)
+  suitable_ordinal_columns <-
+    ordinal_vars[
+      ordinal_vars %in% colnames(data) &
+      map_lgl(data[ordinal_vars], ~ is.character(.x) | is.integer(.x))
+    ]
+
+  if (length(suitable_ordinal_columns) == 0) {
+    if (!entity@quiet) message("No character columns detected for ordinal variables. No changes made.")
+    return(entity)
+  }
+  
+  # Retrieve ordinal levels from metadata
+  ordinal_levels_map <- variables %>%
+    filter(variable %in% suitable_ordinal_columns) %>%
+    select(variable, ordinal_levels) %>%
+    deframe() # Converts to named list
+  
+  # Apply conversion to factor with specified levels
+  entity@data <- entity@data %>%
+    mutate(across(all_of(suitable_ordinal_columns), ~ factor(.x, levels = ordinal_levels_map[[cur_column()]])))
+  
+  if (!entity@quiet) {
+    message(glue(
+      "Converted character columns to factors for ordinal variables: {paste(suitable_ordinal_columns, collapse = ', ')}"
+    ))
+  }
+  
   return(entity)
 })
 

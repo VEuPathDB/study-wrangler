@@ -140,12 +140,13 @@ entity_from_stf <- function(tsv_path, yaml_path = NULL) {
 
   # Construct entity
   constructor_args <- c(list(data = data, variables = variables), entity_metadata)
-  entity <- do.call(entity, constructor_args)# %>%
-    # quiet() %>%
-    # sync_variable_metadata() %>%
-    # infer_missing_data_types(.disallowed_data_types = c('id')) %>%
-    # infer_missing_data_shapes() %>%
-    # verbose()
+  entity <- do.call(entity, constructor_args) %>%
+    quiet() %>%
+    sync_variable_metadata() %>%
+    infer_missing_data_types(.disallowed_data_types = c('id')) %>%
+    infer_missing_data_shapes() %>%
+    sync_ordinal_data() %>%
+    verbose()
   
   return(entity)
 }
