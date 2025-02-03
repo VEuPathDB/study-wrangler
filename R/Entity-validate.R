@@ -385,10 +385,9 @@ setMethod("validate", "Entity", function(object) {
         c(
           glue("The variable '{col_name}' has data_shape 'ordinal', and therefore"),
           glue("its data column must be an R factor (it is currently {data %>% pull(col_name) %>% class()})."),
-          "To fix this, either mutate the data column into a factor:",
-          indented(glue("{global_varname} <- {global_varname} %>% modify_data(mutate({col_name} = factor({col_name})))")),
-          "Or you can manipulate factors using the `forcats` library:",
-          indented(glue("{global_varname} <- {global_varname} %>% modify_data(mutate({col_name} = fct_recode({col_name}, 'newVal' = 'oldVal')))"))
+          "The best way to define an ordinal variable is as follows:",
+          indented(glue("{global_varname} <- {global_varname} %>% set_variable_ordinal_levels(variable_name, levels)")),
+          "This will take care of the data column reformatting for you."
         )
       ))
     }
