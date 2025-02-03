@@ -88,3 +88,56 @@ test_that("A study with ordinals roundtrips OK", {
   
   unlink(stf_directory, recursive = TRUE)
 })
+
+test_that("Studies with multi-valued columns roundtrip OK", {
+  
+  expect_no_message(
+    {
+      stf_directory <- 'tmp/stf-multivalued'
+      study_name <- 'multi'
+      study1 <- make_study(name = study_name, quiet_entities = FALSE)
+      expect_true(study1 %>% quiet() %>% validate())
+      
+      # to modify one entity, we must get them all separately, modify as required,
+      # and recreate the study with them again
+
+      file_path <- system.file("extdata", "toy_example/householdsMultiValued.tsv", package = 'study.wrangler')
+      households <- entity_from_file(file_path, name='household')
+      expect_message(
+        households <- households %>% redetect_columns_as_variables(columns = c('Distances.to.well')),
+        "Redoing type detection"
+      )
+      expect_message(
+        households <- households %>%
+          set_variables_multivalued("Ages.of.children" = ";"),
+        "Successfully marked the following variables as multi-valued: Ages.of.children.+Ages.of.children.+integer/continuous"
+      )
+      expect_message(
+        households <- households %>%
+          set_variables_multivalued("Distances.to.well" = ";"),
+        "Successfully marked the following variables as multi-valued: Distances.to.well.+number/continuous"
+      )
+      expect_message(
+        households <- households %>%
+          set_variables_multivalued("Birth.dates" = ";"),
+        "Successfully marked the following variables as multi-valued: Birth.dates.+date/continuous"
+      )
+      expect_true(
+        households %>% quiet() %>% validate()
+      )
+      
+      participants <- study1 %>% get_entity('participant')
+      observations <- study1 %>% get_entity('observation')
+      
+      study1 <- study_from_entities(list(households, participants, observations), name = study_name)
+      expect_true(study1 %>% quiet() %>% validate())
+      study1 %>% export_to_stf(stf_directory)
+      study2 <- study_from_stf(stf_directory)
+      expect_true(study2 %>% quiet() %>% validate())
+    }
+  )
+  expect_equal(study2, study1)
+  
+  unlink(stf_directory, recursive = TRUE)
+  
+})
