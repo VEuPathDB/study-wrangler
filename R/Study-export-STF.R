@@ -44,7 +44,7 @@ setMethod("export_to_stf", "Study", function(object, output_directory) {
   yaml::write_yaml(study_metadata, study_metadata.path)
   
   export_entity_to_stf_recursively(
-    EntityPath(list(get_root_entity(study))),
+    get_root_entity(study),
     output_directory
   )
   
@@ -55,9 +55,7 @@ setMethod("export_to_stf", "Study", function(object, output_directory) {
 
 # not sure recursion is necessary here, but we used it for VDI export
 # so it may come in handy at some point?
-export_entity_to_stf_recursively <- function(object, output_directory) {
-  entities <- object
-  entity <- entities[[length(entities)]]
+export_entity_to_stf_recursively <- function(entity, output_directory) {
   entity_name <- entity %>% get_entity_name()
   
   # write the metadata to YAML
@@ -89,7 +87,7 @@ export_entity_to_stf_recursively <- function(object, output_directory) {
   child_entities <- entity %>% get_children()
   for (child in child_entities) {
     export_entity_to_stf_recursively(
-      EntityPath(c(entities, list(child))),
+      child,
       output_directory
     )
   }
