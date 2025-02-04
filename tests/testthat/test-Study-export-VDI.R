@@ -13,7 +13,7 @@ test_that("Study exports to VDI artifact", {
     "output_directory not provided"
   )
   
-  output_dir <- "./tmp"
+  output_dir <- "./tmp/vdi"
   
   expect_no_error(
     # capture messages about entity stable ID generation

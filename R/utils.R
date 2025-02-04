@@ -57,7 +57,7 @@ infer_data_type <- function(column,
 
   # Dates and numbers come first so they can't be detected as IDs
   inferred_data_type =
-    if (check_this_type("date") && is_date_column(column)) {
+    if (check_this_type("date") && is.Date(column)) {
       "date"
     } else if (check_this_type("integer") && is.integer(column)) {
       "integer"
@@ -70,10 +70,6 @@ infer_data_type <- function(column,
     }
   
   return(inferred_data_type)
-}
-
-is_date_column <- function(column) {
-  return(inherits(column, "Date") || inherits(column, "POSIXct"))
 }
 
 #' convert_to_type
@@ -610,3 +606,37 @@ expand_multivalued_data_column <- function(data, variable, is_multi_valued, mult
   }
 }
 
+#' Convert a tibble to a list of row-wise sparse objects
+#'
+#' This function converts a tibble into a list of named lists, where each row
+#' becomes a list object with column names as keys. Any `NA` values in atomic
+#' vectors are omitted, while list-columns remain unchanged.
+#'
+#' @param tibble A tibble or data frame to convert.
+#' @return A list of lists, where each list represents a row with `NA` values removed.
+#' @examples
+#' library(tibble)
+#' df <- tibble(
+#'   name = c("Alice", "Bob"),
+#'   age = c(25, NA),
+#'   city = c("New York", "London"),
+#'   tags = list(c("vip", "member"), NULL) # Example of a list-column
+#' )
+#' tibble_to_sparse_object(df)
+#'
+#' @export
+tibble_to_sparse_object <- function(tibble) {
+  tibble %>% pmap(
+    ~ list(...) %>%
+      discard(~ length(.x) == 1 && is.na(.x))
+  )
+}
+
+write_pretty_yaml <- function(data, file) {
+  data %>%
+    # convert to basic extra-indented yaml
+    yaml::as.yaml(indent.mapping.sequence = TRUE) %>%
+    # Add line breaks before simple alphanumeric root-level keys for lists
+    str_replace_all("(\n\\w+:(?: \\[\\])?\n)", "\n\\1") %>%
+    writeLines(file)
+}

@@ -95,7 +95,10 @@ setMethod("validate", "Study", function(object) {
         "Use the following code to get row-wise details:",
         indented(
           problematic_pairs %>%
-            transmute(glue("{global_varname} <- {global_varname} %>% check_parent_child_row_linkage('{parent}', '{child}')")) %>% pull()
+            mutate(
+              glue("{global_varname} <- {global_varname} %>% check_parent_child_row_linkage('{parent}', '{child}')"),
+              .keep = "none"
+            ) %>% pull()
         )
       ))
     }
