@@ -41,7 +41,7 @@ setMethod("export_to_stf", "Study", function(object, output_directory) {
         function(entity) entity %>% get_entity_name()
       )
     )
-  yaml::write_yaml(study_metadata, study_metadata.path)
+  write_pretty_yaml(study_metadata, study_metadata.path)
   
   export_entity_to_stf_recursively(
     get_root_entity(study),
@@ -61,9 +61,26 @@ export_entity_to_stf_recursively <- function(entity, output_directory) {
   # write the metadata to YAML
   entity_metadata.path <- file.path(output_directory, glue("entity-{entity_name}.yaml"))
   
-  ids_metadata <- entity %>% get_id_column_metadata() %>% tibble_to_sparse_object()
-  variables_metadata <- entity %>% get_variable_metadata() %>% tibble_to_sparse_object()
-  categories_metadata <- entity %>% get_category_metadata() %>% tibble_to_sparse_object()
+  # turn metadata tibble into a sparse R object (nested list) targeted for YAML
+  # exclude any default values to keep the YAML concise
+  postprocess_metadata <- function(metadata) {
+    defaults <- as.list(variable_metadata_defaults)
+    metadata %>%
+      tibble_to_sparse_object() %>%
+      map(function(record) {
+        # record is also a list
+        record %>%
+          # in imap() .x is the value and .y is the key/name
+          # only keep the key-value pair if the value different from the default value
+          imap(~ if (!identical(.x, defaults[[.y]])) .x) %>%
+          # get rid of NAs introduced by imap()
+          compact()
+      })
+  }
+  
+  ids_metadata <- entity %>% get_id_column_metadata() %>% postprocess_metadata()
+  variables_metadata <- entity %>% get_variable_metadata() %>% postprocess_metadata()
+  categories_metadata <- entity %>% get_category_metadata() %>% postprocess_metadata()
   
   entity_metadata <- entity %>%
     slotNames() %>%
@@ -77,7 +94,7 @@ export_entity_to_stf_recursively <- function(entity, output_directory) {
       categories = categories_metadata
     )
   
-  yaml::write_yaml(entity_metadata, entity_metadata.path)
+  write_pretty_yaml(entity_metadata, entity_metadata.path)
   
   # write the data to STF-style TSV
   # (auto tall or wide format)

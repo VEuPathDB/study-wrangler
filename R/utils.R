@@ -631,3 +631,12 @@ tibble_to_sparse_object <- function(tibble) {
       discard(~ length(.x) == 1 && is.na(.x))
   )
 }
+
+write_pretty_yaml <- function(data, file) {
+  data %>%
+    # convert to basic extra-indented yaml
+    yaml::as.yaml(indent.mapping.sequence = TRUE) %>%
+    # Add line breaks before simple alphanumeric root-level keys for lists
+    str_replace_all("(\n\\w+:(?: \\[\\])?\n)", "\n\\1") %>%
+    writeLines(file)
+}
