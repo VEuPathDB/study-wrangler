@@ -35,12 +35,12 @@ entity_from_stf <- function(tsv_path, yaml_path = NULL) {
     if (length(metadata_list) == 0) {
       return(NULL)  # Return NULL so `bind_rows()` later skips empty sections
     }
-
+    
     metadata_list %>%
       map(function(row_object) {
         # Merge defaults with the row's metadata
         merged <- list_modify(as.list(variable_metadata_defaults), !!!row_object)
-
+        
         if (length(merged) != ncol(variable_metadata_defaults) + 1)
           stop("Error: unused fields in YAML are not allowed")
         # TO DO: handle this more cleanly. Validate YAML and report issues before attempting to load?
@@ -72,7 +72,7 @@ entity_from_stf <- function(tsv_path, yaml_path = NULL) {
             return(value)
           }
         )
-
+        
         tibble(
           !!!merged
         )
@@ -128,13 +128,31 @@ entity_from_stf <- function(tsv_path, yaml_path = NULL) {
     # Extract non-list elements as entity metadata
     entity_metadata <- metadata %>% discard(is.list)
 
-    # Process `ids`, `variables`, and `categories`, skipping empty ones
+    # Process `id_columns`, `variables`, and `categories`, skipping empty ones
     variables <- list(
-      process_metadata_list(metadata$ids %>% map(~ modifyList(.x, list(data_type = factor('id'))))),
-      process_metadata_list(metadata$variables %>% map(~ modifyList(.x, list(entity_name = entity_metadata$name)))),
+      process_metadata_list(
+        metadata$id_columns %>%
+          map(
+            ~ list_modify(.x, variable = .x$id_column, id_column = zap(), data_type = factor("id"))
+          )
+      ),
+      process_metadata_list(
+        metadata$variables %>%
+          map(
+            ~ list_modify(.x, entity_name = entity_metadata$name)
+          )
+      ),
       process_metadata_list(
         metadata$categories %>%
-          map(~ modifyList(.x, list(data_type = factor('category'), entity_name = entity_metadata$name)))
+          map(
+            ~ list_modify(
+              .x,
+              variable = .x$category,
+              category = zap(), # removes the field from the object
+              data_type = factor('category'),
+              entity_name = entity_metadata$name
+            )
+          )
       )
     ) %>%
       compact() %>%   # Remove NULLs to avoid unnecessary binds

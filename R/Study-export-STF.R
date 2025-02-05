@@ -78,9 +78,9 @@ export_entity_to_stf_recursively <- function(entity, output_directory) {
       })
   }
   
-  ids_metadata <- entity %>% get_id_column_metadata() %>% postprocess_metadata()
+  ids_metadata <- entity %>% get_id_column_metadata() %>% rename(id_column = variable) %>% postprocess_metadata()
   variables_metadata <- entity %>% get_variable_metadata() %>% postprocess_metadata()
-  categories_metadata <- entity %>% get_category_metadata() %>% postprocess_metadata()
+  categories_metadata <- entity %>% get_category_metadata() %>% rename(category = variable) %>% postprocess_metadata()
   
   entity_metadata <- entity %>%
     slotNames() %>%
@@ -89,7 +89,7 @@ export_entity_to_stf_recursively <- function(entity, output_directory) {
     map(~ slot(entity, .x)) %>% # map it to a list with the actual slot value as values
     discard(is.na) %>% # to remove any YAML entries with no value provided
     list_assign( # add the tabular metadata
-      ids = ids_metadata,
+      id_columns = ids_metadata,
       variables = variables_metadata,
       categories = categories_metadata
     )
