@@ -141,3 +141,50 @@ test_that("Studies with multi-valued columns roundtrip OK", {
   unlink(stf_directory, recursive = TRUE)
   
 })
+
+
+test_that("studies with variable categories roundtrip via STF", {
+  # Create a study and retrieve entities
+  study_name <- 'categorised'
+  expect_no_error(
+    study1 <- make_study(name = study_name)
+  )
+  
+  households <- study1 %>% get_root_entity() %>% verbose()
+  participants <- study1 %>% get_entity('participant') %>% verbose()
+  observations <- study1 %>% get_entity('observation') %>% verbose()
+  
+  expect_message(
+    expect_message(
+      households <- households %>%
+        create_variable_category(
+          category_name = "house_vars",
+          children = c("Owns.property", "Construction.material"),
+          display_name = "House-related",
+          definition = "Things about the house"
+        ),
+      "Successfully created category 'house_vars'"
+    ),
+    "Made metadata update.s. to 'display_name', 'definition' for 'house_vars'"
+  )
+  
+  # it should validate
+  expect_true(
+    households %>% quiet() %>% validate()
+  )
+
+  expect_no_error(
+    study1 <- study_from_entities(list(households, participants, observations), name = study_name)
+  )
+  expect_true(study1 %>% quiet() %>% validate())
+  stf_directory <- 'tmp/stf-categories'
+  study1 %>% export_to_stf(stf_directory)
+  study2 <- study_from_stf(stf_directory)
+  expect_true(study2 %>% quiet() %>% validate())
+  
+  expect_equal(study2, study1)
+  
+  unlink(stf_directory, recursive = TRUE)
+  
+  
+})

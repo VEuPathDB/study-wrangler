@@ -30,7 +30,7 @@ entity_from_stf <- function(tsv_path, yaml_path = NULL) {
   variables <- NULL
   entity_metadata <- NULL
   
-  # Function to process metadata lists safely
+  # Function to process metadata lists safely into a tibble
   process_metadata_list <- function(metadata_list) {
     if (length(metadata_list) == 0) {
       return(NULL)  # Return NULL so `bind_rows()` later skips empty sections
@@ -127,12 +127,15 @@ entity_from_stf <- function(tsv_path, yaml_path = NULL) {
     
     # Extract non-list elements as entity metadata
     entity_metadata <- metadata %>% discard(is.list)
-    
+
     # Process `ids`, `variables`, and `categories`, skipping empty ones
     variables <- list(
       process_metadata_list(metadata$ids %>% map(~ modifyList(.x, list(data_type = factor('id'))))),
       process_metadata_list(metadata$variables %>% map(~ modifyList(.x, list(entity_name = entity_metadata$name)))),
-      process_metadata_list(metadata$categories)
+      process_metadata_list(
+        metadata$categories %>%
+          map(~ modifyList(.x, list(data_type = factor('category'), entity_name = entity_metadata$name)))
+      )
     ) %>%
       compact() %>%   # Remove NULLs to avoid unnecessary binds
       bind_rows()

@@ -103,7 +103,9 @@ function(
         data_type,
         is.na(data_type),
         infer_data_type(
-          if (is_multi_valued) 
+          if (data_type %in% c('category')) 
+            NA
+          else if (is_multi_valued) 
             expand_multivalued_data_column(data, variable, is_multi_valued, multi_value_delimiter, .type_convert = TRUE) %>% pull(variable)
           else
             data %>% pull(variable),
@@ -119,7 +121,7 @@ function(
       )
     ) %>%
     ungroup() # remove special row-wise grouping
-  
+
   # clone and modify original entity argument
   return(entity %>% initialize(variables = variables))
 })
@@ -138,7 +140,7 @@ setMethod("infer_missing_data_shapes", "Entity", function(entity) {
   cols_to_infer <- variables %>%
     filter(is.na(data_shape)) %>%
     filter(!is.na(data_type)) %>%
-    filter(data_type != 'id') %>%
+    filter(!data_type %in% c('id', 'category')) %>%
     pull(variable)
   
   # infer data_shape as continuous or categorical
@@ -435,11 +437,13 @@ setMethod("sync_variable_metadata", "Entity", function(entity) {
     entity@variables
   } else {
     message("Reinitializing empty or corrupted variable metadata...")
-    tibble(variable = character(0))
+    tibble(variable = character(0), data_type = factor())
   }
 
-  missing_variables <- setdiff(colnames(data), variables$variable)
-  extra_variables <- setdiff(variables$variable, colnames(data))
+  actual_variables <- variables %>% filter(is.na(data_type) | data_type != 'category') %>% pull(variable)
+  
+  missing_variables <- setdiff(colnames(data), actual_variables)
+  extra_variables <- setdiff(actual_variables, colnames(data))
 
   # Early return if no mismatches
   if (length(missing_variables) == 0 && length(extra_variables) == 0) {
@@ -1243,7 +1247,7 @@ setMethod("create_variable_category", "Entity", function(entity, category_name, 
     mutate(
       has_values = FALSE,
       variable = category_name,
-      data_type = 'category',
+      data_type = factor('category'),
       entity_name = entity %>% get_entity_name()
     )
   variables <- bind_rows(variables, new_row)  

@@ -8,6 +8,12 @@ test_that("create_variable_category() and delete_variable_category() and associa
   #participants <- study %>% get_entity('participant') %>% verbose()
   #observations <- study %>% get_entity('observation') %>% verbose()
   
+  
+  # check that there is no category metadata to start with
+  expect_true(
+    households %>% get_category_metadata() %>% nrow() == 0
+  )
+  
   expect_message(
     expect_message(
       households <- households %>%
@@ -39,6 +45,20 @@ test_that("create_variable_category() and delete_variable_category() and associa
     households %>% quiet() %>% inspect('house_vars'),
     "Children of category"
   )
+  
+  # check that there is now category metadata
+  expect_true(
+    households %>% get_category_metadata() %>% nrow() > 0
+  )
+  
+  # check that sync_variable_metadata doesn't nuke it
+  expect_message(
+    expect_true(
+      households %>% sync_variable_metadata() %>% get_category_metadata() %>% nrow() > 0
+    ),
+    "No metadata synchronization needed"
+  )
+  
   
   # Check that you can't overwrite an existing variable, category, or id_column
   for (old_name in list("Number.of.animals", "house_vars", "Household.Id")) {
