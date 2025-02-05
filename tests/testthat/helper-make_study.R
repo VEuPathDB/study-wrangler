@@ -11,13 +11,13 @@ make_study <- function(quiet_entities = TRUE, ...) {
 
   participants <- entity_from_file(participants_path, name="participant", quiet=TRUE) %>%
     redetect_columns_as_variables('Name') %>%
-    set_parents(names=c("household"), columns=c("Household.Id")) %>%
+    set_parents(names=c("household"), id_columns=c("Household.Id")) %>%
     set_quiet(quiet_entities)
 
   observations <- entity_from_file(observations_path, name="observation", quiet=TRUE) %>%
     set_parents(
       names=c("participant","household"), 
-      columns=c("Participant.Id","Household.Id")
+      id_columns=c("Participant.Id","Household.Id")
     ) %>%
     set_quiet(quiet_entities)
 

@@ -76,7 +76,11 @@ setMethod("inspect", "Entity", function(object, variable_name = NULL) {
       ),
 
       heading("ID columns"),
-      kable(ids_metadata %>% select(variable, entity_name, entity_level)),
+      kable(
+        ids_metadata %>%
+          select(variable, entity_name, entity_level) %>%
+          rename(`ID column` = variable)
+      ),
       glue("
 ~~~~
 If you see variables in the table above that should not be handled as IDs
@@ -84,12 +88,14 @@ then you can redo the automatic column type detection with:
   {global_varname} <- {global_varname} %>% redetect_columns_as_variables(c('col_name.1', 'col_name.2'))
 ~~~~
 If there are ID columns missing above, you may need to use:
-  {global_varname} <- {global_varname} %>% set_parents(names=c('parent_name', 'grandparent_name'), columns=c('parent.id', 'grandparent.id'))
+  {global_varname} <- {global_varname} %>% set_parents(names=c('parent_name', 'grandparent_name'), id_columns=c('parent.id', 'grandparent.id'))
 "),
       
       heading("Summary of important metadata for all variables and categories"),
       kable(variables_metadata %>%
-        select(variable, provider_label, data_type, data_shape, display_name, stable_id, is_multi_valued)),
+        select(variable, provider_label, data_type, data_shape, display_name, stable_id, is_multi_valued) %>%
+        rename(`var. or cat. name` = variable)
+      ),
       "~~~~",
       glue("Use `{global_varname} %>% inspect('variable.name')` for full details on individual variables"),
       "If numeric or date variables are shown as string/categorical they may be delimited multi-value columns.",

@@ -45,7 +45,7 @@ setGeneric("modify_data", function(entity, ...) standardGeneric("modify_data"))
 #' @export
 setGeneric("set_variable_display_names_from_provider_labels", function(entity) standardGeneric("set_variable_display_names_from_provider_labels"))
 #' @export
-setGeneric("set_parents", function(entity, names, columns) standardGeneric("set_parents"))
+setGeneric("set_parents", function(entity, names, id_columns) standardGeneric("set_parents"))
 #' @export
 setGeneric("get_parents", function(entity) standardGeneric("get_parents"))
 #' @export
@@ -733,29 +733,29 @@ setMethod("set_variable_display_names_from_provider_labels", "Entity", function(
 #' @param columns a character vector of the column names containing parent_id, grandparent_id, etc
 #' @returns modified entity
 #' @export
-setMethod("set_parents", "Entity", function(entity, names, columns) {
+setMethod("set_parents", "Entity", function(entity, names, id_columns) {
   data <- entity@data
   variables <- entity@variables
 
-  # Early return if `names` and `columns` are empty
-  if (length(names) == 0 && length(columns) == 0) {
+  # Early return if `names` and `id_columns` are empty
+  if (length(names) == 0 && length(id_columns) == 0) {
     if (!entity@quiet) message("No parent entity relationships provided. No changes made.")
     return(entity)
   }
 
-  # Check that length of `names` and `columns` are the same
-  if (length(names) != length(columns)) {
-    stop("Error: 'names' and 'columns' must have the same length.")
+  # Check that length of `names` and `id_columns` are the same
+  if (length(names) != length(id_columns)) {
+    stop("Error: 'names' and 'id_columns' must have the same length.")
   }
   
-  # Check that all `columns` column names exist as columns in `data`
-  missing_columns <- setdiff(columns, colnames(data))
+  # Check that all `id_columns` column names exist as columns in `data`
+  missing_columns <- setdiff(id_columns, colnames(data))
   if (length(missing_columns) > 0) {
     stop(glue("Error: the following data columns do not exist in this entity: {paste(missing_columns, collapse = ', ')}"))
   }
   
-  # Check that all `columns` exist as rows in `variables` metadata
-  missing_metadata <- setdiff(columns, variables$variable)
+  # Check that all `id_columns` exist as rows in `variables` metadata
+  missing_metadata <- setdiff(id_columns, variables$variable)
   if (length(missing_metadata) > 0) {
     stop(glue("Error: the following columns are missing from entity metadata: {paste(missing_metadata, collapse = ', ')}"))
   }
@@ -763,12 +763,12 @@ setMethod("set_parents", "Entity", function(entity, names, columns) {
   # Generalized mutation to update `variables`
   variables <- variables %>%
     mutate(
-      data_type = fct_mutate(data_type, variable %in% columns, 'id'),
-      data_shape = fct_mutate(data_shape, variable %in% columns, NA),
-      entity_name = if_else(variable %in% columns, names[match(variable, columns)], entity_name),
-      entity_level = if_else(variable %in% columns, -match(variable, columns), entity_level),
+      data_type = fct_mutate(data_type, variable %in% id_columns, 'id'),
+      data_shape = fct_mutate(data_shape, variable %in% id_columns, NA),
+      entity_name = if_else(variable %in% id_columns, names[match(variable, id_columns)], entity_name),
+      entity_level = if_else(variable %in% id_columns, -match(variable, id_columns), entity_level),
       # remove provider labels for ID columns
-      provider_label = map_if(provider_label, variable %in% columns, ~ list())
+      provider_label = map_if(provider_label, variable %in% id_columns, ~ list())
     )
   
   if (!entity@quiet) message("Parent entity relationships and columns have been set")
@@ -794,9 +794,9 @@ setMethod("get_parents", "Entity", function(entity) {
   
   # Extract names and columns for parent entities
   names <- parent_metadata$entity_name
-  columns <- parent_metadata$variable
+  id_columns <- parent_metadata$variable
   
-  return(list(names = names, columns = columns))
+  return(list(names = names, id_columns = id_columns))
 })
 
 #' get_parent_name
@@ -828,8 +828,8 @@ setMethod("get_parent_id_column", "Entity", function(entity) {
   parents <- entity %>% get_parents()
   
   # Return the first name if it exists, otherwise return NULL
-  if (length(parents$columns) > 0) {
-    return(parents$columns[1])
+  if (length(parents$id_columns) > 0) {
+    return(parents$id_columns[1])
   } else {
     return(NULL)
   }

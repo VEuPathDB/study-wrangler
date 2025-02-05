@@ -43,7 +43,7 @@ test_that("check_parent_ids() works", {
   
   participants <- entity_from_file(participants_path, name="participant", quiet=TRUE) %>%
     redetect_columns_as_variables('Name') %>%
-    set_parents(names=c("household"), columns=c("Household.Id")) %>% verbose()
+    set_parents(names=c("household"), id_columns=c("Household.Id")) %>% verbose()
   
   # this should be silent
   expect_silent(

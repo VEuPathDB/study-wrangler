@@ -16,7 +16,7 @@ test_that("study_from_entities() works", {
   )
   expect_message(
     participants <- participants %>%
-      set_parents(names=c("household"), columns=c("Household.Id")),
+      set_parents(names=c("household"), id_columns=c("Household.Id")),
     "Parent entity relationships and columns have been set"
   )
   expect_true(participants %>% quiet() %>% validate())
@@ -24,7 +24,7 @@ test_that("study_from_entities() works", {
   
   expect_message(
     observations <- observations %>%
-      set_parents(names = c("participant", "household"), columns = c("Participant.Id", "Household.Id")),
+      set_parents(names = c("participant", "household"), id_columns = c("Participant.Id", "Household.Id")),
     "Parent entity relationships and columns have been set"
   )
   expect_true(observations %>% quiet() %>% validate())
