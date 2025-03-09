@@ -1,3 +1,5 @@
+library(glue)
+
 #' @export
 setGeneric("get_root_entity", function(study) standardGeneric("get_root_entity"))
 #' @export

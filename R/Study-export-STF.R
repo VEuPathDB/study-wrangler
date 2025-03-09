@@ -1,3 +1,5 @@
+library(glue)
+
 #'
 #' for Study and EntityPath objects
 #'

@@ -1,6 +1,6 @@
 Package: study.wrangler
 Title: Wrangle (Tidy) Study Data
-Version: 1.0.1
+Version: 1.0.2
 Authors@R:
     c(person(given = "John",
            family = "Brestelli",
@@ -20,7 +20,8 @@ Imports:
     skimr,
     glue,
     knitr,
-    plot.data
+    plot.data,
+    digest
 Suggests: 
     testthat (>= 3.0.0),
     roxygen2,

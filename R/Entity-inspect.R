@@ -1,4 +1,5 @@
 library(knitr)
+library(glue)
 
 #' Inspect an Entity Object
 #'

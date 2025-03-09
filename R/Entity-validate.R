@@ -1,3 +1,5 @@
+library(glue)
+
 #' Validate an Entity Object
 #'
 #' Performs various checks on data completeness and consistency 

@@ -1,3 +1,5 @@
+library(glue)
+
 test_that("Study exports to STF directory", {
   expect_no_error(
     study <- make_study(name = 'my study')
