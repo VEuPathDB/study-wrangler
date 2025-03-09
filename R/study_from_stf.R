@@ -1,3 +1,11 @@
+#'
+#' @description
+#' Creates a study object from STF files in the given directory
+#'
+#' @param directory containing STF files for one study
+#' @return A Study object
+#'
+#' @export
 study_from_stf <- function(directory) {
   
   filepaths <- list.files(directory, full.names = TRUE)

@@ -1,3 +1,12 @@
+#'
+#' @description
+#' Creates an entity object from a TSV file and optional YAML metadata file
+#'
+#' @param tsv_path path to one STF-format TSV file
+#' @param yaml_path path to one YAML file containing STF metadata   
+#' @return An entity object
+#'
+#' @export
 entity_from_stf <- function(tsv_path, yaml_path = NULL) {
   # Read in the file as all-character with no headers
   data <- read_tsv(tsv_path, col_names = FALSE, col_types = cols(.default = "c"))

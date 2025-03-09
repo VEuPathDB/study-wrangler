@@ -1,3 +1,13 @@
+#'
+#' @description
+#' Creates a study object from the provided entities and study metadata
+#'
+#' @param entities a list of Entity objects
+#' @param ... Additional named parameters to set study metadata (see Study class),
+#'   e.g. name="my beautiful study"   
+#' @return A Study object
+#'
+#' @export
 study_from_entities <- function(entities, ...) {
   # check extra args are valid slots
   metadata = list(...)
