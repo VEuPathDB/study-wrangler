@@ -1,5 +1,3 @@
-library(glue)
-
 #' File: Entity metadata management methods
 #'
 #' Generics (attempting to remove redundancy from documentation)
@@ -850,7 +848,7 @@ setMethod("get_children", "Entity", function(entity) {
 #'
 #' pretty_tree
 #'
-#' @param entity
+#' @param entity an entity object
 #' @returns vector of character (lines to print or cat)
 #' @export
 setMethod("pretty_tree", "Entity", function(entity) {

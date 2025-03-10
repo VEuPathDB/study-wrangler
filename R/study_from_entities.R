@@ -1,10 +1,11 @@
-#'
+#' study_from_entities
+#' 
 #' @description
 #' Creates a study object from the provided entities and study metadata
 #'
-#' @param entities a list of Entity objects
+#' @param entities a `list` of Entity objects
 #' @param ... Additional named parameters to set study metadata (see Study class),
-#'   e.g. name="my beautiful study"   
+#'   e.g. `name="my beautiful study"`   
 #' @return A Study object
 #'
 #' @export

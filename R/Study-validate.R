@@ -1,5 +1,3 @@
-library(glue)
-
 #' Validate a Study Object
 #'
 #' Performs validation checks on constituent entities

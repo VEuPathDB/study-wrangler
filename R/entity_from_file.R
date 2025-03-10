@@ -1,6 +1,5 @@
-library(tidyverse)
-
-#'
+#' entity_from_file
+#' 
 #' @description
 #' Reads a tabular data file (e.g., TSV) and converts it into an Entity object.
 #' This function infers variables' metadata, including data types and shapes,

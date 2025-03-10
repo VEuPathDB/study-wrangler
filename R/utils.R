@@ -1,7 +1,3 @@
-library(glue)
-library(knitr)
-library(digest)
-
 #' skimr shortens all factor names to three characters by default.
 #' Create a custom skimmer that doesn't do this and trims top counts to 5.
 #' @export

@@ -1,6 +1,6 @@
-library(glue)
-
 #'
+#' study_from_stf
+#' 
 #' @description
 #' Creates a study object from STF files in the given directory
 #'

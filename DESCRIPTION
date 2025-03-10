@@ -1,15 +1,16 @@
 Package: study.wrangler
 Title: Wrangle (Tidy) Study Data
-Version: 1.0.2
+Version: 1.0.3
 Authors@R:
-    c(person(given = "John",
-           family = "Brestelli",
-           role = c("aut", "cre"),
-           email = "jbrestel@upenn.edu"),
-      person(given = "Bob",
+    c(person(given = "Bob",
            family = "MacCallum",
            role = "aut",
-           email = "uncoolbob@gmail.com"))
+           email = "uncoolbob@gmail.com"),
+      person(given = "John",
+           family = "Brestelli",
+           role = c("aut", "cre"),
+           email = "jbrestel@upenn.edu")
+    )
 Description: Wrangle (Tidy) Study Data
 License: Apache License (= 2.0)
 Encoding: UTF-8

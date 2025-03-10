@@ -1,5 +1,3 @@
-library(tibble)
-
 #' S4 Class for Entity
 #'
 #' The `Entity` class represents a data entity, typically used in hierarchical data structures. 

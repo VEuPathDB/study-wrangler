@@ -1,4 +1,5 @@
-#'
+#' entity_from_stf
+#' 
 #' @description
 #' Creates an entity object from a TSV file and optional YAML metadata file
 #'

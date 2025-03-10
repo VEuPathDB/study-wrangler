@@ -1,6 +1,3 @@
-library(knitr)
-library(glue)
-
 #' Inspect an Entity Object
 #'
 #' Provides a summary view of the entity's variables and data or redirects

@@ -1,6 +1,3 @@
-library(glue)
-library(knitr)
-
 #' Inspect Variable Generic
 #'
 #' Defines the S4 generic for inspecting a specific variable in an Entity.
