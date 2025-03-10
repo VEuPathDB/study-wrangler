@@ -1,4 +1,11 @@
-#' @import tidyverse
+#' @import dplyr
+#' @import purrr
+#' @import stringr
+#' @import tidyr
+#' @import readr
+#' @import forcats
+#' @importFrom lubridate is.Date
+#' @importFrom tibble tibble deframe
 #' @importFrom glue glue
 #' @importFrom digest digest
 #' @importFrom knitr kable
