@@ -32,9 +32,13 @@ setGeneric("get_display_name_plural", function(entity) standardGeneric("get_disp
 setGeneric("sync_variable_metadata", function(entity) standardGeneric("sync_variable_metadata"))
 #' @export
 setGeneric("set_variable_metadata", function(entity, ...) standardGeneric("set_variable_metadata"))
+#' @export
 setGeneric("get_variable_metadata", function(entity) standardGeneric("get_variable_metadata"))
+#' @export
 setGeneric("get_id_column_metadata", function(entity, ...) standardGeneric("get_id_column_metadata"))
+#' @export
 setGeneric("get_category_metadata", function(entity, ...) standardGeneric("get_category_metadata"))
+#' @export
 setGeneric("get_variable_and_category_metadata", function(entity, ...) standardGeneric("get_variable_and_category_metadata"))
 #' @export
 setGeneric("get_data", function(entity) standardGeneric("get_data"))
