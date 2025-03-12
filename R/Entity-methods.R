@@ -1078,7 +1078,7 @@ setMethod("get_hydrated_variable_and_category_metadata", "Entity", function(enti
       ),
       bin_width_computed = if_else(
         has_values & data_shape == 'continuous',
-        column_data %>% safe_fn(plot.data::findBinWidth) %>% as.character(),
+        column_data %>% safe_fn(findBinWidth) %>% as.character(),
         NA_character_
       ),
       # Use fivenum() for continuous data to get summary statistics
