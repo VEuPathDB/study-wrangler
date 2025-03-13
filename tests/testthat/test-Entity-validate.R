@@ -5,7 +5,7 @@ test_that("validate(households) warns about missing entity name and returns FALS
   households <- entity_from_file(file_path)
 
   # validate
-  expect_message(
+  expect_warning(
     is_valid <- validate(households),
     "Entity is missing required 'name' metadata"
   )
@@ -160,7 +160,7 @@ test_that("validate(households) warns about multiple ID columns per entity_level
     "adding.+dupeId"
   )
   
-  expect_message(
+  expect_warning(
     is_valid <- validate(households),
     "There are multiple ID columns per entity level"
   )
@@ -187,7 +187,7 @@ test_that("validate(households) warns about NAs in ID columns", {
 
   households@data[2,'Household.Id'] <- NA
   
-  expect_message(
+  expect_warning(
     expect_false(validate(households)),
     "ID columns contain NA values.+Household.Id"
   )
@@ -202,7 +202,7 @@ test_that("validate(households) warns about duplicates in ID columns", {
   
   households@data[2,'Household.Id'] <- 'H001'
   
-  expect_message(
+  expect_warning(
     expect_false(validate(households)),
     "ID columns contain duplicates.+Household.Id"
   )
@@ -263,7 +263,7 @@ test_that("validate() complains about no ID column at all", {
   
   households <- entity_from_file(file_path, name='household', preprocess_fn = lose_id_column)
   
-  expect_message(
+  expect_warning(
     expect_false(validate(households)),
     "This entity appears to have no ID column."
   )
@@ -279,7 +279,7 @@ test_that("validate() complains about integer columns with non-integer data", {
   # modify the whole data column to doubles
   households <- households %>% modify_data(mutate(Number.of.animals = Number.of.animals + 0.1))
   
-  expect_message(
+  expect_warning(
     expect_false(
       validate(households)
     ),
@@ -294,7 +294,7 @@ test_that("validate() complains about number columns with non-numeric data", {
   # Modify the whole data column to append a non-numeric string
   observations <- observations %>% modify_data(mutate(MUAC..cm. = paste(MUAC..cm., "cm")))
   
-  expect_message(
+  expect_warning(
     expect_false(
       validate(observations)
     ),
@@ -306,7 +306,7 @@ test_that("validate() complains about ID column with wrong entity_name", {
   file_path <- system.file("extdata", "toy_example/households.tsv", package = 'study.wrangler')
   households <- entity_from_file(file_path, name='household', quiet=TRUE)
   households <- households %>% set_variable_metadata('Household.Id', entity_name='garbage') %>% verbose()
-  expect_message(
+  expect_warning(
     expect_false(
       validate(households)
     ),
@@ -322,7 +322,7 @@ test_that("validate() complains about date columns with non-ISO-8601 dates", {
   # mess up the date a bit - it's still a date but the column type is now character
   observations <- observations %>% modify_data(mutate(Observation.date = chartr("-", "/", Observation.date)))
   
-  expect_message(
+  expect_warning(
     expect_false(
       validate(observations)
     ),

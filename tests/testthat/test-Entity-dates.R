@@ -5,7 +5,7 @@ test_that("set_variable_as_date() works", {
   # mess up the date a bit - it's still a date but the column type is now character
   observations <- observations %>% modify_data(mutate(Observation.date = chartr("-", "/", Observation.date)))
   
-  expect_message(
+  expect_warning(
     expect_false(
       validate(observations)
     ),
@@ -22,7 +22,7 @@ test_that("set_variable_as_date() works", {
   observations <- observations %>% modify_data(mutate(Observation.date = chartr("/", "-", Observation.date)))
 
   # but because it's now just a string we expect validation to flag this
-  expect_message(
+  expect_warning(
     expect_false(
       validate(observations)
     ),
@@ -50,7 +50,7 @@ test_that("set_variable_as_date() works", {
   observations <- observations %>% modify_data(mutate(Observation.date = str_replace(Observation.date, "11-30", "11-31")))
 
   # we expect to have lost formal date format
-  expect_message(
+  expect_warning(
     expect_false(
       validate(observations)
     ),

@@ -30,7 +30,7 @@ test_that("Minimal STF (no YAML metadata) loads and validates", {
   )
   
   # all it lacks is a name
-  expect_message(
+  expect_warning(
     validate(study),
     "Study name is missing"
   )

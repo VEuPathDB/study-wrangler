@@ -15,7 +15,7 @@ test_that("validate(study) fails for things", {
   
   expect_silent(study <- make_study())
   
-  expect_message(
+  expect_warning(
     expect_false(
       validate(study)
     ),
@@ -101,7 +101,7 @@ test_that("validate(study) checks parent ID relationships row-wise", {
   expect_silent(
     bad_study <- study_from_entities(entities=list(households, bad_participants, observations), name = 'a bad one')
   )
-  expect_message(
+  expect_warning(
     validate(bad_study),
     "relationships are problematic in the following pairs.+household.+participant"
   )

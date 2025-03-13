@@ -4,7 +4,7 @@ test_that("participants fixture loads and fails validation due to wrongly infere
   expect_no_error(
     participants <- entity_from_file(file_path, name="participant")
   )
-  expect_message(
+  expect_warning(
     validate(participants),
     "There are multiple ID columns per entity level.+Participant.Id, Name"
   )
@@ -24,7 +24,7 @@ test_that("set_parents() works and the result validates", {
   file_path <- system.file("extdata", "toy_example/participants.tsv", package = 'study.wrangler')
   participants <- entity_from_file(file_path, name="participant")
 
-  expect_message(
+  expect_warning(
     expect_false(validate(participants)),
     "There are multiple ID columns per entity level.+Name"
   )

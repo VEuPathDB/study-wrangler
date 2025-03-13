@@ -77,7 +77,7 @@ test_that("Actual multi-valued files can be processed", {
   households <- entity_from_file(file_path, name='household')
 
   # It won't validate because Distances.to.well is detected as an ID column (all unique, no NAs)
-  expect_message(
+  expect_warning(
     expect_false(
       households %>% validate()
     ),

@@ -39,7 +39,7 @@ test_that("units are properly inpsected and validated", {
   )
   
   # but it shouldn't validate
-  expect_message(
+  expect_warning(
     expect_false(
       observations %>% validate()
     ),

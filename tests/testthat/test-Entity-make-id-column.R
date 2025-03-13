@@ -19,7 +19,7 @@ test_that("validate(entity) gives correct guidance when there is no ID column", 
   )
   
   # expect it to fail validation and provide a way to fix it
-  expect_message(
+  expect_warning(
     expect_false(
       households %>% validate()
     ),

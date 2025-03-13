@@ -75,7 +75,7 @@ test_that("create_variable_category() and delete_variable_category() and associa
   }
   
   # make a manual mistake in the variable graph and pay the price
-  expect_message(
+  expect_warning(
     expect_false(
       households %>%
         quiet() %>%
@@ -87,7 +87,7 @@ test_that("create_variable_category() and delete_variable_category() and associa
   )
   
   # make a circular graph and also pay the price
-  expect_message(
+  expect_warning(
     expect_false(
       households %>%
         quiet() %>%

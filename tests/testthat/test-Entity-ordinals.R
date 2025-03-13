@@ -78,7 +78,7 @@ test_that("set_variable_ordinal_levels", {
   )
   
   # manually setting data_shape ordinal on the wrong kind of variable should not validate
-  expect_message(
+  expect_warning(
     expect_false(
       households %>%
         quiet() %>%

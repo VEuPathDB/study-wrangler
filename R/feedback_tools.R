@@ -10,7 +10,7 @@ create_feedback_tools <- function(quiet = FALSE, success_message = "Validation s
   
   give_feedback <- function(fatal_message = NULL) {
     if (!quiet && length(feedback) > 0) {
-      message("Validation issues found:\n", paste(feedback, collapse = "\n"))
+      warning("Validation issues found:\n", paste(feedback, collapse = "\n"))
     }
     if (is.character(fatal_message)) {
       warning("Fatal issue encountered:\n", fatal_message, call. = FALSE)
