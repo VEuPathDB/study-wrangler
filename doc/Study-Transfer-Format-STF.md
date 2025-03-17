@@ -83,7 +83,7 @@ For example:
   - Provide just the parent IDs: `Participant.Id`, `Part.Obs.Id \\ Descriptors`
 
 #### Example `entity-household.tsv`:
-| Household.Id \\ Descriptors | Number.of.animals | Owns.property | Enrollment.date | Construction.material |
+| Household.Id \\\\ Descriptors | Number.of.animals | Owns.property | Enrollment.date | Construction.material |
 |----------------------------|-------------------|---------------|----------------|----------------------|
 | H001                       | 4                 | Yes           | 2021-01-09     | Concrete             |
 | H002                       | 3                 | No            | 2021-02-28     | Timber               |
@@ -92,7 +92,7 @@ For example:
 
 #### Example `entity-participant.tsv`:
 
-| Household.Id | Participant.Id \\ Descriptors | Name    | Nickname | Sex    | Family.Role |
+| Household.Id | Participant.Id \\\\ Descriptors | Name    | Nickname | Sex    | Family.Role |
 |-------------|--------------------------------|---------|----------|--------|-------------|
 | H001        | H001-P1                        | Alice   | Di       | Female | Relative    |
 | H001        | H001-P2                        | Bob     | Bobby    | Male   | Child       |
@@ -108,7 +108,7 @@ For example:
 
 (This is the all-parents version.)
 
-| Household.Id | Participant.Id | Part..Obs..Id \\ Descriptors | Observation.date | Height..cm. | Weight..kg. | MUAC..cm. | Teeth.brushed.today |
+| Household.Id | Participant.Id | Part..Obs..Id \\\\ Descriptors | Observation.date | Height..cm. | Weight..kg. | MUAC..cm. | Teeth.brushed.today |
 |-------------|---------------|--------------------------------|------------------|-------------|-------------|-----------|--------------------|
 | H001        | H001-P1       | H001-P1-Obs1                   | 2023-09-29       | 145         | 35          | 15.82     | 1                  |
 | H001        | H001-P2       | H001-P2-Obs1                   | 2023-05-04       | 135         | 47          | NA        | 1                  |
@@ -182,7 +182,7 @@ STF-Lite is a minimal, metadata-free variant suitable for quick or simple data s
 
 ### Example STF-Lite entity TSV file:
 
-| household \\ Descriptors | Number.of.animals | Owns.property | Enrollment.date | Construction.material |
+| household \\\\ Descriptors | Number.of.animals | Owns.property | Enrollment.date | Construction.material |
 |----------------------------|-------------------|---------------|----------------|----------------------|
 | H001                       | 4                 | Yes           | 2021-01-09     | Concrete             |
 | H002                       | 3                 | No            | 2021-02-28     | Timber               |
