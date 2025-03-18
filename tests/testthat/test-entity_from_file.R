@@ -36,7 +36,7 @@ test_that("entity_from_file warns about duplicate column names in input file", {
         inspect(result),
         "Entity-level metadata"
       ),
-      "this entity has no `name`, default `stable_id` attributes cannot be generated"
+      "Warning: because this entity has no `name` .required., a placeholder entity ID has been generated."
     )
   )
 })

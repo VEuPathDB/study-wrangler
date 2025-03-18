@@ -1018,7 +1018,16 @@ setMethod("set_variable_as_date", "Entity", function(entity, column_name) {
 #' not exported
 setMethod("get_hydrated_variable_and_category_metadata", "Entity", function(entity) {
   data <- entity %>% get_data()
-  entity_stable_id <- entity %>% get_stable_id()
+  global_varname <- find_global_varname(entity, 'entity')
+  
+  entity_stable_id <- if (is_truthy(entity@name)) entity %>% get_stable_id() else {
+    message(to_lines(c(
+      "Warning: because this entity has no `name` (required), a placeholder entity ID has been generated.",
+      "You can make things more stable by providing an entity name as follows:",
+      indented(glue("{global_varname} <- {global_varname} %>% set_entity_name('your_entity_name')"))
+    )))
+    '__PLACEHOLDER_ENTITY_ID__'
+  }
   
   safe_fn <- function(x, fn) {
     if (!is.factor(x) & !is.character(x)) {

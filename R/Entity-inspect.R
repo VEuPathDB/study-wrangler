@@ -26,19 +26,7 @@ setMethod("inspect", "Entity", function(object, variable_name = NULL) {
   }
   
   ids_metadata <- get_id_column_metadata(entity)
-
-  entity_name <- entity %>% get_entity_name()
-  
-  variables_metadata <- if (is_truthy(entity_name)) {
-    get_hydrated_variable_and_category_metadata(entity)
-  } else {
-    message(to_lines(c(
-      "Warning: because this entity has no `name`, default `stable_id` attributes cannot be generated.",
-      glue("Run `validate({global_varname})` for more details.")
-    )))
-    get_variable_and_category_metadata(entity)
-  }
-  
+  variables_metadata <- get_hydrated_variable_and_category_metadata(entity)
   category_metadata <- get_category_metadata(entity)
   
   # entity level metadata  

@@ -8,7 +8,7 @@ test_that("inspect(entity) outputs categorical values in full", {
   # inspect it and grab the output
   expect_message(
     output <- capture.output(inspect(households)),
-    "this entity has no `name`, default `stable_id` attributes cannot be generated"
+    "Warning: because this entity has no `name` .required., a placeholder entity ID has been generated."
   )
   # Make sure it contains a factor value longer than three characters
   expect_true(any(grepl("Concrete", output)))
