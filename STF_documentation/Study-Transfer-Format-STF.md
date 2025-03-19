@@ -193,7 +193,7 @@ variables:
 # more variables not shown
 ```
 
-Full reference documentation for all the metadata fields [will be provided soon](https://github.com/VEuPathDB/study-wrangler/issues/32).
+Full reference documentation for all the metadata fields [can be found here](./metadata-fields.md).
 
 
 ### Study YAML file
