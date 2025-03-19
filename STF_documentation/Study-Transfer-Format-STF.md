@@ -11,12 +11,12 @@ version without metadata.
 A **study** consists of a dataset composed of linked
 **entities**. Each entity is a table representing instances of a
 real-world object or event, such as a `household` in a clinical
-epidemiology study or a `biosample` in a genomics study. Entities are
+epidemiology study or a `biosource` in a genomics study. Entities are
 arranged hierarchically, meaning that some entities serve as parents
 to others:
 
 - A `household` entity may have multiple associated `participant` records.
-- A `biosample` entity may have multiple `sample` children, each of
+- A `biosource` entity may have multiple `sample` children, each of
   which might have one or more `assay` instances.
 
 Each entity table must include a unique identifier (ID) column to
@@ -124,16 +124,18 @@ For example:
 
 
 ### Entity Metadata YAML files
-These files define entity properties as well as 
-ID columns, variables, their types, and metadata.
+These files define entity properties as well as ID columns, variables,
+their types, and metadata.
 
-Full reference documentation for all the metadata fields [will be provided soon](https://github.com/VEuPathDB/study-wrangler/issues/32).
+In the `entity-household.yaml` example below, the `id_columns` section makes the important
+link between the ID column `Household.Id` and the entity name `household` but this is trivial
+for a parent-less entity.
 
 #### Example `entity-household.yaml`:
 ```yaml
 name: household
-display_name: household
-display_name_plural: households
+display_name: Household
+display_name_plural: Households
 
 id_columns:
   - id_column: Household.Id
@@ -156,13 +158,48 @@ variables:
     data_shape: continuous
 ```
 
+When an entity has parent relationships, the `id_columns` section is important.
+Below is an example for the `observation` entity. The grandparent and parent columns
+are linked to their entities by name and their ancestral 'distances' are provided
+in the `entity_level` field. (The default value for `entity_level` is zero, which
+means 'this entity', and so is not required for `Part..Obs..Id`.)
+
+#### Example `entity-observation.yaml`
+
+```
+name: observation
+display_name: observation
+display_name_plural: observations
+
+id_columns:
+  - id_column: Household.Id
+    entity_name: household
+    entity_level: -2
+  - id_column: Participant.Id
+    entity_name: participant
+    entity_level: -1
+  - id_column: Part..Obs..Id
+    entity_name: observation
+
+variables:
+  - variable: Observation.date
+    provider_label:
+      - Observation date
+    data_type: date
+    data_shape: continuous
+# more variables not shown
+```
+
+Full reference documentation for all the metadata fields [will be provided soon](https://github.com/VEuPathDB/study-wrangler/issues/32).
+
+
 ### Study YAML file
 
 The `study.yaml` file provides high-level study metadata and lists the
 names of the entities in the study. The STF loader will only load the
 files `entity-<entity_name>.{tsv,yaml}` as defined in this file. This
 means you can keep work-in-progress or other versions of entity files
-in the directory without them being loaded.
+in the same directory as files that do get loaded.
 
 ```yaml
 name: My Awesome Study
@@ -178,7 +215,8 @@ STF-Lite is a minimal, metadata-free variant suitable for quick or simple data s
 
 - Filenames must follow the convention: `entity-<ENTITY_NAME>.tsv`
 - No separate metadata YAML files are required.
-- The first column headings must match entity names exactly.
+- The ID column headings must match entity names exactly (this is the only place they are defined).
+- Parent entity ID columns must be in strict parent-to-child order.
 
 ### Example STF-Lite entity TSV file:
 
@@ -189,6 +227,13 @@ STF-Lite is a minimal, metadata-free variant suitable for quick or simple data s
 | H003                       | 3                 | Yes           | 2021-03-13     | Concrete             |
 
 
+## Entity relationship checks
+
+An STF study is invalid if any child entity rows cannot be joined back
+to a parent (e.g. if the parent rows do not exist or there is a typo).
+It is allowed to have entity instances with no children but orphans
+are not allowed.
+
 ## Comparison of Full STF vs. STF-Lite
 
 | Feature                                  | Full STF ✅                                     | STF-Lite ⚠️                                |
@@ -196,7 +241,7 @@ STF-Lite is a minimal, metadata-free variant suitable for quick or simple data s
 | **Custom entity names & display names**  | ✅ Supported via metadata YAML                 | ❌ Not supported, entity names must match ID columns |
 | **Data type enforcement**                | ✅ Enforced via metadata definitions           | ❌ No enforcement, at mercy of automatic type detection |
 | **Ordinal variable support**             | ✅ Metadata allows explicit ordinal definitions | ❌ Not supported |
-| **ID column flexibility**                | ✅ Custom ID column names allowed              | ❌ ID column headers must match entity names exactly |
+| **ID column flexibility**                | ✅ Custom ID column names allowed, column order not important   | ❌ ID column headers must match entity names exactly, ID columns must be in parent-to-child order |
 | **Validation**                           | ✅ Ensures entity relationships and data integrity | ⚠️ Limited to basic TSV parsing only |
 
 
@@ -204,3 +249,4 @@ STF-Lite is a minimal, metadata-free variant suitable for quick or simple data s
 
 * more on STF Lite and row-wise parent-child checks
 * metadata reference
+* tall format
