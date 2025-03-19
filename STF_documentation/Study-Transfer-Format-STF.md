@@ -158,11 +158,14 @@ variables:
     data_shape: continuous
 ```
 
-When an entity has parent relationships, the `id_columns` section is important.
-Below is an example for the `observation` entity. The grandparent and parent columns
-are linked to their entities by name and their ancestral 'distances' are provided
-in the `entity_level` field. (The default value for `entity_level` is zero, which
-means 'this entity', and so is not required for `Part..Obs..Id`.)
+When an entity has parent relationships, the `id_columns` section is
+crucial. Below is an example for the `observation` entity. The
+**grandparent** and **parent** columns are explicitly linked to their
+respective entities by name, with their ancestral distances specified
+in the `entity_level` field (-1 for the immediate parent, -2 for the
+grandparent, and so on).
+
+The default value for `entity_level` is 0, meaning "this entity," so it is not required for "Part..Obs..Id".
 
 #### Example `entity-observation.yaml`
 
@@ -229,24 +232,58 @@ STF-Lite is a minimal, metadata-free variant suitable for quick or simple data s
 
 ## Entity relationship checks
 
-An STF study is invalid if any child entity rows cannot be joined back
-to a parent (e.g. if the parent rows do not exist or there is a typo).
-It is allowed to have entity instances with no children but orphans
-are not allowed.
+An STF study is considered invalid if any child entity row references
+a parent ID that does not exist in the corresponding parent entity
+file. Every child entity must be linked to a valid parent
+instance. While it is acceptable for a parent entity to have no
+children, orphaned child records (i.e., records with missing or
+non-existent parent IDs) are not allowed.
+
+
+## Tall-or-wide format
+
+The examples above show TSV files in "wide" format. That is, each row
+describes an instance of the entity, and columns contain IDs and
+variables.
+
+Here's a snippet of the `entity-observations.tsv` in tall format. The
+right-most columns have been truncated for space reasons. Tabs have
+been replaced by spaces for formatting/alignment reasons.
+
+
+```
+Household.Id                  H001                          H001                          H001                          H001                          H002                          H002           >
+Participant.Id                H001-P1                       H001-P2                       H001-P2                       H001-P3                       H002-P1                       H002-P1        >
+Descriptors \\ Part..Obs..Id  H001-P1-Obs1                  H001-P2-Obs1                  H001-P2-Obs2                  H001-P3-Obs1                  H002-P1-Obs1                  H002-P1-Obs2   >
+Observation.date              2023-09-29                    2023-05-04                    2023-11-30                    2023-04-21                    2023-08-08                    2023-10-18     >
+Height..cm.                   145                           135                           129                           133                           175                           172            >
+Weight..kg.                   35                            47                            80                            51                            32                            34             >
+MUAC..cm.                     15.82                         NA                            28.81                         NA                            26.68                         12.59          >
+Teeth.brushed.today           1                             1                             0                             1                             NA                            1              >
+```
+
+
+With respect to **writing** STF files, the Study Wrangler's
+tall vs. wide policy is not 
+
 
 ## Comparison of Full STF vs. STF-Lite
 
-| Feature                                  | Full STF ✅                                     | STF-Lite ⚠️                                |
+| Feature | Full STF ✅ | STF-Lite ⚠️ |
 |------------------------------------------|------------------------------------------------|-------------------------------------------|
 | **Custom entity names & display names**  | ✅ Supported via metadata YAML                 | ❌ Not supported, entity names must match ID columns |
 | **Data type enforcement**                | ✅ Enforced via metadata definitions           | ❌ No enforcement, at mercy of automatic type detection |
 | **Ordinal variable support**             | ✅ Metadata allows explicit ordinal definitions | ❌ Not supported |
 | **ID column flexibility**                | ✅ Custom ID column names allowed, column order not important   | ❌ ID column headers must match entity names exactly, ID columns must be in parent-to-child order |
 | **Validation**                           | ✅ Ensures entity relationships and data integrity | ⚠️ Limited to basic TSV parsing only |
+| **Tall or wide TSV files** | ✅ | ✅ |
+
+## CSV compatibility
+
+We may decide to offer read-compatibility for CSV data files, but the Study Wrangler will likely
+continue to write in TSV format only.
 
 
 ## TO DO
 
-* more on STF Lite and row-wise parent-child checks
 * metadata reference
-* tall format
