@@ -127,10 +127,11 @@ write_stf_data <- function(entity, output_directory) {
   # Replace the last ID column headers with the special
   # STF ID column header which tells us which orientation the file is in
   # and tells us when the entity names stop and variable names begin
+  this_entity_column_name <- id_column_names[length(id_column_names)] 
   headers[length(id_column_names)] <- if (is_tall) {
-    glue("Descriptors \\\\ {entity_name}")
+    glue("Descriptors \\\\ {this_entity_column_name}")
   } else {
-    glue("{id_column_names[length(id_column_names)]} \\\\ Descriptors")
+    glue("{this_entity_column_name} \\\\ Descriptors")
   }
   
   # Convert everything to character and add headers as row 1
