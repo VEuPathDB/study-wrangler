@@ -240,6 +240,14 @@ children, orphaned child records (i.e., records with missing or
 non-existent parent IDs) are not allowed.
 
 
+## Column headings format
+
+There are no strict rules for column heading formats. IDs and variable
+headings can contain spaces and other non-alphanumeric characters if
+you like. When manipulating columns in the Study Wrangler, they will
+be converted into R-friendly column names, mainly by replacing
+non-standard characters with periods (`.`).
+
 ## Tall-or-wide format
 
 The examples above show TSV files in "wide" format. That is, each row
