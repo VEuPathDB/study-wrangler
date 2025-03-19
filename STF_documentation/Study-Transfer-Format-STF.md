@@ -264,7 +264,8 @@ Teeth.brushed.today           1                             1                   
 
 
 With respect to **writing** STF files, the Study Wrangler's
-tall vs. wide policy is not 
+tall vs. wide policy is not yet finalised. However, Study Wrangler tools
+will always read both tall and wide though.
 
 
 ## Comparison of Full STF vs. STF-Lite
