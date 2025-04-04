@@ -16,7 +16,8 @@ test_that("attributes like 'hidden' that are lists of factors work properly", {
     )
   )
   
-  # dump to VDI to check (manually) that it is JSONified
+  # dump to VDI to check that it is JSONified
+  # (you have to run this manually and check the entitygraph*.cache file)
   output_dir <- "./tmp/vdi-hidden-vars"
   study <- study_from_entities(list(households), name="hidden var test")
   expect_no_error(
@@ -25,21 +26,22 @@ test_that("attributes like 'hidden' that are lists of factors work properly", {
       study %>% export_to_vdi(output_directory = output_dir)
     )
   )
+  # Clean up
+  unlink(output_dir, recursive = TRUE)
   
   
   # scalars should fail
   expect_error(
     households <- households %>%
-      set_variable_metadata('Number.of.animals', hidden='download')
+      set_variable_metadata('Number.of.animals', hidden='download'),
+    "because it takes a list"
   )
   
   # bad values should fail
   expect_error(
     households <- households %>%
-      set_variable_metadata('Number.of.animals', hidden=list('downXload'))
+      set_variable_metadata('Number.of.animals', hidden=list('downXload')),
+    "Cannot assign value.s. 'downXload' to metadata field 'hidden'"
   )
-  
-  # Clean up
-  unlink(output_dir, recursive = TRUE)
   
 });

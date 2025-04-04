@@ -538,6 +538,25 @@ setMethod("set_variable_metadata", "Entity", function(entity, variable_name, ...
       tryCatch({
         if (is.list(y)) {
           # For list columns, assign as a list
+          
+          # First check if we're assigning into a list-column of factors
+          # as bad factor levels aren't caught automatically by R
+          default_val <- variable_metadata_defaults[[x]]
+          if (is.list(default_val) && is.factor(unlist(default_val))) {
+            lvls <- levels(unlist(default_val))
+            
+            # Check for invalid values in y
+            invalid_values <- unlist(y) %>% keep(~ !is.na(.x) && !(.x %in% lvls))
+            if (length(invalid_values) > 0) {
+              stop(to_lines(
+                glue("Error: Cannot assign value(s) '{paste(invalid_values, collapse = ', ')}' to metadata field '{x}'"),
+                glue("because they are not among the allowed factor levels."),
+                glue("Allowed values are: {paste(lvls, collapse = ', ')}")
+              ), call. = FALSE)
+            }
+          }
+          
+          # Safe to assign now
           variables[[row_number, x]] <<- list(y)
         } else {
           # For non-list columns, assign directly

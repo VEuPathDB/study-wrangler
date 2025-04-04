@@ -60,6 +60,11 @@ entity_from_stf <- function(tsv_path, yaml_path = NULL) {
           merged,
           c(as.list(variable_metadata_defaults), list(variable = NA_character_)),
           function(value, default) {
+            # handle list(factor) e.g. 'hidden' field
+            if (is.list(default) && is.factor(unlist(default))) {
+              lvls <- levels(unlist(default))
+              return(as.list(value) %>% map(~ factor(.x, levels=lvls)))
+            }
             # TO DO: explain why list-of-empty-list is handled differently
             if (is.list(default) && !identical(value, list(list()))) {
               return(list(as.list(value)))

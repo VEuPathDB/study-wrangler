@@ -91,50 +91,36 @@ setMethod("validate", "Entity", function(object) {
   # levels in `variable_metadata_defaults`. We do not expect the factor columns
   # to be actual factors, but the values in them should respect the factors in
   # the defaults.
-  issues <- names(variable_metadata_defaults) %>%
-    map(function(col_name) {
-      col_values <- variables[[col_name]]
-      default_val <- variable_metadata_defaults[[col_name]]
-      
-      if (is.integer(default_val)) {
-        # Integer validation
-        invalid_values <- col_values[!is.na(col_values) & !is.integer(col_values)]
-        if (length(invalid_values) > 0) {
-          tibble(Column = col_name, Issue = "Not all values are integers", Values = paste(unique(invalid_values), collapse = ", "))
-        } else {
-          NULL
-        }
-      } else if (is.character(default_val)) {
-        # Character validation
-        invalid_values <- col_values[!is.na(col_values) & !is.character(col_values)]
-        if (length(invalid_values) > 0) {
-          tibble(Column = col_name, Issue = "Not all values are character/string type", Values = paste(unique(invalid_values), collapse = ", "))
-        } else {
-          NULL
-        }
-      } else if (is.logical(default_val)) {
-        # Logical validation
-        invalid_values <- col_values[!is.na(col_values) & !(col_values %in% c(TRUE, FALSE))]
-        if (length(invalid_values) > 0) {
-          tibble(Column = col_name, Issue = "Not all values are logical (TRUE/FALSE)", Values = paste(unique(invalid_values), collapse = ", "))
-        } else {
-          NULL
-        }
-      } else if (is.factor(default_val)) {
-        # Factor validation
-        default_levels <- levels(default_val)
-        invalid_values <- col_values[!is.na(col_values) & !(col_values %in% default_levels)]
-        if (length(invalid_values) > 0) {
-          tibble(Column = col_name, Issue = "Contains values outside factor levels", Values = paste(unique(invalid_values), collapse = ", "))
-        } else {
-          NULL
-        }
-      } else {
-        NULL
-      }
-    }) %>%
-    bind_rows()
   
+  validate_column <- function(col_name, col_values, default_val) {
+    if (is.integer(default_val)) {
+      bad <- col_values[!is.na(col_values) & !is.integer(col_values)]
+      if (length(bad) > 0) return(tibble(Column = col_name, Issue = "Not all values are integers", Values = paste(unique(bad), collapse = ", ")))
+    } else if (is.character(default_val)) {
+      bad <- col_values[!is.na(col_values) & !is.character(col_values)]
+      if (length(bad) > 0) return(tibble(Column = col_name, Issue = "Not all values are character/string", Values = paste(unique(bad), collapse = ", ")))
+    } else if (is.logical(default_val)) {
+      bad <- col_values[!is.na(col_values) & !(col_values %in% c(TRUE, FALSE))]
+      if (length(bad) > 0) return(tibble(Column = col_name, Issue = "Not all values are logical", Values = paste(unique(bad), collapse = ", ")))
+    } else if (is.factor(default_val)) {
+      lvls <- levels(default_val)
+      bad <- col_values[!is.na(col_values) & !(col_values %in% lvls)]
+      if (length(bad) > 0) return(tibble(Column = col_name, Issue = "Contains values outside factor levels", Values = paste(unique(bad), collapse = ", ")))
+    } else if (is.list(default_val) && length(default_val) == 1 && is.factor(default_val[[1]])) {
+      # list of factor values
+      lvls <- levels(default_val[[1]])
+      all_values <- col_values %>% unlist() %>% keep(~ !is.na(.x))
+      bad <- all_values[!is.na(all_values) & !(all_values %in% lvls)]
+      if (length(bad) > 0) return(tibble(Column = col_name, Issue = "Contains values outside allowed multi-factor levels", Values = paste(unique(bad), collapse = ", ")))
+    }
+    NULL
+  }
+  
+  issues <- names(variable_metadata_defaults) %>%
+    map(~ validate_column(.x, variables[[.x]], variable_metadata_defaults[[.x]])) %>%
+    compact() %>%
+    bind_rows()
+
   if (nrow(issues) > 0) {
     give_feedback(
       fatal_message = paste0(
