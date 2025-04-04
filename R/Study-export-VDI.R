@@ -257,7 +257,8 @@ export_attributes_to_vdi <- function(entities, output_directory, install_json, s
       # need to catch NAs specifically otherwise they end up as "{}" in the output
       vocabulary = if_else(all(is.na(vocabulary)), '', as.character(jsonlite::toJSON(vocabulary))),
       # without the `unlist()` the export is too nested: "[['label1', 'label2']]"
-      provider_label = as.character(jsonlite::toJSON(unlist(provider_label)))
+      provider_label = jsonify_list_column(provider_label),
+      hidden = jsonify_list_column(hidden)
     ) %>%
     ungroup()
 
@@ -432,3 +433,12 @@ export_attributes_to_vdi <- function(entities, output_directory, install_json, s
   
   return(install_json)   
 }
+
+jsonify_list_column <- function(x) {
+  if (is.null(x) || length(x) == 0 || all(is.na(x))) {
+    ""
+  } else {
+    as.character(jsonlite::toJSON(unlist(x)))
+  }
+}
+

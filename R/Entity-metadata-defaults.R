@@ -26,7 +26,7 @@ variable_metadata_defaults <- tibble(
   display_range_min = NA_character_,
   # hydrated, read-only # precision = NA_integer_,
   has_values = TRUE, # FALSE for display_type == 'category', TRUE otherwise 
-  hidden = factor(NA, levels = c("download", "variableTree", "map", "everywhere")),
+  hidden = list(factor(NA, levels = c("download", "variableTree", "map", "everywhere"))),
   is_featured = FALSE,
   is_merge_key = FALSE,
   is_multi_valued = FALSE,
