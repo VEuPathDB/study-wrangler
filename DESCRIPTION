@@ -1,6 +1,6 @@
 Package: study.wrangler
 Title: Wrangle (Tidy) Study Data
-Version: 1.0.10
+Version: 1.0.11
 Authors@R:
     c(person(given = "Bob",
            family = "MacCallum",
@@ -27,5 +27,8 @@ Suggests:
     testthat (>= 3.0.0),
     roxygen2,
     rmarkdown
+Remotes:
+    VEuPathDB/plot.data
+URL: https://github.com/VEuPathDB/study-wrangler
 Config/testthat/edition: 3
 VignetteBuilder: knitr
