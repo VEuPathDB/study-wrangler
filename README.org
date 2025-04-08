@@ -2,7 +2,29 @@
 
 study.wranger R package for tidying data in a way compatible with VEuPathDB workflows for EDA loading.
 
-To build a docker image
+
+* Install in existing R environment or RStudio
+
+#+BEGIN_SRC R
+# Install Bioconductor packages
+install.packages("BiocManager") # if not already installed
+BiocManager::install(c("SummarizedExperiment", "DESeq2"))
+
+# Install remotes package
+install.packages("remotes") # if you don't already have 'remotes'
+library(remotes)
+
+# Install the study-wrangler package from GitHub
+remotes::install_github("VEuPathDB/study-wrangler@v1.0.11", upgrade_dependencies = FALSE)
+library(study.wrangler)
+
+# Now go to the vignettes directory in RStudio and learn how to use it
+#+END_SRC
+
+
+
+* To build a docker image
+
 #+begin_example
 docker build -t veupathdb/study-wrangler .
 #+end_example
@@ -43,10 +65,4 @@ docker run --rm -ti -v $PWD:/study.wrangler -e PASSWORD=password -p 8888:8787 ve
 # Note that we are not committing the man/*.Rd files to the repo at the moment
 #+end_example
 
-
-Alternatively, should also be able to install into local RStudio using "remotes" package (where `v0.0.0.9000` is a version tag in the repo`)
-
-#+begin_example
-> remotes::install_github('VEuPathDB/study-wrangler@v0.0.0.9000')
-#+end_example
 
