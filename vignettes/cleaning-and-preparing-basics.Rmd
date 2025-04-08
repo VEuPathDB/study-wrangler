@@ -34,10 +34,11 @@ this is a **multi-entity situation** that we will cover later.
 ```{r setup}
 library(tidyverse)
 library(knitr)
-# during development
-devtools::load_all()
+## during development:
+# setwd("/path/to/study.wrangler")
+# devtools::load_all()
 # or
-# library(study.wrangler)
+library(study.wrangler)
 ```
 
 So let's start loading a tab-delimited file of toy data. Here we get the location
