@@ -32,6 +32,21 @@ browseVignettes("study.wrangler")
 
 #+END_SRC
 
+** Tip: Edit and run the vignette as a notebook
+
+To experiment with the vignette code interactively:
+
+1. Clone the source repo:
+   #+BEGIN_SRC sh
+   git clone https://github.com/VEuPathDB/study-wrangler.git
+   #+END_SRC
+
+2. Open the `.Rmd` file in RStudio:
+   #+BEGIN_SRC sh
+   open study-wrangler/vignettes/cleaning-and-preparing-basics.Rmd
+   #+END_SRC
+
+You can now run code chunks interactively and modify them/play around.
 
 
 * To build a docker image
@@ -75,21 +90,4 @@ docker run --rm -ti -v $PWD:/study.wrangler -e PASSWORD=password -p 8888:8787 ve
 > install()
 # Note that we are not committing the man/*.Rd files to the repo at the moment
 #+end_example
-
-
-** Tip: Edit and run the vignette as a notebook
-
-To experiment with the vignette code interactively:
-
-1. Clone the source repo:
-   #+BEGIN_SRC sh
-   git clone https://github.com/VEuPathDB/study-wrangler.git
-   #+END_SRC
-
-2. Open the `.Rmd` file in RStudio:
-   #+BEGIN_SRC sh
-   open study-wrangler/vignettes/cleaning-and-preparing-basics.Rmd
-   #+END_SRC
-
-You can now run code chunks interactively and modify them/play around.
 
