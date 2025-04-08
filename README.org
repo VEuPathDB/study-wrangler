@@ -13,8 +13,8 @@ BiocManager::install(c("SummarizedExperiment", "DESeq2"))
 # Install the remotes package
 install.packages("remotes") # if you don't already have 'remotes'
 
-# Install the study-wrangler package from GitHub
-remotes::install_github("VEuPathDB/study-wrangler@v1.0.12", build_vignettes = TRUE, upgrade_dependencies = FALSE)
+# Install (or upgrade) the study.wrangler package from GitHub
+remotes::install_github("VEuPathDB/study-wrangler", build_vignettes = TRUE, upgrade_dependencies = FALSE)
 # And load all its functions into your namespace
 library(study.wrangler)
 
