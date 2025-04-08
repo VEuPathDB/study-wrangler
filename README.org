@@ -41,9 +41,9 @@ To experiment with the vignette code interactively:
    git clone https://github.com/VEuPathDB/study-wrangler.git
    #+END_SRC
 
-2. Open the `.Rmd` file in RStudio:
-   #+BEGIN_SRC sh
-   open study-wrangler/vignettes/cleaning-and-preparing-basics.Rmd
+2. Open the `.Rmd` file in RStudio (File -> Open):
+   #+BEGIN_SRC
+   study-wrangler/vignettes/cleaning-and-preparing-basics.Rmd
    #+END_SRC
 
 You can now run code chunks interactively and modify them/play around.
