@@ -26,7 +26,8 @@ Imports:
 Suggests: 
     testthat (>= 3.0.0),
     roxygen2,
-    rmarkdown
+    rmarkdown,
+    devtools
 Remotes:
     VEuPathDB/plot.data
 URL: https://github.com/VEuPathDB/study-wrangler
