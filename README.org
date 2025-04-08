@@ -10,15 +10,26 @@ study.wranger R package for tidying data in a way compatible with VEuPathDB work
 install.packages("BiocManager") # if not already installed
 BiocManager::install(c("SummarizedExperiment", "DESeq2"))
 
-# Install remotes package
+# Install the remotes package
 install.packages("remotes") # if you don't already have 'remotes'
-library(remotes)
 
 # Install the study-wrangler package from GitHub
-remotes::install_github("VEuPathDB/study-wrangler@v1.0.11", upgrade_dependencies = FALSE)
+remotes::install_github("VEuPathDB/study-wrangler@v1.0.12", build_vignettes = TRUE, upgrade_dependencies = FALSE)
+# And load all its functions into your namespace
 library(study.wrangler)
 
-# Now go to the vignettes directory in RStudio and learn how to use it
+# Browse the vignettes (tutorials) in your web browser
+browseVignettes("study.wrangler")
+
+# If your web browser doesn't open with the vignette index page, use one of these:
+options(browser = "xdg-open")   # Linux
+# or
+options(browser = "open")       # macOS
+# or
+options(browser = "C:/Program Files/Google/Chrome/Application/chrome.exe")  # Windows
+# and then try again with 
+browseVignettes("study.wrangler")
+
 #+END_SRC
 
 
@@ -65,4 +76,20 @@ docker run --rm -ti -v $PWD:/study.wrangler -e PASSWORD=password -p 8888:8787 ve
 # Note that we are not committing the man/*.Rd files to the repo at the moment
 #+end_example
 
+
+** Tip: Edit and run the vignette as a notebook
+
+To experiment with the vignette code interactively:
+
+1. Clone the source repo:
+   #+BEGIN_SRC sh
+   git clone https://github.com/VEuPathDB/study-wrangler.git
+   #+END_SRC
+
+2. Open the `.Rmd` file in RStudio:
+   #+BEGIN_SRC sh
+   open study-wrangler/vignettes/cleaning-and-preparing-basics.Rmd
+   #+END_SRC
+
+You can now run code chunks interactively and modify them/play around.
 
