@@ -32,6 +32,34 @@ browseVignettes("study.wrangler")
 
 #+END_SRC
 
+** Tip: GitHub rate limiting
+
+If you see errors like HTTP error 403 or API rate limit exceeded when installing packages from GitHub, you may be hitting the unauthenticated GitHub API limit (60 requests/hour).
+
+To avoid this, set a GitHub Personal Access Token (PAT):
+1. Generate a token via https://github.com/settings/personal-access-tokens
+   Only the default read-only permissions to public repositories are needed.
+
+2. If you're using R from the command line (not RStudio), set your token in your shell config:
+
+   - zsh (default on most Macs): Add 
+     #+BEGIN_SRC sh
+     export GITHUB_PAT=github_pat_...
+     #+END_SRC
+     to your =~/.zshrc=
+      
+   - bash: Add it to =~/.bash_profile= or =~/.bashrc=
+
+3. For RStudio, we recommend setting it in your R environment file via:
+   #+BEGIN_SRC sh
+   usethis::edit_r_environ()
+   #+END_SRC
+   Add the line
+   #+BEGIN_SRC sh
+   GITHUB_PAT=github_pat_...
+   #+END_SRC
+   Save and restart your R-session
+
 ** Tip: Edit and run the vignette as a notebook
 
 To experiment with the vignette code interactively:
@@ -41,7 +69,7 @@ To experiment with the vignette code interactively:
    git clone https://github.com/VEuPathDB/study-wrangler.git
    #+END_SRC
 
-2. Open the `.Rmd` file in RStudio (File -> Open):
+2. Open the =.Rmd= file in RStudio (File -> Open):
    #+BEGIN_SRC
    study-wrangler/vignettes/cleaning-and-preparing-basics.Rmd
    #+END_SRC
