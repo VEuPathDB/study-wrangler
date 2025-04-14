@@ -64,6 +64,18 @@ test_that("create_variable_collection works", {
   )
 
   # to do, test basic create-time validation
-  bad_collection_spec <- list_assign(collection_spec, entity = "nonentity")
+  # this should fail
+  bad_entity_spec <- list_assign(collection_spec, entity = "nonentity")
+  expect_error(
+    study <- study %>% create_variable_collection(!!!bad_entity_spec),
+    "variable collection cannot be added because entity 'nonentity' does not exist in study"
+  )
+  
+  bad_category_spec <- list_assign(collection_spec, category = "desperate.measures")
+  expect_error(
+    study <- study %>% create_variable_collection(!!!bad_category_spec),
+    "variable collection cannot be added because category 'desperate.measures' does not exist in entity 'observation'"
+  )
+  
   
 })

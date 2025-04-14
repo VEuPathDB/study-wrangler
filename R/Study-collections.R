@@ -71,7 +71,23 @@ setMethod("create_variable_collection", "Study", function(study, ...) {
     stop(glue("Error: variable collection '{updates$category}' for entity '{updates$entity}' already exists"))
   }
 
-  # add the row!  
+  # Check the entity exists
+  if (study %>% get_entity(updates$entity) %>% is.null()) {
+   stop(glue("variable collection cannot be added because entity '{updates$entity}' does not exist in study")) 
+  }
+
+  # Check the category exists in that entity
+  if (
+    study %>%
+    get_entity(updates$entity) %>%
+    get_category_metadata() %>%
+    filter(variable == updates$category) %>%
+    nrow() != 1
+  ) {
+    stop(glue("variable collection cannot be added because category '{updates$category}' does not exist in entity '{updates$entity}'"))
+  }
+    
+  # Finally, add the row!  
   collections <- collections %>%
     bind_rows(
       tibble(!!!updates)
