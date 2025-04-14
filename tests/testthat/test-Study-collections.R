@@ -44,11 +44,26 @@ test_that("create_variable_collection works", {
     normalizationMethod = "none"
   )
   
+  # Note that the !!!syntax won't work in the console unless it's wrapped
+  # in an expect_* function or similar
   expect_no_error(
     study <- study %>% create_variable_collection(!!!collection_spec)
   )
   expect_error(
     study <- study %>% create_variable_collection(!!!collection_spec),
-    "variable collection 'integer.measures' already exists"
+    "variable collection 'integer.measures' for entity 'observation' already exists"
   )
+  
+  expect_error(
+    study <- study %>% delete_variable_collection(entity = "nonentity", category = "integer.measures"),
+    "variable collection 'integer.measures' for entity 'nonentity' not found"
+  )
+  
+  expect_no_error(
+    study <- study %>% delete_variable_collection(entity = "observation", category = "integer.measures")
+  )
+
+  # to do, test basic create-time validation
+  bad_collection_spec <- list_assign(collection_spec, entity = "nonentity")
+  
 })

@@ -12,7 +12,8 @@ empty_collections = tibble(
 
 #' @export
 setGeneric("create_variable_collection", function(study, ...) standardGeneric("create_variable_collection"))
-
+#' @export
+setGeneric("delete_variable_collection", function(study, entity, category) standardGeneric("delete_variable_collection"))
 
 #' create_variable_collection
 #'
@@ -41,8 +42,10 @@ setMethod("create_variable_collection", "Study", function(study, ...) {
 
   updates_fields <- names(updates)
   collections_fields <- names(collections)
+  
+  # check that the `collections` tibbles hasn't been corrupted
   if (!identical(collections_fields, names(empty_collections))) {
-    stop("Internal error: study@collections has wrong columns")
+    stop("Internal error: study@collections is corrupted")
   }
   
   # Ensure all fields are valid column names
@@ -57,15 +60,47 @@ setMethod("create_variable_collection", "Study", function(study, ...) {
     stop(glue("Error: missing field(s): {toString(missing_fields)}"))
   }
   
-  # Check we don't already have it (checking 'category' only at the mo)
-  if (collections %>% filter(category == updates$category) %>% nrow()) {
-    stop(glue("Error: variable collection '{updates$category}' already exists"))
+  # Check we don't already have it
+  if (
+    collections %>%
+    filter(
+      category == updates$category,
+      entity == updates$entity
+    ) %>% nrow()
+  ) {
+    stop(glue("Error: variable collection '{updates$category}' for entity '{updates$entity}' already exists"))
   }
-  
-  collections <- bind_rows(
-    collections,
-    tibble(!!!updates)
-  )
+
+  # add the row!  
+  collections <- collections %>%
+    bind_rows(
+      tibble(!!!updates)
+    ) 
   
   initialize(study, collections = collections)
+})
+
+
+#' delete_variable_collection
+#'
+#' delete a variable collection
+#' 
+#' @param object a Study object
+#' @param entity a character string containing the entity name that the colllection should belong to
+#' @param category a character string containing the category name that the collection corresponds to
+#' @returns a new Study object with the variable collection removed
+#' 
+#' @export
+setMethod("delete_variable_collection", "Study", function(study, entity, category) {
+  collections <- study@collections
+  
+  new_collections <- collections %>%
+    filter(category != !!category | entity != !!entity)
+  
+  # error if we didn't remove anything
+  if (nrow(new_collections) == nrow(collections)) {
+    stop(glue("Error: variable collection '{category}' for entity '{entity}' not found and therefore not deleted"))
+  }
+  
+  initialize(study, collections = new_collections)
 })
