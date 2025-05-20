@@ -19,7 +19,6 @@ setClass(
   slots = list(
     name = "character",
     root_entity = "Entity",
-    collections = "tbl_df",
     quiet = "logical"
   )
 )
@@ -28,6 +27,6 @@ setClass(
 #' Study constructor with sensible defaults
 #'
 #' @export
-study <- function(name = NA_character_, root_entity, collections = empty_collections, quiet = FALSE) {
-  new("Study", name = name, root_entity = root_entity, collections = collections, quiet = quiet)
+study <- function(name = NA_character_, root_entity, quiet = FALSE) {
+  new("Study", name = name, root_entity = root_entity, quiet = quiet)
 }

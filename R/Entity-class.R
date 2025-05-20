@@ -43,7 +43,8 @@ setClass(
     display_name_plural = "character",
     children = "list",
     stable_id = "character",
-    quiet = "logical"
+    quiet = "logical",
+    collections = "tbl_df"
   )
 )
 
@@ -86,7 +87,8 @@ entity <- function(data,
                    display_name_plural = NA_character_,
                    children = list(),
                    stable_id = NA_character_,
-                   quiet = FALSE
+                   quiet = FALSE,
+                   collections = empty_collections
 ) {
   
   metadata <- list(
@@ -98,7 +100,8 @@ entity <- function(data,
     display_name_plural = display_name_plural,
     children = children,
     stable_id = stable_id,
-    quiet = quiet
+    quiet = quiet,
+    collections = collections
   )
   
   metadata <- apply_entity_metadata_defaults(metadata)
