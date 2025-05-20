@@ -26,15 +26,14 @@ test_that("create_variable_collection works", {
   expect_true(
     observations %>% quiet() %>% validate()
   )
-  
+
   expect_no_error(
     study <- study_from_entities(list(households, participants, observations), name = study_name)
   )
-  
+
   observations <- study %>% get_entity('observation') %>% verbose()
-  
+
   collection_spec = list(
-    entity = "observation",
     category = "integer.measures",
     member = "gene",
     memberPlural = "genes",
@@ -47,35 +46,25 @@ test_that("create_variable_collection works", {
   # Note that the !!!syntax won't work in the console unless it's wrapped
   # in an expect_* function or similar
   expect_no_error(
-    study <- study %>% create_variable_collection(!!!collection_spec)
+    observations2 <- observations %>% create_variable_collection(!!!collection_spec)
   )
   expect_error(
-    study <- study %>% create_variable_collection(!!!collection_spec),
-    "variable collection 'integer.measures' for entity 'observation' already exists"
-  )
-  
-  expect_error(
-    study <- study %>% delete_variable_collection(entity = "nonentity", category = "integer.measures"),
-    "variable collection 'integer.measures' for entity 'nonentity' not found"
-  )
-  
-  expect_no_error(
-    study <- study %>% delete_variable_collection(entity = "observation", category = "integer.measures")
+    observations2 <- observations2 %>% create_variable_collection(!!!collection_spec),
+    "variable collection 'integer.measures' already exists in entity"
   )
 
-  # to do, test basic create-time validation
-  # this should fail
-  bad_entity_spec <- list_assign(collection_spec, entity = "nonentity")
   expect_error(
-    study <- study %>% create_variable_collection(!!!bad_entity_spec),
-    "variable collection cannot be added because entity 'nonentity' does not exist in study"
+    observations2 <- observations2 %>% delete_variable_collection(category = "nonexistent"),
+    "variable collection 'nonexistent' not found and therefore not deleted"
   )
-  
+
+  expect_no_error(
+    observations2 <- observations2 %>% delete_variable_collection(category = "integer.measures")
+  )
+
   bad_category_spec <- list_assign(collection_spec, category = "desperate.measures")
   expect_error(
-    study <- study %>% create_variable_collection(!!!bad_category_spec),
-    "variable collection cannot be added because category 'desperate.measures' does not exist in entity 'observation'"
+    observations %>% create_variable_collection(!!!bad_category_spec),
+    "variable collection cannot be added because category 'desperate.measures' does not exist in entity"
   )
-  
-  
 })
