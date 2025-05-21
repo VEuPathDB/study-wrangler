@@ -67,4 +67,18 @@ test_that("create_variable_collection works", {
     observations %>% create_variable_collection(!!!bad_category_spec),
     "variable collection cannot be added because category 'desperate.measures' does not exist in entity"
   )
+  
+  # check that the label-fallback-to-display_name functionality works
+  no_label_spec <- list_modify(collection_spec, label = zap())
+  expect_no_error(
+    observations2 <- observations %>% create_variable_collection(!!!no_label_spec)
+  )
+
+  # check that a missing 'update' fails
+  no_member_spec <- list_modify(collection_spec, member = zap())
+  expect_error(
+    observations2 <- observations %>% create_variable_collection(!!!no_member_spec),
+    "missing field.+member"
+  )
+  
 })

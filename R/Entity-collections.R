@@ -20,6 +20,8 @@ setGeneric("delete_variable_collection", function(entity, category) standardGene
 #' 
 #' @param entity an Entity object
 #' @param ... key-value pairs defining collection metadata, see example below, all must be provided
+#'        However, the `label` field can be omitted if the `category` exists and has a non-null `display_name`.
+#'        In that case the variable category's `display_name` will be used as the collection label.
 #' @returns a new Entity object with the variable collection added to its `collections` tibble
 #' 
 #' @examples
@@ -37,6 +39,18 @@ setGeneric("delete_variable_collection", function(entity, category) standardGene
 setMethod("create_variable_collection", "Entity", function(entity, ...) {
   collections <- entity@collections
   updates <- list(...)
+  
+  # silently attempt to get the category's display_name from variable metadata
+  category_display_name <- entity %>%
+    get_category_metadata() %>%
+    filter(variable %in% updates$category) %>%
+    pull(display_name) %>%
+    pluck(1, .default = NULL)
+  # and, if successful, patch that in to `updates` as `label` if that hasn't been provided
+  if (!is.null(category_display_name) && is.null(updates$label)) {
+    updates$label <- category_display_name
+  }
+  
   updates_fields <- names(updates)
   collections_fields <- names(collections)
   if (!identical(collections_fields, names(empty_collections))) {
