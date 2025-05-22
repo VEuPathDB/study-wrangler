@@ -18,7 +18,6 @@
 #' @importFrom dplyr pull
 #' @importFrom dplyr rename
 #' @importFrom dplyr %>%
-#' @importFrom dplyr tibble_to_sparse_object
 
 export_entity_to_stf <- function(entity, output_directory) {
   entity_name <- entity %>% get_entity_name()
