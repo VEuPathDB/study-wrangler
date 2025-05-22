@@ -42,73 +42,16 @@ setMethod("export_to_stf", "Study", function(object, output_directory) {
       )
     )
   write_pretty_yaml(study_metadata, study_metadata.path)
-  
-  export_entity_to_stf_recursively(
-    get_root_entity(study),
-    output_directory
-  )
+
+  # Call the new entity export function for each entity
+  for (entity in entities) {
+    export_entity_to_stf(entity, output_directory)
+  }
   
   # Return the study object invisibly
   return(invisible(study))
 })
 
-
-# not sure recursion is necessary here, but we used it for VDI export
-# so it may come in handy at some point?
-export_entity_to_stf_recursively <- function(entity, output_directory) {
-  entity_name <- entity %>% get_entity_name()
-  
-  # write the metadata to YAML
-  entity_metadata.path <- file.path(output_directory, glue("entity-{entity_name}.yaml"))
-  
-  # turn metadata tibble into a sparse R object (nested list) targeted for YAML
-  # exclude any default values to keep the YAML concise
-  postprocess_metadata <- function(metadata) {
-    defaults <- as.list(variable_metadata_defaults)
-    metadata %>%
-      tibble_to_sparse_object() %>%
-      map(function(record) {
-        # record is also a list
-        record %>%
-          # in imap() .x is the value and .y is the key/name
-          # only keep the key-value pair if the value different from the default value
-          imap(~ if (!identical(.x, defaults[[.y]])) .x) %>%
-          # get rid of NAs introduced by imap()
-          compact()
-      })
-  }
-  
-  ids_metadata <- entity %>% get_id_column_metadata() %>% rename(id_column = variable) %>% postprocess_metadata()
-  variables_metadata <- entity %>% get_variable_metadata() %>% postprocess_metadata()
-  categories_metadata <- entity %>% get_category_metadata() %>% rename(category = variable) %>% postprocess_metadata()
-  
-  entity_metadata <- entity %>%
-    slotNames() %>%
-    keep(~ is.character(slot(entity, .x))) %>%
-    set_names() %>% # make a named character vector, c(name = 'name'), etc
-    map(~ slot(entity, .x)) %>% # map it to a list with the actual slot value as values
-    discard(is.na) %>% # to remove any YAML entries with no value provided
-    list_assign( # add the tabular metadata
-      id_columns = ids_metadata,
-      variables = variables_metadata,
-      categories = categories_metadata
-    )
-  
-  write_pretty_yaml(entity_metadata, entity_metadata.path)
-  
-  # write the data to STF-style TSV
-  # (auto tall or wide format)
-  write_stf_data(entity, output_directory)
-
-  # Recurse into child entities
-  child_entities <- entity %>% get_children()
-  for (child in child_entities) {
-    export_entity_to_stf_recursively(
-      child,
-      output_directory
-    )
-  }
-}
 
 write_stf_data <- function(entity, output_directory) {
   entity_name <- entity %>% get_entity_name()
