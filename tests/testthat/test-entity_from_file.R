@@ -23,7 +23,7 @@ test_that("entity_from_file warns about duplicate column names in input file", {
 
   expect_warning(
     result <- entity_from_file(file_path),
-    "Duplicate column names detected in input file."
+    "Duplicate column names detected in input."
   )
   
   expect_true(any(duplicated(result@variables$provider_label)))
