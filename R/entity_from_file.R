@@ -94,7 +94,7 @@ entity_from_tibble <- function(data, preprocess_fn = NULL, ...) {
       filter(original %in% duplicates)
     warning(
       paste(
-        "Duplicate column names detected in input tibble. Renamed as follows:\n",
+        "Duplicate column names detected in input. Renamed as follows:\n",
         paste(renamed$original, "->", renamed$renamed, collapse = "\n"),
         sep=""
       )
