@@ -118,6 +118,16 @@ entity_from_tibble <- function(data, preprocess_fn = NULL, ...) {
 #' @export
 entity_from_tsv <- function(file_path, preprocess_fn = NULL, ...) {
   data <- suppressWarnings(readr::read_tsv(file_path, name_repair = 'minimal', col_types = readr::cols(.default = "c")))
+  problems <- readr::problems(data)
+  if (nrow(problems) > 0) {
+    stop(paste0(
+      c(
+        "Error: Issues were encountered while parsing the file:",
+        knitr::kable(problems)
+      ),
+      collapse="\n"
+    ))
+  }
   entity_from_tibble(data, preprocess_fn, ...)
 }
 
@@ -126,5 +136,15 @@ entity_from_tsv <- function(file_path, preprocess_fn = NULL, ...) {
 #' @export
 entity_from_csv <- function(file_path, preprocess_fn = NULL, ...) {
   data <- suppressWarnings(readr::read_csv(file_path, name_repair = 'minimal', col_types = readr::cols(.default = "c")))
+  problems <- readr::problems(data)
+  if (nrow(problems) > 0) {
+    stop(paste0(
+      c(
+        "Error: Issues were encountered while parsing the file:",
+        knitr::kable(problems)
+      ),
+      collapse="\n"
+    ))
+  }
   entity_from_tibble(data, preprocess_fn, ...)
 }
