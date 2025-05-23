@@ -27,8 +27,8 @@ entity_from_stf <- function(tsv_path, yaml_path = NULL) {
   }
   
   # Read in the file as all-character with no headers
-  data <- read_tsv(tsv_path, col_names = FALSE, col_types = cols(.default = "c"))
-  
+  data <- read_tsv(tsv_path, col_names = FALSE, col_types = cols(.default = "c"), progress = FALSE)
+
   # Determine if it's wide or tall format based on the first row
   is_wide <- any(str_detect(data[1, ], ".+\\\\\\\\ Descriptors|Descriptors \\\\\\\\"))
   
