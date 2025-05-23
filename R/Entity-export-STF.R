@@ -22,6 +22,11 @@
 export_entity_to_stf <- function(entity, output_directory) {
   entity_name <- entity %>% get_entity_name()
 
+  # Check if the directory exists, and create it if necessary
+  if (!dir.exists(output_directory)) {
+    dir.create(output_directory, recursive = TRUE)  # Use recursive = TRUE for nested directories
+  }
+  
   # write the metadata to YAML
   entity_metadata.path <- file.path(output_directory, glue("entity-{entity_name}.yaml"))
 

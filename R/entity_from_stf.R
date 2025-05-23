@@ -4,11 +4,28 @@
 #' Creates an entity object from a TSV file and optional YAML metadata file
 #'
 #' @param tsv_path path to one STF-format TSV file
-#' @param yaml_path path to one YAML file containing STF metadata   
+#' @param yaml_path path to one YAML file containing STF metadata (optional)
+#'        if not provided, the function will look for a .yaml or .yml file with the same
+#'        file stem as `tsv_path` and if it exists, use it.
+#'        If no `yaml_path` is provided or discovered, the function will go ahead
+#'        and load the data without additional metadata.
 #' @return An entity object
 #'
 #' @export
 entity_from_stf <- function(tsv_path, yaml_path = NULL) {
+  # handle automatic yaml_path discovery
+  if (is.null(yaml_path)) {
+    # strip off the final extension, then re-attach .yaml and .yml
+    candidates <- c("yaml", "yml") %>% 
+      map_chr(~ fs::path_ext_set(tsv_path, .x))
+    
+    # keep only the ones that exist on disk, take the first (or stay NULL)
+    existing <- keep(candidates, fs::file_exists)
+    if (length(existing)) {
+      yaml_path <- existing[[1]]
+    }
+  }
+  
   # Read in the file as all-character with no headers
   data <- read_tsv(tsv_path, col_names = FALSE, col_types = cols(.default = "c"))
   
