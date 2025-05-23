@@ -142,7 +142,14 @@ entity_from_tsv <- function(file_path, preprocess_fn = NULL, ...) {
 #' @description Convenience function to create an Entity from a CSV file.
 #' @export
 entity_from_csv <- function(file_path, preprocess_fn = NULL, ...) {
-  data <- suppressWarnings(readr::read_csv(file_path, name_repair = 'minimal', col_types = readr::cols(.default = "c")))
+  data <- suppressWarnings(
+    readr::read_csv(
+      file_path,
+      name_repair = 'minimal',
+      col_types = readr::cols(.default = "c"),
+      progress = FALSE
+    )
+  )
   problems <- readr::problems(data)
   if (nrow(problems) > 0) {
     stop(paste0(
