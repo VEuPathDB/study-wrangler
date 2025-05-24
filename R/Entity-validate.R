@@ -458,19 +458,21 @@ setMethod("validate", "Entity", function(object) {
   }
   
   # Validation: check that all collections have a corresponding variable category
-  orphan_collections <- entity@collections %>%
-    anti_join(get_category_metadata(entity), join_by(category == variable)) %>%
-    pull(category)
+  if (!is.null(entity@collections) && nrow(entity@collections) > 0) {
+    orphan_collections <- entity@collections %>%
+      anti_join(get_category_metadata(entity), join_by(category == variable)) %>%
+      pull(category)
     
-  if (length(orphan_collections) > 0) {
-    add_feedback(to_lines(
-      glue("These variable collections have no corresponding variable category: {paste0(orphan_collections, collapse=', ')}"),
-      "You should remove them and add new collections for valid variable categories, e.g. as follows:",
-      # the next line is intended to be repeated for multiple vars
-      indented(glue("{global_varname} <- {global_varname} %>% delete_variable_collection('{orphan_collections}')"))
-    ))
+    if (length(orphan_collections) > 0) {
+      add_feedback(to_lines(
+        glue("These variable collections have no corresponding variable category: {paste0(orphan_collections, collapse=', ')}"),
+        "You should remove them and add new collections for valid variable categories, e.g. as follows:",
+        # the next line is intended to be repeated for multiple vars
+        indented(glue("{global_varname} <- {global_varname} %>% delete_variable_collection('{orphan_collections}')"))
+      ))
+    }
   }
-
+  
   # Output feedback to the user
   give_feedback()  
   

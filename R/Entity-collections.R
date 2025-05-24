@@ -1,16 +1,22 @@
-empty_collections = tibble(
-  category = character(),
-  member = character(),
-  memberPlural = character(),
-  label = character(),
-  isProportion = logical(),
-  isCompositional = logical(),
-  normalizationMethod = character()
+# main key column is called 'category' (character)
+# but that's not included here (because it can't have a default)
+# (this is analogous to `variable_metadata_defaults`)
+collection_metadata_defaults = tibble(
+  member = NA_character_,
+  memberPlural = NA_character_,
+  label = NA_character_,
+  isProportion = FALSE,
+  isCompositional = FALSE,
+  normalizationMethod = NA_character_
 )
 
+empty_collections <- collection_metadata_defaults %>%
+  bind_rows(tibble(category = NA_character_)) %>%
+  relocate(category) %>%
+  slice(0)
 
 #' @export
-setGeneric("create_variable_collection", function(entity, ...) standardGeneric("create_variable_collection"))
+setGeneric("create_variable_collection", function(entity, category, ...) standardGeneric("create_variable_collection"))
 #' @export
 setGeneric("delete_variable_collection", function(entity, category) standardGeneric("delete_variable_collection"))
 
@@ -19,12 +25,16 @@ setGeneric("delete_variable_collection", function(entity, category) standardGene
 #' create a variable collection
 #' 
 #' @param entity an Entity object
-#' @param ... key-value pairs defining collection metadata, see example below, all must be provided
-#'        However, the `label` field can be omitted if the `category` exists and has a non-null `display_name`.
+#' @param category character value that is the same as the "variable category" that should already exist
+#' @param ... key-value pairs defining collection metadata, defaults or NAs will be used if not provided.
+#'        The `label` field can be omitted if the `category` exists and has a non-null `display_name`.
 #'        In that case the variable category's `display_name` will be used as the collection label.
 #' @returns a new Entity object with the variable collection added to its `collections` tibble
 #' 
 #' @examples
+#' 
+#' # TO DO: update with full collection_metadata_defaults
+#' 
 #' entity <- entity %>% create_variable_collection(
 #'   category = "integer.measures",
 #'   member = "measurement",
@@ -36,14 +46,18 @@ setGeneric("delete_variable_collection", function(entity, category) standardGene
 #' )
 #' 
 #' @export
-setMethod("create_variable_collection", "Entity", function(entity, ...) {
+setMethod("create_variable_collection", "Entity", function(entity, category, ...) {
   collections <- entity@collections
   updates <- list(...)
+  
+  if (missing(category)) {
+    stop("Error: must provide `category` argument to `create_variable_collection(entity, category, ...)`")
+  }
   
   # silently attempt to get the category's display_name from variable metadata
   category_display_name <- entity %>%
     get_category_metadata() %>%
-    filter(variable %in% updates$category) %>%
+    filter(variable %in% !!category) %>%
     pull(display_name) %>%
     pluck(1, .default = NULL)
   # and, if successful, patch that in to `updates` as `label` if that hasn't been provided
@@ -52,46 +66,40 @@ setMethod("create_variable_collection", "Entity", function(entity, ...) {
   }
   
   updates_fields <- names(updates)
-  collections_fields <- names(collections)
-  if (!identical(collections_fields, names(empty_collections))) {
-    stop("Internal error: entity@collections is corrupted")
-  }
-  
+  collections_fields <- names(collection_metadata_defaults)
+
   # Ensure all fields are valid column names
   invalid_fields <- setdiff(updates_fields, collections_fields)
   if (length(invalid_fields) > 0) {
     stop(glue("Error: invalid field(s): {toString(invalid_fields)}"))
   }
 
-  # Ensure all collection metadata fields are provided
-  missing_fields <- setdiff(collections_fields, updates_fields)
-  if (length(missing_fields) > 0) {
-    stop(glue("Error: missing field(s): {toString(missing_fields)}"))
-  }
-  
   # Check we don't already have it
   if (
     collections %>%
-    filter(category == updates$category) %>% nrow()
+    filter(category == !!category) %>% nrow()
   ) {
-    stop(glue("Error: variable collection '{updates$category}' already exists in entity"))
+    stop(glue("Error: variable collection '{category}' already exists in entity"))
   }
 
   # Check the category exists in that entity
   if (
     entity %>%
     get_category_metadata() %>%
-    filter(variable == updates$category) %>%
+    filter(variable == category) %>%
     nrow() != 1
   ) {
-    stop(glue("variable collection cannot be added because category '{updates$category}' does not exist in entity"))
+    stop(glue("variable collection cannot be added because category '{category}' does not exist in entity"))
   }
     
   # Finally, add the row!  
   collections <- collections %>%
     bind_rows(
-      tibble(!!!updates)
-    ) 
+      # blend the provided values in `updates` into the default values (overriding them)
+      # and add the category column
+      list_modify(collection_metadata_defaults, category = category, !!!updates)
+    ) %>% relocate(category) # it's nice to have the category as the first column
+
   initialize(entity, collections = collections)
 })
 

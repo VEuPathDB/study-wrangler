@@ -46,7 +46,8 @@ export_entity_to_stf <- function(entity, output_directory) {
   ids_metadata <- entity %>% get_id_column_metadata() %>% rename(id_column = variable) %>% postprocess_metadata()
   variables_metadata <- entity %>% get_variable_metadata() %>% postprocess_metadata()
   categories_metadata <- entity %>% get_category_metadata() %>% rename(category = variable) %>% postprocess_metadata()
-
+  collections_metadata <- entity@collections %>% postprocess_metadata()
+  
   entity_metadata <- entity %>%
     slotNames() %>%
     keep(~ is.character(slot(entity, .x))) %>%
@@ -56,7 +57,8 @@ export_entity_to_stf <- function(entity, output_directory) {
     list_assign(
       id_columns = ids_metadata,
       variables = variables_metadata,
-      categories = categories_metadata
+      categories = categories_metadata,
+      collections = collections_metadata
     )
 
   write_pretty_yaml(entity_metadata, entity_metadata.path)
@@ -66,3 +68,44 @@ export_entity_to_stf <- function(entity, output_directory) {
 
   invisible(entity)
 }
+
+
+
+write_stf_data <- function(entity, output_directory) {
+  entity_name <- entity %>% get_entity_name()
+  data.path <- file.path(output_directory, glue("entity-{entity_name}.tsv"))
+  
+  # Make sure the first columns are ID columns in entity_level order
+  ids_metadata <- entity %>% get_id_column_metadata()  # Already in entity_level order
+  id_column_names <- ids_metadata %>% pull(variable)
+  data <- entity %>% get_data() %>% relocate(all_of(id_column_names))
+  
+  # Determine if we need tall format
+  headers <- names(data)
+  ncols <- length(headers)
+  is_tall <- ncols > nrow(data) && ncols >= 200
+  
+  # Replace the last ID column headers with the special
+  # STF ID column header which tells us which orientation the file is in
+  # and tells us when the entity names stop and variable names begin
+  this_entity_column_name <- id_column_names[length(id_column_names)] 
+  headers[length(id_column_names)] <- if (is_tall) {
+    glue("Descriptors \\\\ {this_entity_column_name}")
+  } else {
+    glue("{this_entity_column_name} \\\\ Descriptors")
+  }
+  
+  # Convert everything to character and add headers as row 1
+  data <- bind_rows(
+    set_names(headers, names(data)),  # Apply corrected headers
+    data %>% mutate(across(everything(), as.character))
+  )
+  
+  # Transpose if needed
+  if (is_tall) {
+    data <- data %>% t() %>% as_tibble()
+  }
+  
+  data %>% write_tsv(data.path, col_names = FALSE, progress = FALSE)
+}
+

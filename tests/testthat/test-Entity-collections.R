@@ -30,7 +30,6 @@ test_that("create_variable_collection works", {
   )
 
   collection_spec = list(
-    category = "integer.measures",
     member = "gene",
     memberPlural = "genes",
     label = "raw read count",
@@ -42,60 +41,63 @@ test_that("create_variable_collection works", {
   # Note that the !!!syntax won't work in the console unless it's wrapped
   # in an expect_* function or similar
   expect_no_error(
-    observations2 <- observations %>% create_variable_collection(!!!collection_spec)
+    observations2 <- observations %>% create_variable_collection('integer.measures', !!!collection_spec)
   )
   expect_error(
-    observations2 <- observations2 %>% create_variable_collection(!!!collection_spec),
+    observations2 <- observations2 %>% create_variable_collection('integer.measures', !!!collection_spec),
     "variable collection 'integer.measures' already exists in entity"
   )
 
   expect_error(
-    observations2 <- observations2 %>% delete_variable_collection(category = "nonexistent"),
-    "variable collection 'nonexistent' not found and therefore not deleted"
+    observations2 %>% delete_variable_collection("no.measures"),
+    "variable collection 'no.measures' not found and therefore not deleted"
   )
 
   expect_no_error(
-    observations3 <- observations2 %>% delete_variable_collection(category = "integer.measures")
+    observations2 %>% delete_variable_collection("integer.measures")
   )
 
-  bad_category_spec <- list_assign(collection_spec, category = "desperate.measures")
   expect_error(
-    observations %>% create_variable_collection(!!!bad_category_spec),
+    observations %>% create_variable_collection('desperate.measures', !!!collection_spec),
     "variable collection cannot be added because category 'desperate.measures' does not exist in entity"
   )
   
-  # check that the label-fallback-to-display_name functionality works
+  # check that the label-fallback-to-category-display_name functionality works
   no_label_spec <- list_modify(collection_spec, label = zap())
   expect_no_error(
-    observations3 <- observations %>% create_variable_collection(!!!no_label_spec)
+    expect_true(
+      observations %>%
+        create_variable_collection('integer.measures', !!!no_label_spec) %>%
+        slot('collections') %>% # we'll probably provide convenience collection getter methods at some point...
+        filter(category %in% 'integer.measures', label %in% 'integer-based anatomical measures') %>%
+        nrow() == 1
+    )
   )
-
+  
   # let's delete the variable category from observations2 and check
   # that the entity no longer validates (orphan collection)
   expect_message(
-    observations3 <- observations3 %>% delete_variable_category("integer.measures"),
+    observations3 <- observations2 %>% delete_variable_category("integer.measures"),
     "Category 'integer.measures' has been deleted"
   )
-  # and category with a different name
+  expect_warning(
+    observations3 %>% validate(),
+    "These variable collections have no corresponding variable category: integer.measures"
+  )
+  
+  
+  # and add a category with a different name
   desperate.measures_category_spec <- list_assign(integer.measures.category_spec, category_name = "desperate.measures")
   expect_message(
     expect_message(
       observations3 <- observations3 %>% create_variable_category(!!!desperate.measures_category_spec)
     )
   )
-  
   expect_warning(
     observations3 %>% validate(),
     "These variable collections have no corresponding variable category: integer.measures"
   )
   
-  # check that a missing 'update' fails
-  no_member_spec <- list_modify(collection_spec, member = zap())
-  expect_error(
-    observations %>% create_variable_collection(!!!no_member_spec),
-    "missing field.+member"
-  )
-
   # Are collections shown in the inspect(study) overview?
   # first make a study with observations2 (this still has category and collections)
   expect_no_error(
