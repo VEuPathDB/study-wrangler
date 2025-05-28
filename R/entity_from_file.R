@@ -47,47 +47,44 @@ entity_from_file <- function(file_path, preprocess_fn = NULL, ...) {
   if (!file.exists(file_path)) {
     stop("Error: file does not exist: ", file_path)
   }
+  ext <- tolower(tools::file_ext(file_path))
+  if (ext == "csv") {
+    return(entity_from_csv(file_path, preprocess_fn, ...))
+  } else if (ext == "tsv" || ext == "txt") {
+    return(entity_from_tsv(file_path, preprocess_fn, ...))
+  } else {
+    # Try to autodetect by reading first line
+    first_line <- readLines(file_path, n = 1)
+    if (grepl(",", first_line) && !grepl("\t", first_line)) {
+      return(entity_from_csv(file_path, preprocess_fn, ...))
+    } else {
+      return(entity_from_tsv(file_path, preprocess_fn, ...))
+    }
+  }
+}
 
-  # check extra args are valid slots
+#' entity_from_tibble
+#'
+#' @description
+#' Creates an Entity object from a raw character-only tibble. Optionally applies a preprocessing function.
+#' @param data A tibble with all columns as character.
+#' @param preprocess_fn Optional function to preprocess the tibble before type inference.
+#' @param ... Additional named parameters to set entity metadata (see Entity class).
+#' @return An Entity object.
+#' @export
+entity_from_tibble <- function(data, preprocess_fn = NULL, ...) {
   metadata = list(...)
   validate_object_metadata_names('Entity', metadata)
-  
-  # Read the data with minimal column name repair and no type detection
-  data <- suppressWarnings(
-    readr::read_tsv(
-      file_path,
-      name_repair = 'minimal',
-      col_types = readr::cols(.default = "c")
-    )
-  )
-
-  # Bail if there are parsing problems
-  problems <- readr::problems(data)
-  if (nrow(problems) > 0) {
-    stop(paste0(
-      c(
-        "Error: Issues were encountered while parsing the file:",
-        kable(problems)
-      ),
-      collapse="\n"
-    ))
-  }
 
   # Apply the pre-processing function, if provided.
-  # Mainly useful for fixing dates before they are auto-detected and validated.
-  # Other fixes can be made on the return value of this function.
   if (!is.null(preprocess_fn)) {
     data <- preprocess_fn(data)
   }
 
-  # Original column names - convert to a (potentially) multi-valued list
   provider_labels <- colnames(data) %>% map(list)
-
-  # rename data tibble columns with unique, R-friendly names
   clean_names <- make.names(colnames(data), unique = TRUE)
   colnames(data) <- clean_names
-  
-  # Warn if duplicates exist in provider labels
+
   if (anyDuplicated(provider_labels)) {
     duplicates <- provider_labels[duplicated(provider_labels) | duplicated(provider_labels, fromLast = TRUE)]
     renamed <- tibble(
@@ -95,44 +92,73 @@ entity_from_file <- function(file_path, preprocess_fn = NULL, ...) {
       renamed = clean_names
     ) %>% 
       filter(original %in% duplicates)
-    
     warning(
       paste(
-        "Duplicate column names detected in input file. Renamed as follows:\n",
+        "Duplicate column names detected in input. Renamed as follows:\n",
         paste(renamed$original, "->", renamed$renamed, collapse = "\n"),
         sep=""
       )
     )
   }
-  
-  # do R-based type inference on character data tibble
-  # Detect column types (initially all read in as `chr`)
-  # Suppress messages but intercept warnings about dates
+
   data <- type_convert_quietly(data)
-
-  # create `variables` with default values for every column
-  # (from Entity-metadata-defaults.R)
   variables <- tibble(variable=clean_names) %>% expand_grid(variable_metadata_defaults)
-
-  # add `provider_labels` to variables
   variables <- variables %>% mutate(provider_label = provider_labels)
-
   if (!is.null(metadata$name)) {
     variables <- variables %>% mutate(entity_name = metadata$name)
   }
-      
-  # create entity object using `do.call()` because there is no JavaScript-like
-  # spread operator in R ;-)
   constructor_args <- c(list(data = data, variables = variables), metadata)
   entity <- do.call(entity, constructor_args)
-
-
-  # auto-detect the basic data types
-  entity <- entity %>%
-    infer_missing_data_types() %>%
-    infer_missing_data_shapes()
-    
-  
-    # Return an Entity object
+  entity <- entity %>% infer_missing_data_types() %>% infer_missing_data_shapes()
   return(entity)
+}
+
+#' entity_from_tsv
+#' @description Convenience function to create an Entity from a TSV file.
+#' @export
+entity_from_tsv <- function(file_path, preprocess_fn = NULL, ...) {
+  data <- suppressWarnings(
+    readr::read_tsv(
+      file_path,
+      name_repair = 'minimal',
+      col_types = readr::cols(.default = "c"),
+      progress = FALSE
+    )
+  )
+  problems <- readr::problems(data)
+  if (nrow(problems) > 0) {
+    stop(paste0(
+      c(
+        "Error: Issues were encountered while parsing the file:",
+        knitr::kable(problems)
+      ),
+      collapse="\n"
+    ))
+  }
+  entity_from_tibble(data, preprocess_fn, ...)
+}
+
+#' entity_from_csv
+#' @description Convenience function to create an Entity from a CSV file.
+#' @export
+entity_from_csv <- function(file_path, preprocess_fn = NULL, ...) {
+  data <- suppressWarnings(
+    readr::read_csv(
+      file_path,
+      name_repair = 'minimal',
+      col_types = readr::cols(.default = "c"),
+      progress = FALSE
+    )
+  )
+  problems <- readr::problems(data)
+  if (nrow(problems) > 0) {
+    stop(paste0(
+      c(
+        "Error: Issues were encountered while parsing the file:",
+        knitr::kable(problems)
+      ),
+      collapse="\n"
+    ))
+  }
+  entity_from_tibble(data, preprocess_fn, ...)
 }

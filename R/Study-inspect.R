@@ -38,7 +38,8 @@ setMethod("inspect", "Study", function(object) {
                 `Display name` = get_display_name(entity),
                 `Display name plural` = get_display_name_plural(entity),
                 `Row count` = entity %>% get_data() %>% nrow(),
-                `Is valid` = entity %>% quiet() %>% validate()
+                `Is valid` = entity %>% quiet() %>% validate(),
+                `# collections` = entity@collections %>% nrow()
               )   
             }
           ) %>% bind_rows()
