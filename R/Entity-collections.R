@@ -3,11 +3,19 @@
 # (this is analogous to `variable_metadata_defaults`)
 collection_metadata_defaults = tibble(
   member = NA_character_,
-  memberPlural = NA_character_,
+  member_plural = NA_character_,
   label = NA_character_,
-  isProportion = FALSE,
-  isCompositional = FALSE,
-  normalizationMethod = NA_character_
+  is_proportion = FALSE,
+  is_compositional = FALSE,
+  normalization_method = NA_character_,
+  # Note that the GUS plugin here https://github.com/VEuPathDB/ApiCommonData/blob/50f31d647a91e282df298b3894617bd6dcbe09ca/Load/plugin/perl/LoadDatasetSpecificEntityGraph.pm#L861
+  # formerly used to require the human-annotated display_range_min and max
+  # to be declared as `range_min` and `range_max` in the collections.yaml file.
+  # However, to the best of my knowledge, no collections.yaml file ever did this in practice.
+  # Therefore I think it's best to be consistent with regular variables and use
+  # the longer form for the human-curated overrides.
+  display_range_max = NA_character_,
+  display_range_min = NA_character_
 )
 
 empty_collections <- collection_metadata_defaults %>%

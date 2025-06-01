@@ -232,6 +232,41 @@ attributegraph_table_fields <- list(
   ),
   list(
     cacheFileIndex = 15,
+    list(
+      cacheFileIndex = 14,
+      isNullable = "YES",
+      name = "impute_zero",
+      prec = 1,
+      type = "SQL_NUMBER"
+    ),
+    list(
+      cacheFileIndex = 14,
+      isNullable = "YES",
+      name = "impute_zero",
+      prec = 1,
+      type = "SQL_NUMBER"
+    ),
+    list(
+      cacheFileIndex = 14,
+      isNullable = "YES",
+      name = "impute_zero",
+      prec = 1,
+      type = "SQL_NUMBER"
+    ),
+    list(
+      cacheFileIndex = 14,
+      isNullable = "YES",
+      name = "impute_zero",
+      prec = 1,
+      type = "SQL_NUMBER"
+    ),
+    list(
+      cacheFileIndex = 14,
+      isNullable = "YES",
+      name = "impute_zero",
+      prec = 1,
+      type = "SQL_NUMBER"
+    ),
     isNullable = "YES",
     name = "is_featured",
     prec = 1,
@@ -406,6 +441,131 @@ attributevalue_table_fields <- list(
     isNullable = "YES",
     type = "SQL_DATE",
     cacheFileIndex = 4
+  )
+)
+
+## Collections
+#  (the lengths and precisions will be set from the data)
+
+collections_table_fields <- list(
+  list(
+    cacheFileIndex = 0,
+    isNullable = "NO",
+    maxLength = "999",
+    name = "stable_id",
+    type = "SQL_VARCHAR"
+  ),
+  list(
+    cacheFileIndex = 1,
+    isNullable = "YES",
+    maxLength = "999",
+    name = "display_name",
+    type = "SQL_VARCHAR"
+  ),
+  list(
+    cacheFileIndex = 2,
+    isNullable = "YES",
+    prec = "9",
+    name = "num_members",
+    type = "SQL_NUMBER"
+  ),
+  list(
+    cacheFileIndex = 3,
+    isNullable = "YES",
+    maxLength = "16",
+    name = "display_range_min",
+    type = "SQL_VARCHAR"
+  ),
+  list(
+    cacheFileIndex = 4,
+    isNullable = "YES",
+    maxLength = "16",
+    name = "display_range_max",
+    type = "SQL_VARCHAR"
+  ),
+  list(
+    cacheFileIndex = 5,
+    isNullable = "YES",
+    maxLength = "16",
+    name = "display_range_min",
+    type = "SQL_VARCHAR"
+  ),
+  list(
+    cacheFileIndex = 6,
+    isNullable = "YES",
+    maxLength = "16",
+    name = "display_range_max",
+    type = "SQL_VARCHAR"
+  ),
+  list(
+    cacheFileIndex = 7,
+    isNullable = "YES",
+    name = "impute_zero",
+    prec = 1,
+    type = "SQL_NUMBER"
+  ),
+  list(
+    cacheFileIndex = 8,
+    isNullable = "NO",
+    maxLength = "999",
+    name = "data_type",
+    type = "SQL_VARCHAR"
+  ),
+  list(
+    cacheFileIndex = 9,
+    isNullable = "NO",
+    maxLength = "999",
+    name = "data_shape",
+    type = "SQL_VARCHAR"
+  ),
+  list(
+    cacheFileIndex = 10,
+    isNullable = "YES",
+    maxLength = "999",
+    name = "unit",
+    type = "SQL_VARCHAR"
+  ),
+  list(
+    cacheFileIndex = 11,
+    isNullable = "YES",
+    name = "precision",
+    prec = 9,
+    type = "SQL_NUMBER"
+  ),
+  list(
+    cacheFileIndex = 12,
+    isNullable = "YES",
+    name = "is_proportion",
+    prec = 1,
+    type = "SQL_NUMBER"
+  ),
+  list(
+    cacheFileIndex = 13,
+    isNullable = "YES",
+    name = "is_compositional",
+    prec = 1,
+    type = "SQL_NUMBER"
+  ),
+  list(
+    cacheFileIndex = 13,
+    isNullable = "YES",
+    maxLength = "999",
+    name = "normalization_method",
+    type = "SQL_VARCHAR"
+  ),
+  list(
+    cacheFileIndex = 14,
+    isNullable = "YES",
+    maxLength = "999",
+    name = "member",
+    type = "SQL_VARCHAR"
+  ),
+  list(
+    cacheFileIndex = 15,
+    isNullable = "YES",
+    maxLength = "999",
+    name = "member_plural",
+    type = "SQL_VARCHAR"
   )
 )
 

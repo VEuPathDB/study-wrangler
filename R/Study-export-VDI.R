@@ -111,7 +111,7 @@ export_entity_to_vdi_recursively <- function(
   
   install_json <- export_ancestors_to_vdi(entities, output_directory, install_json, study)
   install_json <- export_attributes_to_vdi(entities, output_directory, install_json, study)
-  
+  install_json <- export_collections_to_vdi(entities, output_directory, install_json, study)
   
   # Recurse into child entities
   child_entities <- current_entity %>% get_children()
@@ -224,6 +224,22 @@ export_ancestors_to_vdi <- function(entities, output_directory, install_json, st
   return(install_json)
 }
 
+#'
+#' function to set the max_length or prec (precision) value
+#' of a VDI table field to the maximum length (or precision)
+#' observed in the metadata table
+#'
+set_vdi_field_maxima <- function(metadata, field_def) {
+  column_values <- metadata %>% pull(field_def$name) %>% as.character()
+  max_length <- column_values %>%
+    nchar() %>% replace(is.na(.), 1) %>% max(na.rm = TRUE)
+  if (field_def$type == "SQL_VARCHAR") {
+    field_def$maxLength <- max_length
+  } else if (field_def$type == "SQL_NUMBER") {
+    field_def$prec <- max_length
+  }
+  return(field_def)
+}
 
 #'
 #' dump the entity variable metadata into the
@@ -286,20 +302,10 @@ export_attributes_to_vdi <- function(entities, output_directory, install_json, s
 
   # set `maxLength` to max from data for all type="SQL_VARCHAR"
   # in `attributegraph_table_fields` before adding to `install_json`
-  # also similar treatment for `prec` field for "SQL_NUMBER" fields?
+  # also similar treatment for `prec` field for "SQL_NUMBER" fields
   
   field_defs <- attributegraph_table_fields %>%
-    map(function(field_def) {
-      column_values <- metadata %>% pull(field_def$name) %>% as.character()
-      max_length <- column_values %>%
-        nchar() %>% replace(is.na(.), 1) %>% max(na.rm = TRUE)
-      if (field_def$type == "SQL_VARCHAR") {
-        field_def$maxLength <- max_length
-      } else if (field_def$type == "SQL_NUMBER") {
-        field_def$prec <- max_length
-      }
-      return(field_def)
-    })
+    map(partial(set_vdi_field_maxima, metadata))
   
   attributegraph_table_def <- list(
     name = tablename,
@@ -433,6 +439,20 @@ export_attributes_to_vdi <- function(entities, output_directory, install_json, s
   
   return(install_json)   
 }
+
+
+#'
+#' dump the collections_{study_abbrev}_{entity_abbrev}.cache file and append
+#' install_json with the table info
+#'
+#'
+export_collections_to_vdi <- function(entities, output_directory, install_json, study) {
+  current_entity <- entities[[length(entities)]]
+  entity_abbreviation <- study %>% get_entity_abbreviation(current_entity %>% get_entity_name())
+  
+  
+}
+
 
 jsonify_list_column <- function(x) {
   if (is.null(x) || length(x) == 0 || all(is.na(x))) {
