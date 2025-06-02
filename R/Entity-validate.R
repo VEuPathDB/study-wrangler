@@ -11,6 +11,7 @@ setMethod("validate", "Entity", function(object) {
   # Extract data and variables
   data <- entity@data
   variables <- entity@variables
+  collections <- entity@collections
   quiet <- entity@quiet
   
   tools <- create_feedback_tools(quiet = quiet, success_message = "Entity is valid.")
@@ -456,6 +457,69 @@ setMethod("validate", "Entity", function(object) {
       indented(glue("{global_varname} <- {global_varname} %>% set_variable_metadata('{non_numeric_vars_with_units}', unit = NA)"))
     ))
   }
+  
+  # Validation: check that all collections have a corresponding variable category
+  if (!is.null(collections) && nrow(collections) > 0) {
+    orphan_collections <- collections %>%
+      anti_join(get_category_metadata(entity), join_by(category == variable)) %>%
+      pull(category)
+    
+    if (length(orphan_collections) > 0) {
+      add_feedback(to_lines(
+        glue("These variable collections have no corresponding variable category: {paste0(orphan_collections, collapse=', ')}"),
+        "You should remove them and add new collections for valid variable categories, e.g. as follows:",
+        # the next line is intended to be repeated for multiple vars
+        indented(glue("{global_varname} <- {global_varname} %>% delete_variable_collection('{orphan_collections}')"))
+      ))
+    }
+  }
+  
+  # Validation: check that collections have required metadata
+  # (member, member_plural, label)
+  required_collection_fields <- c('member', 'member_plural', 'label')
+  missing_collection_fields <- required_collection_fields %>%
+    map(
+      function(column_name) {
+        tibble(
+          field = column_name,
+          collections = list(collections %>% filter(is.na(!!sym(column_name))) %>% pull(category)),
+        )
+      }
+    ) %>%
+    bind_rows() %>%
+    filter(lengths(collections) > 0)
+  
+  if (nrow(missing_collection_fields) > 0) {
+    add_feedback(to_lines(
+      "Required metadata fields were missing in the following collections:",
+      kable(missing_collection_fields),
+      "To fix this, use something like the following:",
+      indented(
+        glue("{global_varname} <- {global_varname} %>% set_collection_metadata('my_collection', member = 'thingy', member_plural = 'thingies')")
+      )
+    ))
+  }
+  
+  # Validation: check that each collection's child variables have consistent values
+  # for certain metadata fields, e.g. data_type, data_shape, unit, ...
+  
+  bad_category_child_fields <- collections %>%
+    left_join(variables_metadata, join_by(category == parent_variable)) %>%
+    select(category, impute_zero, data_type, data_shape, unit) %>%
+    pivot_longer(
+      cols      = -category,
+      names_to  = "field",
+      values_to = "value"
+    ) %>% 
+    group_by(category, field) %>% summarise(
+      n_distinct_values = n_distinct(value, na.rm = FALSE),
+      values = paste(value, collapse = ','),
+      .groups = "drop"
+    ) %>%
+    filter(n_distinct_values > 1) %>%
+    select(-n_distinct_values)
+
+  # TO DO report back errors
   
   # Output feedback to the user
   give_feedback()  

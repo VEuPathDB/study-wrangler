@@ -19,6 +19,7 @@ setMethod("inspect", "Entity", function(object, variable_name = NULL) {
   # Extract data and variables
   data <- entity@data
   variables <- entity@variables
+  collections <- entity@collections
   
   # Ensure variables has `data_type` and `data_shape`
   if (!all(c("data_type", "data_shape") %in% colnames(variables))) {
@@ -193,6 +194,22 @@ If there are ID columns missing above, you may need to use:
     to_lines(
       heading("Variable categories/organisation"),
       variable_ascii_tree(entity)
+    )
+  )
+  
+  ### variable collections ###
+  cat(
+    to_lines(
+      heading("Variable collections"),
+      if (collections %>% nrow() > 0) {
+        kable(collections)
+      } else {
+        c(
+          "This entity has no variable collections. To create one, first create a variable",
+          "category and then use:",
+          indented(glue("{global_varname} <- {global_varname} %>% create_variable_collection(category = 'my_category_name', ...)"))
+        )
+      }
     )
   )
 })
