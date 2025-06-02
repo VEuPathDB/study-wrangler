@@ -164,20 +164,55 @@ setMethod("get_hydrated_collection_metadata", "Entity", function(entity) {
 #' setter similar to `set_variable_metadata()` for variable collections
 #' 
 #' @param entity an Entity object
-#' @param collection_name a string value identical to a variable category name
+#' @param category_name a string value identical to a variable category name
 #' @param ... key=value arguments where key is a collection metadata column name
 #'        e.g. `member_plural='genes'`
 #' @returns modified entity
 #' @export
-setMethod("set_collection_metadata", "Entity", function(entity, collection_name, ...) {
+setMethod("set_collection_metadata", "Entity", function(entity, category_name, ...) {
   updates <- list(...)
   collections <- entity %>% get_collection_metadata()
-  category_metadata <- entity %>% get_category_metadata()
-  
-  # TO DO: arg checking and merging new values into
-  
-  
-  # return modified entity
-  return(entity %>% initialize(collections=collections))
-  
+
+  # Validate all keys are valid collection metadata fields
+  valid_fields <- names(collection_metadata_defaults)
+  invalid_keys <- setdiff(names(updates), valid_fields)
+  if (length(invalid_keys) > 0) {
+    stop(glue("Error: invalid field(s): {toString(invalid_keys)}"))
+  }
+
+  # Locate the row for the collection_name
+  row_number <- collections %>%
+    mutate(row_num = row_number()) %>%
+    filter(category == category_name) %>%
+    pull(row_num)
+
+  if (length(row_number) == 0) {
+    stop(glue("Error: metadata not found for collection '{category_name}'"))
+  }
+  if (length(row_number) > 1) {
+    stop(glue("Error: multiple metadata rows found for collection '{category_name}'"))
+  }
+
+  # Update the specified row and columns
+  walk2(
+    names(updates),
+    updates,
+    function(x, y) {
+      tryCatch({
+        default_val <- collection_metadata_defaults[[x]]
+        if (is.list(default_val)) {
+          collections[[row_number, x]] <<- list(y)
+        } else {
+          collections[row_number, x] <<- y
+        }
+      }, error = function(e) {
+        stop(e)
+      })
+    }
+  )
+  quoted_names = names(updates) %>% map(~ glue("'{.x}'"))
+  if (!entity@quiet) message(glue("Made metadata update(s) to {paste0(quoted_names, collapse=', ')} for collection '{category_name}'"))
+
+  # Return modified entity
+  return(entity %>% initialize(collections = collections))
 })
