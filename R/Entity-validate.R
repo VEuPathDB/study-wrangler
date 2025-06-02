@@ -488,16 +488,38 @@ setMethod("validate", "Entity", function(object) {
     ) %>%
     bind_rows() %>%
     filter(lengths(collections) > 0)
+  
   if (nrow(missing_collection_fields) > 0) {
     add_feedback(to_lines(
       "Required metadata fields were missing in the following collections:",
       kable(missing_collection_fields),
       "To fix this, use something like the following:",
       indented(
-        glue("{global_varname} <- {global_varname} %>% set_collection_metadata('my_collection', member = 'thing', member_plural = 'things')")
+        glue("{global_varname} <- {global_varname} %>% set_collection_metadata('my_collection', member = 'thingy', member_plural = 'thingies')")
       )
     ))
   }
+  
+  # Validation: check that each collection's child variables have consistent values
+  # for certain metadata fields, e.g. data_type, data_shape, unit, ...
+  
+  bad_category_child_fields <- collections %>%
+    left_join(variables_metadata, join_by(category == parent_variable)) %>%
+    select(category, impute_zero, data_type, data_shape, unit) %>%
+    pivot_longer(
+      cols      = -category,
+      names_to  = "field",
+      values_to = "value"
+    ) %>% 
+    group_by(category, field) %>% summarise(
+      n_distinct_values = n_distinct(value, na.rm = FALSE),
+      values = paste(value, collapse = ','),
+      .groups = "drop"
+    ) %>%
+    filter(n_distinct_values > 1) %>%
+    select(-n_distinct_values)
+
+  # TO DO report back errors
   
   # Output feedback to the user
   give_feedback()  

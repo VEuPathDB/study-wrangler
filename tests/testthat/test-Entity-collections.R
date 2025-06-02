@@ -175,5 +175,27 @@ test_that("required fields are provided and heterogeneous collections do not val
     "Required metadata fields were missing in the following collections.+member.+mixed_units.+member_plural.+mixed_units"
   )
 
+  # add a wrong'un to test set_collection_metadata
+  expect_error(
+    observations <- observations %>%
+      set_collection_metadata('mixed_units', member_oops = 'thingy', member_plural = 'thingies'),
+    "invalid field.+member_oops"
+  )
+  
+  # fix up the collection metadata properly
+  expect_message(
+    observations <- observations %>%
+      set_collection_metadata('mixed_units', member = 'thingy', member_plural = 'thingies'),
+    "Made metadata update.+member.+member_plural.+mixed_units"
+  )
 
+  # but now it should not validate because of the mixed units
+  expect_warning(
+    expect_false(
+      observations %>% validate()
+    ),
+    "units are not consistent across all category member variables"
+  )
+  
+  
 })
