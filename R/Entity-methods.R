@@ -31,7 +31,7 @@ setGeneric("get_display_name_plural", function(entity) standardGeneric("get_disp
 #' @export
 setGeneric("sync_variable_metadata", function(entity) standardGeneric("sync_variable_metadata"))
 #' @export
-setGeneric("set_variable_metadata", function(entity, ...) standardGeneric("set_variable_metadata"))
+setGeneric("set_variable_metadata", function(entity, variable_name, ...) standardGeneric("set_variable_metadata"))
 #' @export
 setGeneric("get_variable_metadata", function(entity) standardGeneric("get_variable_metadata"))
 #' @export
@@ -495,7 +495,7 @@ setMethod("sync_variable_metadata", "Entity", function(entity) {
   
 #' set_variable_metadata
 #' 
-#' Sets metadata for a named variable
+#' Sets metadata for a named variable (or category)
 #' 
 #' @param entity an Entity object
 #' @param variable_name a string value of the column name in `entity@data`

@@ -11,6 +11,7 @@ setMethod("validate", "Entity", function(object) {
   # Extract data and variables
   data <- entity@data
   variables <- entity@variables
+  collections <- entity@collections
   quiet <- entity@quiet
   
   tools <- create_feedback_tools(quiet = quiet, success_message = "Entity is valid.")
@@ -458,8 +459,8 @@ setMethod("validate", "Entity", function(object) {
   }
   
   # Validation: check that all collections have a corresponding variable category
-  if (!is.null(entity@collections) && nrow(entity@collections) > 0) {
-    orphan_collections <- entity@collections %>%
+  if (!is.null(collections) && nrow(collections) > 0) {
+    orphan_collections <- collections %>%
       anti_join(get_category_metadata(entity), join_by(category == variable)) %>%
       pull(category)
     
@@ -471,6 +472,31 @@ setMethod("validate", "Entity", function(object) {
         indented(glue("{global_varname} <- {global_varname} %>% delete_variable_collection('{orphan_collections}')"))
       ))
     }
+  }
+  
+  # Validation: check that collections have required metadata
+  # (member, member_plural, label)
+  required_collection_fields <- c('member', 'member_plural', 'label')
+  missing_collection_fields <- required_collection_fields %>%
+    map(
+      function(column_name) {
+        tibble(
+          field = column_name,
+          collections = list(collections %>% filter(is.na(!!sym(column_name))) %>% pull(category)),
+        )
+      }
+    ) %>%
+    bind_rows() %>%
+    filter(lengths(collections) > 0)
+  if (nrow(missing_collection_fields) > 0) {
+    add_feedback(to_lines(
+      "Required metadata fields were missing in the following collections:",
+      kable(missing_collection_fields),
+      "To fix this, use something like the following:",
+      indented(
+        glue("{global_varname} <- {global_varname} %>% set_collection_metadata('my_collection', member = 'thing', member_plural = 'things')")
+      )
+    ))
   }
   
   # Output feedback to the user

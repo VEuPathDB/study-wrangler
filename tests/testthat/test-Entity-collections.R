@@ -31,11 +31,11 @@ test_that("create_variable_collection works", {
 
   collection_spec = list(
     member = "gene",
-    memberPlural = "genes",
+    member_plural = "genes",
     label = "raw read count",
-    isProportion = FALSE,
-    isCompositional = FALSE,
-    normalizationMethod = "none"
+    is_proportion = FALSE,
+    is_compositional = FALSE,
+    normalization_method = "none"
   )
   
   # Note that the !!!syntax won't work in the console unless it's wrapped
@@ -119,4 +119,61 @@ test_that("create_variable_collection works", {
   # observation: 1 collection
   patt_observation <- r"(^observation\s+observation\s+observations\s+\d+\s+TRUE\s+1$)"
   expect_true(any(grepl(patt_observation, output, perl = TRUE)))  
+})
+
+#'
+#' non-uniform data_shape, data_type, unit, impute_zero should all fail
+#'
+test_that("required fields are provided and heterogeneous collections do not validate", {
+  study_name <- 'my collections study'
+  expect_no_error(
+    study <- make_study(name = study_name)
+  )
+  
+  households <- study %>% get_root_entity() %>% verbose()
+  participants <- study %>% get_entity('participant') %>% verbose()
+  observations <- study %>% get_entity('observation') %>% verbose()
+  
+  # set the units metadata for the underlying variables
+  expect_message(
+    expect_message(
+      observations <- observations %>%
+      set_variable_metadata('Height..cm.', unit='cm', display_name='Height') %>%
+      set_variable_metadata('Weight..kg.', unit='kg', display_name='Weight')
+    )
+  )
+  
+  mixed_unit_category_spec <- list(
+    category_name = "mixed_units",
+    children = c("Height..cm.", "Weight..kg."),
+    display_name = "integer-based anatomical measures",
+    definition = "integer-based anatomical measures"
+  )
+  
+  expect_message(
+    expect_message(
+      observations <- observations %>%
+        create_variable_category(!!!mixed_unit_category_spec),
+      "Successfully created category 'mixed_units'"
+    ),
+    "Made metadata update.s. to 'display_name', 'definition' for 'mixed_units'"
+  )
+  
+  # it should validate
+  expect_true(
+    observations %>% quiet() %>% validate()
+  )
+  
+  expect_silent(
+    observations <- observations %>%
+      create_variable_collection('mixed_units')
+  )
+  
+  # it should not validate because member and member_plural are missing
+  expect_warning(
+    observations %>% validate(),
+    "Required metadata fields were missing in the following collections.+member.+mixed_units.+member_plural.+mixed_units"
+  )
+
+
 })

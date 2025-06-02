@@ -57,11 +57,11 @@ test_that("An entity with collections roundtrips via STF directory", {
 
   collection_spec = list(
     member = "gene",
-    memberPlural = "genes",
+    member_plural = "genes",
     label = "raw read count",
-    isProportion = FALSE,
-    isCompositional = FALSE,
-    normalizationMethod = "none"
+    is_proportion = FALSE,
+    is_compositional = FALSE,
+    normalization_method = "none"
   )
   expect_silent(
     observations <- observations %>% create_variable_collection('integer.measures', !!!collection_spec)
