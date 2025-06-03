@@ -196,6 +196,57 @@ test_that("required fields are provided and heterogeneous collections do not val
     ),
     "One or more variable collections were heterogeneous for metadata fields that should be uniform.+mixed_units.+cm,\\s*kg"
   )
+})
+
+#'
+#' check that collection metadata is correctly "hydrated"
+#'
+test_that("collection metadata is correctly summarised from child variables", {
+  study_name <- 'my collections study'
+  expect_no_error(
+    study <- make_study(name = study_name)
+  )
   
+  households <- study %>% get_root_entity() %>% verbose()
+  participants <- study %>% get_entity('participant') %>% verbose()
+  observations <- study %>% get_entity('observation') %>% verbose()
+  
+  # set the units metadata for the underlying variables
+  expect_message(
+    expect_message(
+      observations <- observations %>%
+        set_variable_metadata('Height..cm.', unit='cm', display_name='Height') %>%
+        set_variable_metadata('MUAC..cm.', unit='cm', display_name='MUAC')
+    )
+  )
+  
+  centimeter_category_spec <- list(
+    category_name = "centimeter_vars",
+    children = c("Height..cm.", "MUAC..cm."),
+    display_name = "centimeter-based anatomical measures",
+    definition = "centimeter-based anatomical measures"
+  )
+  
+  expect_message(
+    expect_message(
+      observations <- observations %>%
+        create_variable_category(!!!centimeter_category_spec),
+      "Successfully created category 'centimeter_vars'"
+    ),
+    "Made metadata update.s. to 'display_name', 'definition' for 'centimeter_vars'"
+  )
+  
+  # it should validate
+  expect_true(
+    observations %>% quiet() %>% validate()
+  )
+  
+  # create a collection for this category
+  observations <- observations %>%
+    create_variable_collection(
+      'centimeter_vars',
+      member = 'measurement',
+      member_plural = 'measurements'
+    )
   
 })

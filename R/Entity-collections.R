@@ -156,8 +156,30 @@ setMethod("get_collection_metadata", "Entity", function(entity) {
 #' @export
 setMethod("get_hydrated_collection_metadata", "Entity", function(entity) {
   collections <- entity %>% get_collection_metadata()
+  variable_metadata <- entity %>% get_hydrated_variable_and_category_metadata()
+
+  # final hydrated columns need to be
+  ### from `collections`
+  # member = NA_character_,
+  # member_plural = NA_character_,
+  # label = NA_character_,
+  # is_proportion = FALSE,
+  # is_compositional = FALSE,
+  # normalization_method = NA_character_,
+  # display_range_min = NA_character_  # min
+  # display_range_max = NA_character_, # max
+  ### summarised from child variables
+  # num_members
+  # range_min # min
+  # range_max # max
+  # impute_zero # unique
+  # data_type # unique
+  # data_shape # unique
+  # unit # unique
+  # precision # min (I'd have thought max but the ApiCommonData implementation has min)
   
-  # TO DO - hydrate the metadata!
+  
+  
   return(collections)
 })
 

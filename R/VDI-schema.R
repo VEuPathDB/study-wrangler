@@ -487,14 +487,14 @@ collections_table_fields <- list(
     cacheFileIndex = 5,
     isNullable = "YES",
     maxLength = "16",
-    name = "display_range_min",
+    name = "range_min",
     type = "SQL_VARCHAR"
   ),
   list(
     cacheFileIndex = 6,
     isNullable = "YES",
     maxLength = "16",
-    name = "display_range_max",
+    name = "range_max",
     type = "SQL_VARCHAR"
   ),
   list(
