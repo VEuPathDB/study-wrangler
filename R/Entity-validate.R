@@ -503,23 +503,40 @@ setMethod("validate", "Entity", function(object) {
   # Validation: check that each collection's child variables have consistent values
   # for certain metadata fields, e.g. data_type, data_shape, unit, ...
   
+  required_homogeneous_fields <- c('data_type', 'data_shape', 'unit', 'impute_zero')
   bad_category_child_fields <- collections %>%
-    left_join(variables_metadata, join_by(category == parent_variable)) %>%
-    select(category, impute_zero, data_type, data_shape, unit) %>%
+    left_join(variables, join_by(category == parent_variable)) %>%
+    select(category, all_of(required_homogeneous_fields)) %>%
     pivot_longer(
       cols      = -category,
       names_to  = "field",
-      values_to = "value"
+      values_to = "value",
+      values_transform = as.character
     ) %>% 
     group_by(category, field) %>% summarise(
       n_distinct_values = n_distinct(value, na.rm = FALSE),
-      values = paste(value, collapse = ','),
+      values = paste(unique(value), collapse = ", "),
       .groups = "drop"
     ) %>%
     filter(n_distinct_values > 1) %>%
     select(-n_distinct_values)
 
-  # TO DO report back errors
+  if (nrow(bad_category_child_fields) > 0) {
+    add_feedback(to_lines(
+      "One or more variable collections were heterogeneous for metadata fields that should be uniform:",
+      kable(
+        bad_category_child_fields %>%
+          rename(
+            "collection/category" = category,
+            "variable metadata field"      = field,
+            "observed values"     = values
+          )
+      ),
+      "To fix this, delete the collection and start again with a new category of homogeneous variables,",
+      glue("or, provide consistent metadata for the {required_homogeneous_fields %>% paste(collapse = ', ')} metadata fields"),
+      glue("of the member variables of collection(s): {bad_category_child_fields %>% distinct(category) %>% pull() %>% paste(collapse = ', ')}")
+    ))
+  }
   
   # Output feedback to the user
   give_feedback()  
