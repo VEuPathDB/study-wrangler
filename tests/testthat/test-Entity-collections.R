@@ -194,7 +194,7 @@ test_that("required fields are provided and heterogeneous collections do not val
     expect_false(
       observations %>% validate()
     ),
-    "One or more variable collections were heterogeneous for metadata fields that should be uniform.+mixed_units.+cm,kg"
+    "One or more variable collections were heterogeneous for metadata fields that should be uniform.+mixed_units.+cm,\\s*kg"
   )
   
   
