@@ -82,6 +82,10 @@ setMethod("export_to_vdi", "Study", function(object, output_directory) {
 })
 
 
+#'
+#' recursive because each entity needs all its ancestors in order so it can
+#' output the ancestors table
+#'
 export_entity_to_vdi_recursively <- function(
   object,
   output_directory,
@@ -450,7 +454,48 @@ export_collections_to_vdi <- function(entities, output_directory, install_json, 
   current_entity <- entities[[length(entities)]]
   entity_abbreviation <- study %>% get_entity_abbreviation(current_entity %>% get_entity_name())
   
+  metadata <- current_entity %>% get_hydrated_collection_metadata()
   
+  ### metadata to collection_blah_blah.cache ###
+  
+  # JSONify some array fields of metadata  
+  metadata <- metadata %>%
+    mutate(across(where(is.logical), as.integer)) # TRUE/FALSE to 0/1
+
+  # get the column names in order (sort by cacheFileIndex)
+  column_names <- collections_table_fields %>%
+    map(~ list(name = .x$name, cacheFileIndex = .x$cacheFileIndex)) %>%
+    bind_rows() %>%
+    arrange(cacheFileIndex) %>%
+    pull(name)
+  
+  # get the metadata in the correct column order ready for dumping to .cache file
+  metadata_only <- metadata %>% select(all_of(column_names))
+  
+  # Output the data
+  tablename <- glue("collection_{study %>% get_study_abbreviation()}_{entity_abbreviation}")
+  filename <- glue("{tablename}.cache")
+  # `escape = 'none'` prevents doubling of double-quotes
+  write_tsv(
+    metadata_only,
+    file.path(output_directory, filename),
+    col_names = FALSE,
+    na = '',
+    escape = 'none'
+  )
+  
+  # set `maxLength` to max from data for all type="SQL_VARCHAR"
+  # in `collections_table_fields` before adding to `install_json`
+  # also similar treatment for `prec` field for "SQL_NUMBER" fields
+  field_defs <- collections_table_fields %>%
+    map(partial(set_vdi_field_maxima, metadata))
+  
+  collections_table_def <- list(
+    name = tablename,
+    type = "table",
+    fields = field_defs
+  )
+  install_json <- append(install_json, list(attributegraph_table_def))
 }
 
 
