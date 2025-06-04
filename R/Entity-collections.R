@@ -150,37 +150,112 @@ setMethod("get_collection_metadata", "Entity", function(entity) {
 })
 
 
-#' get the variable collection metadata tibble with filled-in
-#' calculated and derived values (e.g. range_min/max and unit)
+#' Retrieve hydrated variable collection metadata
+#'
+#' Fetches collection‐level metadata and augments it with computed or derived fields
+#' (e.g., \code{range_min}, \code{range_max}, \code{unit}). If there are no collections,
+#' this returns an empty tibble without the extra “hydrated” columns. Consumers should
+#' handle the empty‐result case explicitly.
+#'
+#' @param entity An \code{Entity} object containing collection and variable metadata.
+#' @return A tibble with one row per collection/category and the following columns:
+#'   \itemize{
+#'     \item \code{category}: Collection identifier (the parent variable category).
+#'     \item \code{member}: unchanged from user-supplied collection metadata
+#'     \item \code{member_plural}: unchanged
+#'     \item \code{label}: unchanged
+#'     \item \code{is_proportion}: unchanged
+#'     \item \code{is_compositional}: unchanged
+#'     \item \code{normalization_method}: unchanged
+#'     \item \code{unit}: Measurement unit (uniform across child variables).
+#'     \item \code{impute_zero}: Logical flag indicating zero‐imputation strategy.
+#'     \item \code{data_type}: Uniform data type (e.g., “integer”, “double”).
+#'     \item \code{data_shape}: Uniform data shape descriptor (e.g., “scalar”, “vector”).
+#'     \item \code{precision}: Minimum precision across all member variables.
+#'     \item \code{range_min}: Minimum of \code{range_min} across child variables.
+#'     \item \code{range_max}: Maximum of \code{range_max} across child variables.
+#'     \item \code{display_range_min}: Minimum of collection-level \code{display_range_min} AND \code{display_range_min} across child variables.
+#'     \item \code{display_range_max}: Maximum of collection-level \code{display_range_max} AND \code{dislpay_range_max} across child variables.
+#'   }
 #'
 #' @export
 setMethod("get_hydrated_collection_metadata", "Entity", function(entity) {
-  collections <- entity %>% get_collection_metadata()
+  # 1. Pull the base collection‐level metadata and the detailed variable metadata
+  collections       <- entity %>% get_collection_metadata()
   variable_metadata <- entity %>% get_hydrated_variable_and_category_metadata()
+  
+  # 2. If there are no collections, return immediately (avoids warnings from summarizing empty groups)
+  if (nrow(collections) == 0) {
+    return(collections)
+  }
+  
+  # 3. Join, select the necessary columns, and summarize per collection
+  hydrated_collections <- collections %>%
+    left_join(variable_metadata, join_by(category == parent_variable)) %>%
+    select(
+      category,
+      member, member_plural, label,
+      is_proportion, is_compositional, normalization_method,
+      display_range_min.x, display_range_min.y,
+      display_range_max.x, display_range_max.y,
+      range_min, range_max,
+      impute_zero, data_type, data_shape, unit, precision
+    ) %>%
+    group_by(category) %>%
+    summarise(
+      # For fields guaranteed to be uniform within each category (by `validate(entity)`),
+      # just take the first
+      across(
+        c(member, member_plural, label,
+          is_proportion, is_compositional, normalization_method,
+          unit, impute_zero, data_type, data_shape),
+        first
+      ),
+      
+      # For numeric summaries, compute min/max across all child rows.
+      # Use na.rm = TRUE to avoid warnings if there happen to be NAs.
+      precision = if (first(data_type) == "date") {
+        NA
+      } else {
+        min(precision, na.rm = TRUE)
+      },
 
-  # final hydrated columns need to be
-  ### from `collections`
-  # member = NA_character_,
-  # member_plural = NA_character_,
-  # label = NA_character_,
-  # is_proportion = FALSE,
-  # is_compositional = FALSE,
-  # normalization_method = NA_character_,
-  # display_range_min = NA_character_  # min
-  # display_range_max = NA_character_, # max
-  ### summarised from child variables
-  # num_members
-  # range_min # min
-  # range_max # max
-  # impute_zero # unique
-  # data_type # unique
-  # data_shape # unique
-  # unit # unique
-  # precision # min (I'd have thought max but the ApiCommonData implementation has min)
+      # now do range_min/range_max depending on data_type
+      range_min = if (first(data_type) == "date") {
+        # compare as strings because they should all be ISO-8601 format
+        min(range_min, na.rm = TRUE)
+      } else {
+        ## numeric case
+        format(min(as.numeric(range_min), na.rm = TRUE))
+      },
+      
+      range_max = if (first(data_type) == "date") {
+        max(range_max, na.rm = TRUE)
+      } else {
+        format(max(as.numeric(range_max), na.rm = TRUE))
+      },
+      
+      # take the widest
+      # warnings about all-NA groups have to be suppressed, unfortunately 
+      display_range_min = suppressWarnings(
+        if (first(data_type) == "date") {
+          min(display_range_min.x, display_range_min.y, na.rm = TRUE)
+        } else {
+          format(min(as.numeric(display_range_min.x), as.numeric(display_range_min.y), na.rm = TRUE))
+        }
+      ),
+      display_range_max = suppressWarnings(
+        if (first(data_type) == "date") {
+          max(display_range_max.x, display_range_max.y, na.rm = TRUE)
+        } else {
+          format(max(as.numeric(display_range_max.x), as.numeric(display_range_max.y), na.rm = TRUE))
+        }
+      ),
+
+      .groups = "drop"
+    )
   
-  
-  
-  return(collections)
+  return(hydrated_collections)
 })
 
 #' setter similar to `set_variable_metadata()` for variable collections

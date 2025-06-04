@@ -249,4 +249,286 @@ test_that("collection metadata is correctly summarised from child variables", {
       member_plural = 'measurements'
     )
   
+  # it should not validate because the data_type is not uniform
+  expect_warning(
+    expect_false(
+      observations %>% validate()
+    ),
+    "One or more variable collections were heterogeneous for metadata fields that should be uniform.+centimeter_vars.+integer, number"
+  )
+  
+  # fix the data_type of one of the child vars
+  expect_message(
+    observations <- observations %>% set_variable_metadata('Height..cm.', data_type = 'number')
+  )
+  
+  # it should now validate
+  expect_true(
+    observations %>% quiet() %>% validate()
+  )
+
+  suppressMessages( # sometimes "Generating temporary stable_id for entity 'observation'"
+    hydrated_collections <- observations %>% get_hydrated_collection_metadata()
+  )
+  
+  expect_equal(
+    hydrated_collections %>% pull('range_min'),
+    '12.59'
+  )
+  expect_equal(
+    hydrated_collections %>% pull('range_max'),
+    '175'
+  )
+  
+  ## now let's see how display_range_min and max work
+  # first let's set it on one of the variables
+  expect_message(
+    observations <- observations %>% set_variable_metadata('Height..cm.', display_range_min = "1", display_range_max = "200")
+  )
+  suppressMessages(
+    hydrated_collections <- observations %>% get_hydrated_collection_metadata()
+  )
+  expect_equal(
+    hydrated_collections %>% pull('display_range_min'),
+    '1'
+  )
+  expect_equal(
+    hydrated_collections %>% pull('display_range_max'),
+    '200'
+  )
+
+  # now let's set it on another variable, it should take the widest range
+  expect_message(
+    observations <- observations %>% set_variable_metadata('MUAC..cm.', display_range_min = "0", display_range_max = "500")
+  )
+  suppressMessages(
+    hydrated_collections <- observations %>% get_hydrated_collection_metadata()
+  )
+  expect_equal(
+    hydrated_collections %>% pull('display_range_min'),
+    '0'
+  )
+  expect_equal(
+    hydrated_collections %>% pull('display_range_max'),
+    '500'
+  )
+
+  # now let's set a display_range on the collection directly, inside those ranges
+  expect_message(
+    observations <- observations %>% set_collection_metadata('centimeter_vars', display_range_min = "10", display_range_max = "100")
+  )
+  # the final range should still be 0-500
+  suppressMessages(
+    hydrated_collections <- observations %>% get_hydrated_collection_metadata()
+  )
+  expect_equal(
+    hydrated_collections %>% pull('display_range_min'),
+    '0'
+  )
+  expect_equal(
+    hydrated_collections %>% pull('display_range_max'),
+    '500'
+  )
+  
+  # now let's set an even wider range on the collection
+  expect_message(
+    observations <- observations %>% set_collection_metadata('centimeter_vars', display_range_min = "-1000", display_range_max = "1000")
+  )
+  suppressMessages(
+    hydrated_collections <- observations %>% get_hydrated_collection_metadata()
+  )
+  expect_equal(
+    hydrated_collections %>% pull('display_range_min'),
+    '-1000'
+  )
+  expect_equal(
+    hydrated_collections %>% pull('display_range_max'),
+    '1000'
+  )
+  
+  # now remove the per-variable display_ranges
+  expect_message(
+    observations <- observations %>% set_variable_metadata('MUAC..cm.', display_range_min = NA, display_range_max = NA)
+  )
+  expect_message(
+    observations <- observations %>% set_variable_metadata('Height..cm.', display_range_min = NA, display_range_max = NA)
+  )
+  # and set a collection display_range that's actually inside the actual data range
+  # https://www.youtube.com/watch?v=O9IJnmbneLc :-)
+  expect_message(
+    observations <- observations %>% set_collection_metadata('centimeter_vars', display_range_min = "40", display_range_max = "45")
+  )
+  suppressMessages(
+    hydrated_collections <- observations %>% get_hydrated_collection_metadata()
+  )
+  expect_equal(
+    hydrated_collections %>% pull('display_range_min'),
+    '40'
+  )
+  expect_equal(
+    hydrated_collections %>% pull('display_range_max'),
+    '45'
+  )
+})
+
+test_that("collections of date variables work", {
+  study_name <- "my collections study"
+  expect_no_error(
+    study <- make_study(name = study_name)
+  )
+  
+  households <- study %>% get_root_entity() %>% verbose()
+  
+  # 1. Add two date variables (Build.date and Renovation.date) to households,
+  #    then sync their metadata so they appear in metadata tables.
+  expect_message(
+    households <- households %>%
+      modify_data(
+        mutate(
+          Build.date      = as.Date(c("1990-01-02", "1998-12-20", "2003-04-04")),
+          Renovation.date = as.Date(c("2000-05-05", NA, "2002-07-07"))
+        )
+      ) %>%
+      sync_variable_metadata(),
+    "Synced variables metadata by adding defaults for: Build.date, Renovation.date"
+  )
+  
+  # 2. Create a variable category that includes both date fields
+  expect_message(
+    expect_message(
+      households <- households %>%
+        create_variable_category(
+          category_name = "house_dates",
+          children      = c("Build.date", "Renovation.date"),
+          display_name  = "House dates",
+          definition    = "Dates when the house was built and renovated"
+        ),
+      "Successfully created category 'house_dates'"
+    ),
+    "Made metadata update.s. to 'display_name', 'definition' for 'house_dates'"
+  )
+  
+  # 3. Create a collection for that category
+  households <- households %>%
+    create_variable_collection(
+      "house_dates",
+      member        = "event_date",
+      member_plural = "event_dates"
+    )
+  
+  # 4. Before any overrides, get_hydrated_collection_metadata() should pick
+  #    the true min and max of the two date fields:
+  suppressMessages(
+    hydrated_dates <- households %>% get_hydrated_collection_metadata()
+  )
+  expect_equal(
+    hydrated_dates %>% pull("range_min"),
+    "1990-01-02"
+  )
+  expect_equal(
+    hydrated_dates %>% pull("range_max"),
+    "2003-04-04"
+  )
+  
+  # 5. Now set a display_range on one of the variables (Build.date)
+  expect_message(
+    households <- households %>%
+      set_variable_metadata(
+        "Build.date",
+        display_range_min = "1990-01-01",
+        display_range_max = "2003-12-31"
+      )
+  )
+  suppressMessages(
+    hydrated_dates <- households %>% get_hydrated_collection_metadata()
+  )
+  # Since Renovation.date has no display_range override, the collection's display_range
+  # comes from the widest of: Build.date (1991–2000) and Renovation.date (2000–2002).
+  expect_equal(
+    hydrated_dates %>% pull("display_range_min"),
+    "1990-01-01"
+  )
+  expect_equal(
+    hydrated_dates %>% pull("display_range_max"),
+    "2003-12-31"
+  )
+  
+  # 6. Next, override Renovation.date's display_range to be narrower than Build.date's
+  expect_message(
+    households <- households %>%
+      set_variable_metadata(
+        "Renovation.date",
+        display_range_min = "2001-06-01",
+        display_range_max = "2001-06-30"
+      )
+  )
+  suppressMessages(
+    hydrated_dates <- households %>% get_hydrated_collection_metadata()
+  )
+  # Now the widest display_range among the two variables is:
+  #   Build.date override:      1991-01-01 … 2000-12-31
+  #   Renovation.date override: 2001-06-01 … 2001-06-30
+  # So the collection display_range_min should be 1991-01-01 and max 2001-06-30.
+  expect_equal(
+    hydrated_dates %>% pull("display_range_min"),
+    "1990-01-01"
+  )
+  expect_equal(
+    hydrated_dates %>% pull("display_range_max"),
+    "2003-12-31"
+  )
+  
+  # 7. Now set a display_range directly on the collection that is INSIDE the actual data range
+  #    (which is 1990-01-02 … 2003-04-04). Using 1995-01-01 … 2002-12-31 should be allowed:
+  expect_message(
+    households <- households %>%
+      set_collection_metadata(
+        "house_dates",
+        display_range_min = "1995-01-01",
+        display_range_max = "2002-12-31"
+      )
+  )
+  suppressMessages(
+    hydrated_dates <- households %>% get_hydrated_collection_metadata()
+  )
+  # Because the collection range 1995–2002 is inside 1990–2003, it has no effect:
+  expect_equal(
+    hydrated_dates %>% pull("display_range_min"),
+    "1990-01-01"
+  )
+  expect_equal(
+    hydrated_dates %>% pull("display_range_max"),
+    "2003-12-31"
+  )
+
+  # 8. Next, remove the per-variable display ranges
+  expect_message(
+    expect_message(
+      households <- households %>%
+        set_variable_metadata(
+          "Build.date",
+          display_range_min = NA,
+          display_range_max = NA
+        ) %>%
+        set_variable_metadata(
+          "Renovation.date",
+          display_range_min = NA,
+          display_range_max = NA
+        )
+    )
+  )
+
+  suppressMessages(
+    hydrated_dates <- households %>% get_hydrated_collection_metadata()
+  )
+  # Because 1980–2010 exceeds the true data bounds (1990–2003), these new values should be used:
+  expect_equal(
+    hydrated_dates %>% pull("display_range_min"),
+    "1995-01-01"
+  )
+  expect_equal(
+    hydrated_dates %>% pull("display_range_max"),
+    "2002-12-31"
+  )
+  
 })
