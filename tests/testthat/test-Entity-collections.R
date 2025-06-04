@@ -431,6 +431,7 @@ test_that("collections of date variables work", {
   )
   
   # 5. Now set a display_range on one of the variables (Build.date)
+  # this should propagate to the collection 
   expect_message(
     households <- households %>%
       set_variable_metadata(
@@ -442,8 +443,6 @@ test_that("collections of date variables work", {
   suppressMessages(
     hydrated_dates <- households %>% get_hydrated_collection_metadata()
   )
-  # Since Renovation.date has no display_range override, the collection's display_range
-  # comes from the widest of: Build.date (1991–2000) and Renovation.date (2000–2002).
   expect_equal(
     hydrated_dates %>% pull("display_range_min"),
     "1990-01-01"
@@ -454,6 +453,7 @@ test_that("collections of date variables work", {
   )
   
   # 6. Next, override Renovation.date's display_range to be narrower than Build.date's
+  #    Collection should keep the wide display_range as above
   expect_message(
     households <- households %>%
       set_variable_metadata(
@@ -465,10 +465,6 @@ test_that("collections of date variables work", {
   suppressMessages(
     hydrated_dates <- households %>% get_hydrated_collection_metadata()
   )
-  # Now the widest display_range among the two variables is:
-  #   Build.date override:      1991-01-01 … 2000-12-31
-  #   Renovation.date override: 2001-06-01 … 2001-06-30
-  # So the collection display_range_min should be 1991-01-01 and max 2001-06-30.
   expect_equal(
     hydrated_dates %>% pull("display_range_min"),
     "1990-01-01"
@@ -479,7 +475,7 @@ test_that("collections of date variables work", {
   )
   
   # 7. Now set a display_range directly on the collection that is INSIDE the actual data range
-  #    (which is 1990-01-02 … 2003-04-04). Using 1995-01-01 … 2002-12-31 should be allowed:
+  #    Again, this should not change the outcome.
   expect_message(
     households <- households %>%
       set_collection_metadata(
@@ -491,7 +487,6 @@ test_that("collections of date variables work", {
   suppressMessages(
     hydrated_dates <- households %>% get_hydrated_collection_metadata()
   )
-  # Because the collection range 1995–2002 is inside 1990–2003, it has no effect:
   expect_equal(
     hydrated_dates %>% pull("display_range_min"),
     "1990-01-01"
@@ -518,10 +513,10 @@ test_that("collections of date variables work", {
     )
   )
 
+  # now the collection's display_range should be in force
   suppressMessages(
     hydrated_dates <- households %>% get_hydrated_collection_metadata()
   )
-  # Because 1980–2010 exceeds the true data bounds (1990–2003), these new values should be used:
   expect_equal(
     hydrated_dates %>% pull("display_range_min"),
     "1995-01-01"
