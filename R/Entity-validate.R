@@ -475,8 +475,8 @@ setMethod("validate", "Entity", function(object) {
   }
   
   # Validation: check that collections have required metadata
-  # (member, member_plural, label)
-  required_collection_fields <- c('member', 'member_plural', 'label')
+  # (member, member_plural, display_name)
+  required_collection_fields <- c('member', 'member_plural', 'display_name')
   missing_collection_fields <- required_collection_fields %>%
     map(
       function(column_name) {

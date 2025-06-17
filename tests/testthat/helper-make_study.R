@@ -60,3 +60,28 @@ make_minimal_stf <- function(output_directory) {
   list.files(output_directory, pattern = "\\.yaml$", full.names = TRUE) %>% unlink()
   
 }
+
+make_study_with_collections <- function(quiet_entities = TRUE, ...) {
+  study <- make_study(quiet_entities, ...)
+
+  households <- study %>% get_root_entity() %>% verbose()
+  participants <- study %>% get_entity('participant') %>% verbose()
+  observations <- study %>% get_entity('observation') %>% verbose()
+  
+  suppressMessages(
+    observations <- observations %>%
+      create_variable_category(
+        category_name = "integer.measures",
+        children = c("Height..cm.", "Weight..kg."),
+        display_name = "integer-based anatomical measures",
+        definition = "integer-based anatomical measures"
+      )
+  )
+
+  observations <- observations %>%
+    create_variable_collection('integer.measures', member = 'measurement', member_plural = 'measurements')
+  
+  study <- study_from_entities(list(households, participants, observations), name = study %>% get_study_name())
+
+  return(study)   
+}

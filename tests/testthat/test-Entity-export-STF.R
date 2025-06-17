@@ -58,7 +58,7 @@ test_that("An entity with collections roundtrips via STF directory", {
   collection_spec = list(
     member = "gene",
     member_plural = "genes",
-    label = "raw read count",
+    display_name = "raw read count",
     is_proportion = FALSE,
     is_compositional = FALSE,
     normalization_method = "none"

@@ -4,7 +4,7 @@
 collection_metadata_defaults = tibble(
   member = NA_character_,
   member_plural = NA_character_,
-  label = NA_character_,
+  display_name = NA_character_,
   is_proportion = FALSE,
   is_compositional = FALSE,
   normalization_method = NA_character_,
@@ -45,8 +45,8 @@ setGeneric("get_hydrated_collection_metadata", function(entity) standardGeneric(
 #' @param entity an Entity object
 #' @param category_name character value that is the same as the "variable category" that should already exist
 #' @param ... key-value pairs defining collection metadata, defaults or NAs will be used if not provided.
-#'        The `label` field can be omitted if the `category_name` exists and has a non-null `display_name`.
-#'        In that case the variable category's `display_name` will be used as the collection label.
+#'        The `display_name` field can be omitted if the `category_name` exists and has a non-null `display_name`.
+#'        In that case the variable category's `display_name` will be used as the collection `display_name`
 #' @returns a new Entity object with the variable collection added to its `collections` tibble
 #' 
 #' @examples
@@ -56,11 +56,11 @@ setGeneric("get_hydrated_collection_metadata", function(entity) standardGeneric(
 #' entity <- entity %>% create_variable_collection(
 #'   category_name = "integer.measures",
 #'   member = "measurement",
-#'   memberPlural = "measurements",
-#'   label = "integer-based anatomical measurements",
-#'   isProportion = FALSE,
-#'   isCompositional = FALSE,
-#'   normalizationMethod = "none"
+#'   member_plural = "measurements",
+#'   display_name = "integer-based anatomical measurements",
+#'   is_proportion = FALSE,
+#'   is_compositional = FALSE,
+#'   normalization_method = "none"
 #' )
 #' 
 #' @export
@@ -78,9 +78,9 @@ setMethod("create_variable_collection", "Entity", function(entity, category_name
     filter(variable %in% !!category_name) %>%
     pull(display_name) %>%
     pluck(1, .default = NULL)
-  # and, if successful, patch that in to `updates` as `label` if that hasn't been provided
-  if (!is.null(category_display_name) && is.null(updates$label)) {
-    updates$label <- category_display_name
+  # and, if successful, patch that in to `updates` as `display_name` if that hasn't been provided
+  if (!is.null(category_display_name) && is.null(updates$display_name)) {
+    updates$display_name <- category_display_name
   }
   
   updates_fields <- names(updates)
@@ -163,7 +163,7 @@ setMethod("get_collection_metadata", "Entity", function(entity) {
 #'     \item \code{category}: Collection identifier (the parent variable category).
 #'     \item \code{member}: unchanged from user-supplied collection metadata
 #'     \item \code{member_plural}: unchanged
-#'     \item \code{label}: unchanged
+#'     \item \code{display_name}: unchanged
 #'     \item \code{is_proportion}: unchanged
 #'     \item \code{is_compositional}: unchanged
 #'     \item \code{normalization_method}: unchanged
@@ -194,19 +194,20 @@ setMethod("get_hydrated_collection_metadata", "Entity", function(entity) {
     left_join(variable_metadata, join_by(category == parent_variable)) %>%
     select(
       category,
-      member, member_plural, label,
+      member, member_plural, display_name.x,
       is_proportion, is_compositional, normalization_method,
       display_range_min.x, display_range_min.y,
       display_range_max.x, display_range_max.y,
       range_min, range_max,
       impute_zero, data_type, data_shape, unit, precision
     ) %>%
+    rename(display_name = display_name.x) %>%
     group_by(category) %>%
     summarise(
       # For fields guaranteed to be uniform within each category (by `validate(entity)`),
       # just take the first
       across(
-        c(member, member_plural, label,
+        c(member, member_plural, display_name,
           is_proportion, is_compositional, normalization_method,
           unit, impute_zero, data_type, data_shape),
         first
@@ -235,23 +236,43 @@ setMethod("get_hydrated_collection_metadata", "Entity", function(entity) {
         format(max(as.numeric(range_max), na.rm = TRUE))
       },
       
-      # take the widest
-      # warnings about all-NA groups have to be suppressed, unfortunately 
-      display_range_min = suppressWarnings(
-        if (first(data_type) == "date") {
-          min(display_range_min.x, display_range_min.y, na.rm = TRUE)
+      # take the widest range of both collection and child variable annotated ranges
+      # (if provided - otherwise return NA if all are NA)
+      display_range_min = {
+        is_date <- first(data_type) == "date"
+        vals    <- if (is_date) {
+          c(display_range_min.x, display_range_min.y)
         } else {
-          format(min(as.numeric(display_range_min.x), as.numeric(display_range_min.y), na.rm = TRUE))
+          as.numeric(c(display_range_min.x, display_range_min.y))
         }
-      ),
-      display_range_max = suppressWarnings(
-        if (first(data_type) == "date") {
-          max(display_range_max.x, display_range_max.y, na.rm = TRUE)
+        
+        if (all(is.na(vals))) {
+          NA_character_
         } else {
-          format(max(as.numeric(display_range_max.x), as.numeric(display_range_max.y), na.rm = TRUE))
+          # now it's safe to take min()
+          out <- min(vals, na.rm = TRUE)
+          if (is_date) out else format(out)
         }
-      ),
-
+      },
+      
+      display_range_max = {
+        is_date <- first(data_type) == "date"
+        vals    <- if (is_date) {
+          c(display_range_max.x, display_range_max.y)
+        } else {
+          as.numeric(c(display_range_max.x, display_range_max.y))
+        }
+        
+        if (all(is.na(vals))) {
+          NA_character_
+        } else {
+          out <- max(vals, na.rm = TRUE)
+          if (is_date) out else format(out)
+        }
+      },
+      
+      num_members = n(),
+      
       .groups = "drop"
     )
   

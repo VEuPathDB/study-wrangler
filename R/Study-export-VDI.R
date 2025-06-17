@@ -473,7 +473,9 @@ export_collections_to_vdi <- function(entities, output_directory, install_json, 
     pull(name)
   
   # get the metadata in the correct column order ready for dumping to .cache file
-  metadata_only <- metadata %>% select(all_of(column_names))
+  metadata_only <- metadata %>%
+    rename(stable_id = category) %>%
+    select(all_of(column_names))
   
   # Output the data
   tablename <- glue("collection_{study %>% get_study_abbreviation()}_{entity_abbreviation}")
@@ -491,14 +493,14 @@ export_collections_to_vdi <- function(entities, output_directory, install_json, 
   # in `collections_table_fields` before adding to `install_json`
   # also similar treatment for `prec` field for "SQL_NUMBER" fields
   field_defs <- collections_table_fields %>%
-    map(partial(set_vdi_field_maxima, metadata))
+    map(partial(set_vdi_field_maxima, metadata_only))
   
   collections_table_def <- list(
     name = tablename,
     type = "table",
     fields = field_defs
   )
-  install_json <- append(install_json, list(attributegraph_table_def))
+  install_json <- append(install_json, list(collections_table_def))
 }
 
 

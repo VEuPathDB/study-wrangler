@@ -48,3 +48,26 @@ test_that("Study exports to VDI artifact", {
   # Clean up
   unlink(output_dir, recursive = TRUE)
 })
+
+test_that("A study with collections exports to VDI", {
+  expect_no_error(
+    study <- make_study_with_collections(name = 'my collections study')
+  )
+  
+  expect_true(
+    study %>% quiet() %>% validate()
+  )
+  
+  output_dir <- "./tmp/vdi-collections"
+  
+  expect_no_error(
+    # capture messages about entity stable ID generation
+    messages <- capture_messages(
+      study %>% export_to_vdi(output_directory = output_dir)
+    )
+  )
+  
+  # TO DO
+  # Verify the presence of files (see previous test)
+  
+})

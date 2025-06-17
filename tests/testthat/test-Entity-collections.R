@@ -32,7 +32,7 @@ test_that("create_variable_collection works", {
   collection_spec = list(
     member = "gene",
     member_plural = "genes",
-    label = "raw read count",
+    display_name = "raw read count",
     is_proportion = FALSE,
     is_compositional = FALSE,
     normalization_method = "none"
@@ -62,14 +62,14 @@ test_that("create_variable_collection works", {
     "variable collection cannot be added because category 'desperate.measures' does not exist in entity"
   )
   
-  # check that the label-fallback-to-category-display_name functionality works
-  no_label_spec <- list_modify(collection_spec, label = zap())
+  # check that the display_name-fallback-to-category-display_name functionality works
+  no_display_name_spec <- list_modify(collection_spec, display_name = zap())
   expect_no_error(
     expect_true(
       observations %>%
-        create_variable_collection('integer.measures', !!!no_label_spec) %>%
+        create_variable_collection('integer.measures', !!!no_display_name_spec) %>%
         slot('collections') %>% # we'll probably provide convenience collection getter methods at some point...
-        filter(category %in% 'integer.measures', label %in% 'integer-based anatomical measures') %>%
+        filter(category %in% 'integer.measures', display_name %in% 'integer-based anatomical measures') %>%
         nrow() == 1
     )
   )
