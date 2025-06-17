@@ -569,6 +569,23 @@ collections_table_fields <- list(
   )
 )
 
+collectionattributes_table_fields <- list(
+  list(
+    cacheFileIndex = 0,
+    isNullable = "NO",
+    maxLength = "999",
+    name = "collection_stable_id",
+    type = "SQL_VARCHAR"
+  ),
+  list(
+    cacheFileIndex = 1,
+    isNullable = "NO",
+    maxLength = "999",
+    name = "attribute_stable_id",
+    type = "SQL_VARCHAR"
+  )
+)
+
 ### INDEXES ###
 
 # Primary key index for the ancestors table

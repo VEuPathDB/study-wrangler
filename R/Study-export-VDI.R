@@ -501,6 +501,41 @@ export_collections_to_vdi <- function(entities, output_directory, install_json, 
     fields = field_defs
   )
   install_json <- append(install_json, list(collections_table_def))
+  
+  ### now the collectionattribute_* table (links collection to variables)
+
+  # table names, etc
+  collectionattributes_table_name <- glue::glue(
+    "collectionattribute_{study %>% get_study_abbreviation()}_{entity_abbreviation}"
+  )
+  collectionattributes_filename <- glue("{collectionattributes_table_name}.cache")
+
+  # do the join to get the data
+  collectionattributes <- metadata_only %>%
+    left_join(
+      current_entity %>% get_hydrated_variable_and_category_metadata(),
+      join_by(stable_id == parent_variable),
+    )  %>%
+    # select and rename these in the correct order (see VDI-schema.R)
+    select(collection_stable_id = stable_id, attribute_stable_id = stable_id.y)
+  
+  # write the data
+  write_tsv(
+    collectionattributes,
+    file.path(output_directory, collectionattributes_filename),
+    col_names = FALSE,
+    na = '',
+    escape = 'none'
+  )
+  
+  # update schema JSON
+  collectionattributes_table_def <- list(
+    name = collectionattributes_table_name,
+    type = "table",
+    fields = collectionattributes_table_fields
+  )
+  install_json <- append(install_json, list(collectionattributes_table_def))
+  
 }
 
 
