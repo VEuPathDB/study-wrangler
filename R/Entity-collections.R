@@ -2,6 +2,7 @@
 # but that's not included here (because it can't have a default)
 # (this is analogous to `variable_metadata_defaults`)
 collection_metadata_defaults = tibble(
+  stable_id = NA_character_,
   member = NA_character_,
   member_plural = NA_character_,
   display_name = NA_character_,
@@ -161,6 +162,7 @@ setMethod("get_collection_metadata", "Entity", function(entity) {
 #' @return A tibble with one row per collection/category and the following columns:
 #'   \itemize{
 #'     \item \code{category}: Collection identifier (the parent variable category).
+#'     \item \code{stable_id}: If not provided to create_variable_collection, then a temporary ID will be generated.
 #'     \item \code{member}: unchanged from user-supplied collection metadata
 #'     \item \code{member_plural}: unchanged
 #'     \item \code{display_name}: unchanged
@@ -193,7 +195,7 @@ setMethod("get_hydrated_collection_metadata", "Entity", function(entity) {
   hydrated_collections <- collections %>%
     left_join(variable_metadata, join_by(category == parent_variable)) %>%
     select(
-      category,
+      category, stable_id.x,
       member, member_plural, display_name.x,
       is_proportion, is_compositional, normalization_method,
       display_range_min.x, display_range_min.y,
@@ -201,13 +203,16 @@ setMethod("get_hydrated_collection_metadata", "Entity", function(entity) {
       range_min, range_max,
       impute_zero, data_type, data_shape, unit, precision
     ) %>%
-    rename(display_name = display_name.x) %>%
+    rename(
+      display_name = display_name.x,
+      stable_id = stable_id.x
+    ) %>%
     group_by(category) %>%
     summarise(
       # For fields guaranteed to be uniform within each category (by `validate(entity)`),
       # just take the first
       across(
-        c(member, member_plural, display_name,
+        c(stable_id, member, member_plural, display_name,
           is_proportion, is_compositional, normalization_method,
           unit, impute_zero, data_type, data_shape),
         first
@@ -274,7 +279,17 @@ setMethod("get_hydrated_collection_metadata", "Entity", function(entity) {
       num_members = n(),
       
       .groups = "drop"
-    )
+    ) %>%
+    rowwise() %>%
+    mutate(
+      stable_id = if_else(
+        is.na(stable_id),
+        prefixed_alphanumeric_id(prefix = "COL_", length = 8, seed_string = category),
+        stable_id
+      )
+    ) %>%
+    ungroup()
+  
   
   return(hydrated_collections)
 })

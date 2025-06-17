@@ -473,9 +473,7 @@ export_collections_to_vdi <- function(entities, output_directory, install_json, 
     pull(name)
   
   # get the metadata in the correct column order ready for dumping to .cache file
-  metadata_only <- metadata %>%
-    rename(stable_id = category) %>%
-    select(all_of(column_names))
+  metadata_only <- metadata %>% select(all_of(column_names))
   
   # Output the data
   tablename <- glue("collection_{study %>% get_study_abbreviation()}_{entity_abbreviation}")
@@ -511,13 +509,13 @@ export_collections_to_vdi <- function(entities, output_directory, install_json, 
   collectionattributes_filename <- glue("{collectionattributes_table_name}.cache")
 
   # do the join to get the data
-  collectionattributes <- metadata_only %>%
+  collectionattributes <- metadata %>%
     left_join(
       current_entity %>% get_hydrated_variable_and_category_metadata(),
-      join_by(stable_id == parent_variable),
+      join_by(category == parent_variable),
     )  %>%
     # select and rename these in the correct order (see VDI-schema.R)
-    select(collection_stable_id = stable_id, attribute_stable_id = stable_id.y)
+    select(collection_stable_id = stable_id.x, attribute_stable_id = stable_id.y)
   
   # write the data
   write_tsv(
