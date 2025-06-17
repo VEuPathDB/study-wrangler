@@ -456,6 +456,9 @@ export_collections_to_vdi <- function(entities, output_directory, install_json, 
   
   metadata <- current_entity %>% get_hydrated_collection_metadata()
   
+  if (nrow(metadata) == 0) {
+    return()
+  }
   ### metadata to collection_blah_blah.cache ###
   
   # JSONify some array fields of metadata  
