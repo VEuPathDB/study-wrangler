@@ -53,6 +53,7 @@ setGeneric("get_hydrated_collection_metadata", function(entity) standardGeneric(
 #' @details
 #' - Fails if the collection already exists or if the category does not exist.
 #' - All metadata fields are validated; unknown fields will cause an error.
+#' - If `stable_id` is not provided, it will be generated just-in-time during hydration (see also variable behaviour).
 #'
 #' @examples
 #' entity <- entity %>%
@@ -64,6 +65,7 @@ setGeneric("get_hydrated_collection_metadata", function(entity) standardGeneric(
 #'     is_proportion = FALSE,
 #'     is_compositional = FALSE,
 #'     normalization_method = "none"
+#'     # stable_id is optional
 #'   )
 #'
 #' @export
