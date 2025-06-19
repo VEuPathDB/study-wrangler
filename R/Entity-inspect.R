@@ -19,8 +19,7 @@ setMethod("inspect", "Entity", function(object, variable_name = NULL) {
   # Extract data and variables
   data <- entity@data
   variables <- entity@variables
-  collections <- entity@collections
-  
+
   # Ensure variables has `data_type` and `data_shape`
   if (!all(c("data_type", "data_shape") %in% colnames(variables))) {
     stop("Error: variables metadata must contain `data_type` and `data_shape` columns.")
@@ -29,6 +28,7 @@ setMethod("inspect", "Entity", function(object, variable_name = NULL) {
   ids_metadata <- get_id_column_metadata(entity)
   variables_metadata <- get_hydrated_variable_and_category_metadata(entity)
   category_metadata <- get_category_metadata(entity)
+  collections_metadata <- get_hydrated_collection_metadata(entity)
   
   # entity level metadata  
   slots_list <- as_list(entity)
@@ -201,13 +201,35 @@ If there are ID columns missing above, you may need to use:
   cat(
     to_lines(
       heading("Variable collections"),
-      if (collections %>% nrow() > 0) {
-        kable(collections)
+      if (nrow(collections_metadata) > 0) {
+        collections_metadata %>%
+          # ensure everything is character so kable() won’t coerce back
+          mutate(across(everything(), as.character)) %>%
+          # split into one‐row tibbles by stable_id
+          group_split(stable_id) %>%
+          # map over each collection, returning a char vector
+          map(~ {
+            # pivot to two‐col field/value
+            df_long <- .x %>%
+              pivot_longer(
+                cols      = everything(),
+                names_to  = "Field",
+                values_to = "Value"
+              )
+            # build the chunk: collection heading, its table, and a blank line
+            c(
+              glue("## Collection: {.x$category} ({.x$stable_id})"),
+              kable(df_long),
+              ""
+            )
+          }) %>%
+          # collapse list of char vectors into one
+          list_c()
       } else {
         c(
           "This entity has no variable collections. To create one, first create a variable",
           "category and then use:",
-          indented(glue("{global_varname} <- {global_varname} %>% create_variable_collection(category = 'my_category_name', ...)"))
+          indented(glue::glue("{global_varname} <- {global_varname} %>% create_variable_collection(category = 'my_category_name', ...)"))
         )
       }
     )

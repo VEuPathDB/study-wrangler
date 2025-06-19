@@ -32,6 +32,7 @@ test_that("entity_from_file warns about duplicate column names in input file", {
 
   expect_true(n_distinct(result@variables$variable) == nrow(result@variables))
   
+  message_without_dupes$reset()
   expect_no_error(
     expect_message(
       expect_output(

@@ -1040,7 +1040,7 @@ setMethod("get_hydrated_variable_and_category_metadata", "Entity", function(enti
   global_varname <- find_global_varname(entity, 'entity')
   
   entity_stable_id <- if (is_truthy(entity@name)) entity %>% get_stable_id() else {
-    message(to_lines(c(
+    message_without_dupes$send(to_lines(c(
       "Warning: because this entity has no `name` (required), a placeholder entity ID has been generated.",
       "You can make things more stable by providing an entity name as follows:",
       indented(glue("{global_varname} <- {global_varname} %>% set_entity_name('your_entity_name')"))
