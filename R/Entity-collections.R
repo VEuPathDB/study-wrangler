@@ -50,20 +50,22 @@ setGeneric("get_hydrated_collection_metadata", function(entity) standardGeneric(
 #'        In that case the variable category's `display_name` will be used as the collection `display_name`
 #' @returns a new Entity object with the variable collection added to its `collections` tibble
 #' 
+#' @details
+#' - Fails if the collection already exists or if the category does not exist.
+#' - All metadata fields are validated; unknown fields will cause an error.
+#'
 #' @examples
-#' 
-#' # TO DO: update with full collection_metadata_defaults
-#' 
-#' entity <- entity %>% create_variable_collection(
-#'   category_name = "integer.measures",
-#'   member = "measurement",
-#'   member_plural = "measurements",
-#'   display_name = "integer-based anatomical measurements",
-#'   is_proportion = FALSE,
-#'   is_compositional = FALSE,
-#'   normalization_method = "none"
-#' )
-#' 
+#' entity <- entity %>%
+#'   create_variable_collection(
+#'     category_name = "integer.measures",
+#'     member = "measurement",
+#'     member_plural = "measurements",
+#'     display_name = "Integer-based anatomical measurements",
+#'     is_proportion = FALSE,
+#'     is_compositional = FALSE,
+#'     normalization_method = "none"
+#'   )
+#'
 #' @export
 setMethod("create_variable_collection", "Entity", function(entity, category_name, ...) {
   collections <- entity@collections

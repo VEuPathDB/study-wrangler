@@ -1257,6 +1257,19 @@ setMethod("set_variable_ordinal_levels", "Entity", function(entity, variable_nam
 #' 
 #' @returns modified entity
 #' @export
+#' @details
+#' - Fails if `category_name` already exists or if any `children` do not exist.
+#' - Sets `data_type = 'category'` and `has_values = FALSE` for the new category.
+#' - Updates `parent_variable` for all children.
+#'
+#' @examples
+#' entity <- entity %>%
+#'   create_variable_category(
+#'     category_name = "house_vars",
+#'     children = c("Owns.property", "Construction.material"),
+#'     display_name = "House-related",
+#'     definition = "Things about the house"
+#'   )
 setMethod("create_variable_category", "Entity", function(entity, category_name, children, ...) {
   global_varname = find_global_varname(entity, "entity")
   variables <- entity@variables
