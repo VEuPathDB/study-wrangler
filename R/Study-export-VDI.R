@@ -500,6 +500,13 @@ export_collections_to_vdi <- function(entities, output_directory, install_json, 
   )
   install_json <- append(install_json, list(collections_table_def))
   
+  # add index
+  index_def <- collections_pkey_def
+  index_def$tableName <- tablename
+  index_def$name <- gsub('####', tablename, index_def$name, fixed = TRUE)
+  install_json <- append(install_json, list(index_def))
+  
+  
   ### now the collectionattribute_* table (links collection to variables)
 
   # table names, etc
@@ -533,7 +540,14 @@ export_collections_to_vdi <- function(entities, output_directory, install_json, 
     fields = collectionattributes_table_fields
   )
   install_json <- append(install_json, list(collectionattributes_table_def))
+
+  # add index
+  index_def <- collectionattributes_index_def
+  index_def$tableName <- collectionattributes_table_name
+  index_def$name <- gsub('####', collectionattributes_table_name, index_def$name, fixed = TRUE)
+  install_json <- append(install_json, list(index_def))
   
+  return(install_json)  
 }
 
 

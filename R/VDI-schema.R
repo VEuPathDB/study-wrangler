@@ -608,6 +608,27 @@ attributegraph_pkey_def <- list(
   orderedColumns = list("stable_id")
 )
 
+# Primary key index for the collection table
+collections_pkey_def <- list(
+  isPrimary = 1,
+  isUnique = 1,
+  tableName = "####",
+  type = "index",
+  name = "####_pkey",
+  orderedColumns = list("stable_id")
+)
+
+# Unique index for the collectionattributes table
+collectionattributes_index_def <- list(
+  isPrimary = 0,
+  isUnique = 1,
+  tableName = "####",
+  type = "index",
+  name = "####_idx1",
+  orderedColumns = list("attribute_stable_id")
+)
+
+
 # Secondary indexes for attributevalue table
 # (it has no primary key)
 attributevalue_index_defs <- list(
