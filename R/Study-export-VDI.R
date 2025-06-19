@@ -532,12 +532,15 @@ export_collections_to_vdi <- function(entities, output_directory, install_json, 
     na = '',
     escape = 'none'
   )
+
+  field_defs <- collectionattributes_table_fields %>%
+    map(partial(set_vdi_field_maxima, collectionattributes))
   
   # update schema JSON
   collectionattributes_table_def <- list(
     name = collectionattributes_table_name,
     type = "table",
-    fields = collectionattributes_table_fields
+    fields = field_defs
   )
   install_json <- append(install_json, list(collectionattributes_table_def))
 
