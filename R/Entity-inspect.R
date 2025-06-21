@@ -146,8 +146,6 @@ If there are ID columns missing above, you may need to use:
   ### multi-valued variable summary ###
   #   glue("of the expanded multiple values, use `{global_varname} %>% inspect('variable.name')`"),
   if (nrow(multivalued_metadata) > 0) {
-    safe_entity_name <- if (is_truthy(entity_name)) entity_name else 'entity'
-
     cat(
       to_lines(
         heading("Multi-valued variables summary"),
