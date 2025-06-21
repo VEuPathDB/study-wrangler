@@ -6,6 +6,7 @@ test_that("inspect(entity) outputs categorical values in full", {
   # Create an Entity object
   households <- entity_from_file(file_path)
   # inspect it and grab the output
+  message_without_dupes$reset()
   expect_message(
     output <- capture.output(inspect(households)),
     "Warning: because this entity has no `name` .required., a placeholder entity ID has been generated."
@@ -51,4 +52,21 @@ test_that("inspect(entity) counts annotations properly", {
   expect_true(any(grepl('display_name provided\\*\\s*\\b1\\b', output, perl=TRUE)))
   expect_true(any(grepl('definition provided\\s*\\b2\\b', output, perl=TRUE)))
 
+})
+
+test_that("Collections are shown in inspect() properly", {
+  study <- make_study_with_collections(name = "collections study")
+  
+  observations <- study %>% get_entity('observation')
+  
+  message_without_dupes$reset()
+  
+  expect_message(
+    output <- capture.output(inspect(observations)),
+    "Generating temporary stable_id for entity"
+  )
+  
+  expect_true(any(grepl('stable_id\\s*COL_', output, perl=TRUE)))
+  expect_true(any(grepl('category\\s*integer.measures', output, perl=TRUE)))
+  
 })

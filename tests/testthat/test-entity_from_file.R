@@ -2,7 +2,9 @@ test_that("entity_from_file works as expected", {
   # Example file path
   file_path <- system.file("extdata", "toy_example/households.tsv", package = 'study.wrangler')
   # Create an Entity object
-  result <- entity_from_file(file_path)
+  expect_silent(
+    result <- entity_from_file(file_path)
+  )
   
   # Check the class
   expect_s4_class(result, "Entity")
@@ -23,13 +25,14 @@ test_that("entity_from_file warns about duplicate column names in input file", {
 
   expect_warning(
     result <- entity_from_file(file_path),
-    "Duplicate column names detected in input file."
+    "Duplicate column names detected in input."
   )
   
   expect_true(any(duplicated(result@variables$provider_label)))
 
   expect_true(n_distinct(result@variables$variable) == nrow(result@variables))
   
+  message_without_dupes$reset()
   expect_no_error(
     expect_message(
       expect_output(
@@ -43,7 +46,9 @@ test_that("entity_from_file warns about duplicate column names in input file", {
 
 test_that("entity_from_file detects column types correctly", {
   file_path <- system.file("extdata", "toy_example/households.tsv", package = 'study.wrangler')
-  result <- entity_from_file(file_path)
+  expect_silent(
+    result <- entity_from_file(file_path)
+  )
   
   # Check metadata data_type
   expected_types <- c("id", "integer", "string", "date", "string")
@@ -94,8 +99,10 @@ test_that("entity_from_file rejects unknown ... metadata arguments", {
 test_that("entity_from_file sets metadata from ... args", {
   file_path <- system.file("extdata", "toy_example/households.tsv", package = 'study.wrangler')
   
-  result <- entity_from_file(file_path, name = "household")
-
+  expect_silent(
+    result <- entity_from_file(file_path, name = "household")
+  )
+  
   expect_equal(result@name, 'household')
 })
 

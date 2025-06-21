@@ -82,6 +82,10 @@ setMethod("export_to_vdi", "Study", function(object, output_directory) {
 })
 
 
+#'
+#' recursive because each entity needs all its ancestors in order so it can
+#' output the ancestors table
+#'
 export_entity_to_vdi_recursively <- function(
   object,
   output_directory,
@@ -111,7 +115,7 @@ export_entity_to_vdi_recursively <- function(
   
   install_json <- export_ancestors_to_vdi(entities, output_directory, install_json, study)
   install_json <- export_attributes_to_vdi(entities, output_directory, install_json, study)
-  
+  install_json <- export_collections_to_vdi(entities, output_directory, install_json, study)
   
   # Recurse into child entities
   child_entities <- current_entity %>% get_children()
@@ -224,6 +228,22 @@ export_ancestors_to_vdi <- function(entities, output_directory, install_json, st
   return(install_json)
 }
 
+#'
+#' function to set the max_length or prec (precision) value
+#' of a VDI table field to the maximum length (or precision)
+#' observed in the metadata table
+#'
+set_vdi_field_maxima <- function(metadata, field_def) {
+  column_values <- metadata %>% pull(field_def$name) %>% as.character()
+  max_length <- column_values %>%
+    nchar() %>% replace(is.na(.), 1) %>% max(na.rm = TRUE)
+  if (field_def$type == "SQL_VARCHAR") {
+    field_def$maxLength <- max_length
+  } else if (field_def$type == "SQL_NUMBER") {
+    field_def$prec <- max_length
+  }
+  return(field_def)
+}
 
 #'
 #' dump the entity variable metadata into the
@@ -286,20 +306,10 @@ export_attributes_to_vdi <- function(entities, output_directory, install_json, s
 
   # set `maxLength` to max from data for all type="SQL_VARCHAR"
   # in `attributegraph_table_fields` before adding to `install_json`
-  # also similar treatment for `prec` field for "SQL_NUMBER" fields?
+  # also similar treatment for `prec` field for "SQL_NUMBER" fields
   
   field_defs <- attributegraph_table_fields %>%
-    map(function(field_def) {
-      column_values <- metadata %>% pull(field_def$name) %>% as.character()
-      max_length <- column_values %>%
-        nchar() %>% replace(is.na(.), 1) %>% max(na.rm = TRUE)
-      if (field_def$type == "SQL_VARCHAR") {
-        field_def$maxLength <- max_length
-      } else if (field_def$type == "SQL_NUMBER") {
-        field_def$prec <- max_length
-      }
-      return(field_def)
-    })
+    map(partial(set_vdi_field_maxima, metadata))
   
   attributegraph_table_def <- list(
     name = tablename,
@@ -433,6 +443,116 @@ export_attributes_to_vdi <- function(entities, output_directory, install_json, s
   
   return(install_json)   
 }
+
+
+#'
+#' dump the collections_{study_abbrev}_{entity_abbrev}.cache file and append
+#' install_json with the table info
+#'
+#'
+export_collections_to_vdi <- function(entities, output_directory, install_json, study) {
+  current_entity <- entities[[length(entities)]]
+  entity_abbreviation <- study %>% get_entity_abbreviation(current_entity %>% get_entity_name())
+  
+  metadata <- current_entity %>% get_hydrated_collection_metadata()
+  
+  if (nrow(metadata) == 0) {
+    return()
+  }
+  ### metadata to collection_blah_blah.cache ###
+  
+  # JSONify some array fields of metadata  
+  metadata <- metadata %>%
+    mutate(across(where(is.logical), as.integer)) # TRUE/FALSE to 0/1
+
+  # get the column names in order (sort by cacheFileIndex)
+  column_names <- collections_table_fields %>%
+    map(~ list(name = .x$name, cacheFileIndex = .x$cacheFileIndex)) %>%
+    bind_rows() %>%
+    arrange(cacheFileIndex) %>%
+    pull(name)
+  
+  # get the metadata in the correct column order ready for dumping to .cache file
+  metadata_only <- metadata %>% select(all_of(column_names))
+  
+  # Output the data
+  tablename <- glue("collection_{study %>% get_study_abbreviation()}_{entity_abbreviation}")
+  filename <- glue("{tablename}.cache")
+  # `escape = 'none'` prevents doubling of double-quotes
+  write_tsv(
+    metadata_only,
+    file.path(output_directory, filename),
+    col_names = FALSE,
+    na = '',
+    escape = 'none'
+  )
+  
+  # set `maxLength` to max from data for all type="SQL_VARCHAR"
+  # in `collections_table_fields` before adding to `install_json`
+  # also similar treatment for `prec` field for "SQL_NUMBER" fields
+  field_defs <- collections_table_fields %>%
+    map(partial(set_vdi_field_maxima, metadata_only))
+  
+  collections_table_def <- list(
+    name = tablename,
+    type = "table",
+    fields = field_defs
+  )
+  install_json <- append(install_json, list(collections_table_def))
+  
+  # add index
+  index_def <- collections_pkey_def
+  index_def$tableName <- tablename
+  index_def$name <- gsub('####', tablename, index_def$name, fixed = TRUE)
+  install_json <- append(install_json, list(index_def))
+  
+  
+  ### now the collectionattribute_* table (links collection to variables)
+
+  # table names, etc
+  collectionattributes_table_name <- glue::glue(
+    "collectionattribute_{study %>% get_study_abbreviation()}_{entity_abbreviation}"
+  )
+  collectionattributes_filename <- glue("{collectionattributes_table_name}.cache")
+
+  # do the join to get the data
+  collectionattributes <- metadata %>%
+    left_join(
+      current_entity %>% get_hydrated_variable_and_category_metadata(),
+      join_by(category == parent_variable),
+    )  %>%
+    # select and rename these in the correct order (see VDI-schema.R)
+    select(collection_stable_id = stable_id.x, attribute_stable_id = stable_id.y)
+  
+  # write the data
+  write_tsv(
+    collectionattributes,
+    file.path(output_directory, collectionattributes_filename),
+    col_names = FALSE,
+    na = '',
+    escape = 'none'
+  )
+
+  field_defs <- collectionattributes_table_fields %>%
+    map(partial(set_vdi_field_maxima, collectionattributes))
+  
+  # update schema JSON
+  collectionattributes_table_def <- list(
+    name = collectionattributes_table_name,
+    type = "table",
+    fields = field_defs
+  )
+  install_json <- append(install_json, list(collectionattributes_table_def))
+
+  # add index
+  index_def <- collectionattributes_index_def
+  index_def$tableName <- collectionattributes_table_name
+  index_def$name <- gsub('####', collectionattributes_table_name, index_def$name, fixed = TRUE)
+  install_json <- append(install_json, list(index_def))
+  
+  return(install_json)  
+}
+
 
 jsonify_list_column <- function(x) {
   if (is.null(x) || length(x) == 0 || all(is.na(x))) {

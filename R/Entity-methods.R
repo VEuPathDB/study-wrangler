@@ -31,7 +31,7 @@ setGeneric("get_display_name_plural", function(entity) standardGeneric("get_disp
 #' @export
 setGeneric("sync_variable_metadata", function(entity) standardGeneric("sync_variable_metadata"))
 #' @export
-setGeneric("set_variable_metadata", function(entity, ...) standardGeneric("set_variable_metadata"))
+setGeneric("set_variable_metadata", function(entity, variable_name, ...) standardGeneric("set_variable_metadata"))
 #' @export
 setGeneric("get_variable_metadata", function(entity) standardGeneric("get_variable_metadata"))
 #' @export
@@ -495,7 +495,7 @@ setMethod("sync_variable_metadata", "Entity", function(entity) {
   
 #' set_variable_metadata
 #' 
-#' Sets metadata for a named variable
+#' Sets metadata for a named variable (or category)
 #' 
 #' @param entity an Entity object
 #' @param variable_name a string value of the column name in `entity@data`
@@ -1040,7 +1040,7 @@ setMethod("get_hydrated_variable_and_category_metadata", "Entity", function(enti
   global_varname <- find_global_varname(entity, 'entity')
   
   entity_stable_id <- if (is_truthy(entity@name)) entity %>% get_stable_id() else {
-    message(to_lines(c(
+    message_without_dupes$send(to_lines(c(
       "Warning: because this entity has no `name` (required), a placeholder entity ID has been generated.",
       "You can make things more stable by providing an entity name as follows:",
       indented(glue("{global_varname} <- {global_varname} %>% set_entity_name('your_entity_name')"))
@@ -1257,6 +1257,19 @@ setMethod("set_variable_ordinal_levels", "Entity", function(entity, variable_nam
 #' 
 #' @returns modified entity
 #' @export
+#' @details
+#' - Fails if `category_name` already exists or if any `children` do not exist.
+#' - Sets `data_type = 'category'` and `has_values = FALSE` for the new category.
+#' - Updates `parent_variable` for all children.
+#'
+#' @examples
+#' entity <- entity %>%
+#'   create_variable_category(
+#'     category_name = "house_vars",
+#'     children = c("Owns.property", "Construction.material"),
+#'     display_name = "House-related",
+#'     definition = "Things about the house"
+#'   )
 setMethod("create_variable_category", "Entity", function(entity, category_name, children, ...) {
   global_varname = find_global_varname(entity, "entity")
   variables <- entity@variables
