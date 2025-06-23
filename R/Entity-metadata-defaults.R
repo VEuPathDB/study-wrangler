@@ -40,3 +40,5 @@ variable_metadata_defaults <- tibble(
   variable_spec_to_impute_zeroes_for = NA_character_,
   unit = NA_character_
 )
+
+empty_variable_metadata <- variable_metadata_defaults %>% slice(0) %>% mutate(variable = NA_character_)
