@@ -67,12 +67,13 @@ entity_from_file <- function(file_path, preprocess_fn = NULL, ...) {
 #'
 #' @description
 #' Creates an Entity object from a raw character-only tibble. Optionally applies a preprocessing function.
-#' @param data A tibble with all columns as character.
+#' @param data A tibble with all columns as character (unless skip_type_convert is TRUE)
 #' @param preprocess_fn Optional function to preprocess the tibble before type inference.
+#' @param skip_type_convert Optional boolean to skip R column type detection and use existing types. Default is FALSE. 
 #' @param ... Additional named parameters to set entity metadata (see Entity class).
 #' @return An Entity object.
 #' @export
-entity_from_tibble <- function(data, preprocess_fn = NULL, ...) {
+entity_from_tibble <- function(data, preprocess_fn = NULL, skip_type_convert = FALSE, ...) {
   metadata = list(...)
   validate_object_metadata_names('Entity', metadata)
 
@@ -101,7 +102,9 @@ entity_from_tibble <- function(data, preprocess_fn = NULL, ...) {
     )
   }
 
-  data <- type_convert_quietly(data)
+  if (!skip_type_convert) {
+    data <- type_convert_quietly(data)
+  }
   variables <- tibble(variable=clean_names) %>% expand_grid(variable_metadata_defaults)
   variables <- variables %>% mutate(provider_label = provider_labels)
   if (!is.null(metadata$name)) {
