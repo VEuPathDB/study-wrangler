@@ -114,12 +114,6 @@ function(
           .allowed_data_types = .allowed_data_types,
           .disallowed_data_types = .disallowed_data_types
         )
-      ),
-      # remove provider labels from id columns
-      provider_label = if_else(
-        data_type == 'id',
-        list(list()),
-        list(provider_label)
       )
     ) %>%
     ungroup() # remove special row-wise grouping
@@ -671,7 +665,7 @@ setMethod("get_id_column_metadata", "Entity", function(entity, ...) {
   return(
     entity@variables %>%
       filter(data_type == 'id') %>%
-      select(variable, starts_with('entity_')) %>%
+      select(variable, starts_with('entity_'), provider_label) %>%
       arrange(entity_level)
   )
 })
@@ -788,8 +782,6 @@ setMethod("set_parents", "Entity", function(entity, names, id_columns) {
       data_shape = fct_mutate(data_shape, variable %in% id_columns, NA),
       entity_name = if_else(variable %in% id_columns, names[match(variable, id_columns)], entity_name),
       entity_level = if_else(variable %in% id_columns, -match(variable, id_columns), entity_level),
-      # remove provider labels for ID columns
-      provider_label = map_if(provider_label, variable %in% id_columns, ~ list())
     )
   
   if (!entity@quiet) message("Parent entity relationships and columns have been set")
