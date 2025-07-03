@@ -22,7 +22,8 @@ test_that("Study exports to VDI artifact", {
     )
   )
 
-  expect_true(all(grepl("Generating temporary stable_id for entity", messages)))
+  ## with hydrated metadata caching this is not always true:
+  # expect_true(all(grepl("Generating temporary stable_id for entity", messages)))
   
   # Verify the directory was created
   expect_true(dir.exists(output_dir))

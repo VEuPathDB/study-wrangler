@@ -1013,6 +1013,14 @@ setMethod("set_variable_as_date", "Entity", function(entity, column_name) {
   return(entity)
 })
 
+
+#'
+#' multi-slot cache for the hydrated metadata
+#'
+#'
+library(digest)
+.hvacm_cache <- new.env(parent = emptyenv())
+
 #' get_hydrated_variable_and_category_metadata
 #' 
 #' Returns a metadata tibble for variables with sensible defaults
@@ -1028,6 +1036,12 @@ setMethod("set_variable_as_date", "Entity", function(entity, column_name) {
 #' @returns tibble of metadata for variables
 #' not exported
 setMethod("get_hydrated_variable_and_category_metadata", "Entity", function(entity) {
+  #── memoization kick-off ──
+  key <- digest(entity)
+  if (exists(key, envir = .hvacm_cache, inherits = FALSE)) {
+    return(.hvacm_cache[[key]])
+  }
+  
   data <- entity %>% get_data()
   global_varname <- find_global_varname(entity, 'entity')
   
@@ -1153,7 +1167,10 @@ setMethod("get_hydrated_variable_and_category_metadata", "Entity", function(enti
         parent_stable_id
       )
     )
-
+  
+  # cache for next time
+  .hvacm_cache[[key]] <- metadata
+  
   return(metadata)
 })
 

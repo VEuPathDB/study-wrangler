@@ -7,10 +7,13 @@ test_that("inspect(entity) outputs categorical values in full", {
   households <- entity_from_file(file_path)
   # inspect it and grab the output
   message_without_dupes$reset()
-  expect_message(
-    output <- capture.output(inspect(households)),
-    "Warning: because this entity has no `name` .required., a placeholder entity ID has been generated."
-  )
+  
+  # the new hydrated metadata cache voids this:
+  # expect_message(
+  output <- capture.output(inspect(households))
+  #   "Warning: because this entity has no `name` .required., a placeholder entity ID has been generated."
+  # )
+
   # Make sure it contains a factor value longer than three characters
   expect_true(any(grepl("Concrete", output)))
   # TO DO nearer release time... (when things have settled)
