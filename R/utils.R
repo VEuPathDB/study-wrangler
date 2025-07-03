@@ -587,7 +587,39 @@ recursive_ascii_tree <- function(
 #' @param .type_convert Logical (default FALSE) - automatically type the expanded tibble before returning
 #' 
 #' @returns A tibble with just the `variable` column, expanded to one value per row
-expand_multivalued_data_column <- function(data, variable, is_multi_valued, multi_value_delimiter, .type_convert = FALSE) {
+#'
+#' @note This has been rewritten with base R for speed. See original tidy version below
+#' 
+expand_multivalued_data_column <- function(
+    data,
+    variable,
+    is_multi_valued,
+    multi_value_delimiter,
+    .type_convert = FALSE
+) {
+  # pull vector once
+  vec <- data[[variable]]
+  
+  if (is_multi_valued) {
+    # coerce to character and split on the delimiter
+    vec_chr   <- as.character(vec)
+    parts     <- strsplit(vec_chr, split = multi_value_delimiter, fixed = TRUE)
+    expanded  <- unlist(parts, use.names = FALSE)
+    out_tib   <- tibble(!!variable := expanded)
+    
+    if (.type_convert) {
+      out_tib <- type_convert_quietly(out_tib, global_varname = find_global_varname(data, 'entity'))
+    }
+    
+  } else {
+    # just wrap the original column
+    out_tib <- tibble(!!variable := vec)
+  }
+  
+  out_tib
+}
+
+expand_multivalued_data_column_original_slow_tidy_version <- function(data, variable, is_multi_valued, multi_value_delimiter, .type_convert = FALSE) {
   one_col_tibble <- data %>% select(all_of(variable))
   if (is_multi_valued) {
     one_col_tibble <- one_col_tibble %>%
