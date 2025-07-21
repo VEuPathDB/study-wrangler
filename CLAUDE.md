@@ -93,12 +93,19 @@ Fix any cross-entity issues
 Export to STF format
 ```
 
-## Project Structure
+## Project Structure (Preserves R Package Layout)
 
 ```
-agentic-data-wrangler/
-├── apps/
-│   ├── web/                      # Next.js application
+study-wrangler/                   # Root preserves R package structure
+├── R/                           # EXISTING R package source
+├── man/                         # EXISTING R documentation  
+├── tests/                       # EXISTING R tests
+├── DESCRIPTION                  # EXISTING R package metadata
+├── NAMESPACE                    # EXISTING R exports
+├── inst/                        # EXISTING R data/examples
+│
+├── apps/                        # NEW: Web applications
+│   ├── web/                     # Next.js application (port 3000)
 │   │   ├── app/
 │   │   │   ├── layout.tsx
 │   │   │   ├── page.tsx
@@ -121,7 +128,7 @@ agentic-data-wrangler/
 │   │   ├── package.json
 │   │   └── tsconfig.json
 │   │
-│   └── orchestrator/             # Node.js orchestrator service
+│   └── orchestrator/            # Node.js orchestrator service (port 4000)
 │       ├── src/
 │       │   ├── server.ts
 │       │   ├── services/
@@ -140,22 +147,31 @@ agentic-data-wrangler/
 │       ├── package.json
 │       └── tsconfig.json
 │
-├── packages/
-│   └── shared/                   # Shared types & utilities
+├── packages/                    # NEW: Shared code
+│   └── shared/                  # Shared TypeScript types & utilities
 │       ├── src/
-│       │   ├── types.ts
-│       │   └── text-patterns.ts
-│       └── package.json
+│       │   ├── types.ts         # WranglerStep, StepResult interfaces
+│       │   └── text-patterns.ts # R output parsing patterns
+│       ├── package.json
+│       └── tsconfig.json
 │
-├── docker/
-│   ├── r-wrangler/
-│   │   └── Dockerfile           # Your existing Dockerfile
-│   └── docker-compose.yml
+├── docker/                      # NEW: Multi-service Docker setup
+│   ├── docker-compose.yml       # Web + Orchestrator + R + Redis
+│   └── r-service/              
+│       └── Dockerfile          # Existing R + Rserve container
 │
-├── package.json                  # Root package.json
-├── pnpm-workspace.yaml          # PNPM workspace config
-└── turbo.json                   # Turborepo config
+├── package.json                 # NEW: Root yarn workspace config
+├── yarn.lock                    # NEW: Yarn lockfile
+├── nx.json                      # NEW: Nx build orchestration
+└── CLAUDE.md                    # This architecture document
 ```
+
+**Key benefits of this structure:**
+- `remotes::install_github('VEuPathDB/study-wrangler')` continues to work unchanged
+- R package development workflow preserved
+- Web app and services isolated in `apps/` directory
+- Shared code prevents duplication between frontend/backend
+- Docker compose coordinates all services for development
 
 ## Actual study.wrangler API Patterns (Updated)
 
@@ -657,9 +673,9 @@ paste(outputText, collapse = "\\n")
 ## Development Phases
 
 ### Phase 1: Core Infrastructure (Week 1)
-- Set up monorepo with Next.js and orchestrator
+- Set up yarn workspace + nx monorepo with Next.js and orchestrator
 - Implement basic file upload and job creation
-- Set up Docker environment with Rserve
+- Set up Docker Compose environment with Rserve + Redis
 - Create WebSocket connection for progress updates
 
 ### Phase 2: Stepwise Workflow (Week 2)
