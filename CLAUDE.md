@@ -309,6 +309,14 @@ interface StepResult {
   duration: number;
 }
 
+interface EntityMapping {
+  name: string;                    // Entity name (e.g., "household")
+  filename: string;                // Source file (e.g., "households.tsv")
+  likely_id_columns: string[];     // Detected ID columns
+  parent?: string;                 // Parent entity name (null for root)
+  parent_id_column?: string;       // Column that links to parent
+}
+
 interface WorkflowState {
   jobId: string;
   phase: 'understanding' | 'entity_wrangling' | 'study_creation';
@@ -317,6 +325,8 @@ interface WorkflowState {
   steps: Array<{ step: WranglerStep; result: StepResult }>;
   entityValidationStatus: Record<string, boolean>;
   studyValidated: boolean;
+  entityMapping?: EntityMapping[];      // Plan from Phase 1
+  processingOrder?: string[];           // Entity processing order
 }
 ```
 
@@ -374,7 +384,15 @@ class WorkflowService {
     const fileAnalyses = [];
     
     for (const file of job.files) {
-      const analysisStep = await this.claude.generateFileAnalysisStep(file);
+      // Hardcode the simple analysis step - no need for Claude to generate this
+      const analysisStep: WranglerStep = {
+        id: uuidv4(),
+        phase: 'understanding',
+        purpose: `Analyze file ${file.name}`,
+        code: `entity_from_file("${file.name}") %>% inspect()`,
+        attempt: 1
+      };
+      
       const result = await this.executeStep(analysisStep, state);
       
       fileAnalyses.push({
@@ -497,37 +515,6 @@ ${lastStep.result.error ? `Error: ${lastStep.result.error}` : ''}
 
 ```typescript
 class ClaudeService {
-  async generateFileAnalysisStep(file: UploadedFile): Promise<WranglerStep> {
-    const prompt = `
-Generate R code to analyze the uploaded file using study.wrangler.
-
-File: ${file.name}
-
-Generate R code that:
-1. Loads the file using entity_from_file("${file.name}")
-2. Runs inspect() to show full analysis
-3. Captures and outputs all information about the entity
-
-Use the pattern:
-entity <- entity_from_file("${file.name}")
-inspect(entity)
-`;
-
-    const response = await this.client.messages.create({
-      model: 'claude-3-5-sonnet-20241022',
-      max_tokens: 1000,
-      messages: [{ role: 'user', content: prompt }]
-    });
-    
-    return {
-      id: uuidv4(),
-      phase: 'understanding',
-      purpose: `Analyze file ${file.name}`,
-      code: this.extractRCode(response.content[0].text),
-      attempt: 1
-    };
-  }
-
   async planEntityMappings(
     fileAnalyses: Array<{filename: string, inspectOutput: string}>,
     instructions: string
