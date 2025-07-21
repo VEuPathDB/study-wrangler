@@ -243,6 +243,53 @@ Variable annotation summary
 
 Validation outputs success/failure with specific error messages and fix suggestions.
 
+## WebSocket Real-time Architecture
+
+### User Flow After "Auto-Wrangle" Button
+
+1. **Job Creation**: `POST /api/jobs/create` returns `jobId` immediately
+2. **WebSocket Connection**: Frontend connects to `ws://localhost:4000/jobs/{jobId}`  
+3. **Real-time Updates**: Orchestrator broadcasts step progress via WebSocket
+
+### WebSocket Message Types
+```typescript
+export type JobUpdate = 
+  | { type: 'step_started'; step: WranglerStep }
+  | { type: 'step_completed'; step: WranglerStep; result: StepResult; progress: Progress }
+  | { type: 'entity_completed'; entityName: string; validated: boolean }
+  | { type: 'phase_changed'; phase: WorkflowPhase; message: string }
+  | { type: 'job_completed'; script: string; success: boolean }
+  | { type: 'job_failed'; error: string; partialScript?: string };
+```
+
+### Frontend Integration
+```typescript
+// useJobProgress hook connects WebSocket and manages state
+const { status, steps, currentStep, phase } = useJobProgress(jobId);
+
+// Components update in real-time based on WebSocket messages
+<WorkflowProgress phase={phase} currentStep={currentStep} />
+<StepDisplay steps={steps} />
+<CodeViewer code={currentStep?.code} />
+<WranglerOutput output={currentStep?.result?.output} />
+```
+
+### Orchestrator Broadcasting
+```typescript
+// Workflow service broadcasts at key moments:
+- Before step execution: 'step_started'  
+- After step execution: 'step_completed' with R output
+- Entity validation: 'entity_completed' 
+- Phase transitions: 'phase_changed'
+- Job completion: 'job_completed' with full script
+```
+
+**Benefits over polling:**
+- Instant feedback (no 2-second delay)
+- Efficient (only sends when state changes)
+- Rich message types for different UI states
+- Multiple browser tabs can connect to same job
+
 ## Key Implementation Details
 
 ### Step Definition
@@ -676,7 +723,7 @@ paste(outputText, collapse = "\\n")
 - Set up yarn workspace + nx monorepo with Next.js and orchestrator
 - Implement basic file upload and job creation
 - Set up Docker Compose environment with Rserve + Redis
-- Create WebSocket connection for progress updates
+- Create WebSocket server for real-time progress updates
 
 ### Phase 2: Stepwise Workflow (Week 2)
 - Implement workflow service with three phases
