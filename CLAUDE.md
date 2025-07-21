@@ -572,58 +572,53 @@ Return only "true" if validation passed, or "false" if it failed.
   
   async generateEntityWranglingStep(
     entityName: string,
-    file: UploadedFile,
-    context: string,
+    previousOutput: string,
+    userInstructions: string,
+    entityMapping: EntityMapping[],
     attempt: number
   ): Promise<WranglerStep> {
+    const currentEntity = entityMapping.find(e => e.name === entityName);
     const prompt = `
-You are wrangling the "${entityName}" entity from file "${file.name}".
-${attempt > 1 ? `This is attempt ${attempt}. Previous attempts and their outputs:` : ''}
-${context}
+You are wrangling the "${entityName}" entity using study.wrangler functions.
 
-Generate R code using study.wrangler functions to:
+ORIGINAL USER INSTRUCTIONS: 
+${userInstructions}
+
+ENTITY PLAN (from Phase 1):
+${JSON.stringify(entityMapping, null, 2)}
+
+CURRENT ENTITY DETAILS:
+${JSON.stringify(currentEntity, null, 2)}
+
+PREVIOUS R OUTPUT (attempt ${attempt}):
+${previousOutput}
+
+Generate R code to:
 ${attempt === 1 ? `
-1. Load entity from file using entity_from_file(file_path, name = "entity_name")
-2. Run inspect(entity) to see current state and issues  
-3. Address any issues found (multivalued columns, missing ID columns, etc.)
-4. Run validate(entity) to check if it passes validation
-5. If validation fails, address the specific errors and try again
+1. Load entity: entity_from_file("${currentEntity?.filename}", name="${entityName}")
+2. Address issues shown in inspect() output above
+3. Apply entity relationships: ${currentEntity?.parent ? 
+   `set_parents(names=c("${currentEntity.parent}"), id_columns=c("${currentEntity.parent_id_column}"))` : 
+   'none needed (root entity)'}
+4. Run validate(entity) to check success
 ` : `
 Fix the validation issues from the previous attempt.
-Focus on the specific errors/warnings shown in the output.
-Common fixes:
-- Use set_parents() for missing parent relationships  
-- Use set_variables_multivalued() for delimited columns
-- Use redetect_columns_as_variables() to change ID detection
-- Use sync_variable_metadata() to fix metadata alignment
-After fixes, run inspect() and validate() again.
+Focus on the specific errors/warnings in the output above.
+Follow any fix suggestions provided by the wrangler output.
+After fixes, run validate(entity) again.
 `}
 
-Available functions (UPDATED with actual API):
-- entity_from_file(file_path, preprocess_fn = NULL, name = "entity_name", ...)
-- entity_from_csv(file_path, preprocess_fn = NULL, ...)  
-- entity_from_tsv(file_path, preprocess_fn = NULL, ...)
-- entity_from_tibble(data, preprocess_fn = NULL, skip_type_convert = FALSE, ...)
-- inspect(entity, variable_name = NULL)
-- inspect_variable(entity, variable_name)
-- validate(entity) # returns boolean TRUE/FALSE
-- study_from_entities(entities, name = "study_name", ...)
-- set_parents(entity, names = c("parent_name"), id_columns = c("parent.id"))
-- set_variables_multivalued(entity, 'variable.name' = 'delimiter')
-- set_variables_univalued(entity, 'variable.name')
-- redetect_columns_as_variables(entity, c('col_name.1', 'col_name.2'))
-- redetect_column_as_id(entity, column_name)
-- sync_variable_metadata(entity)
-- set_entity_metadata(entity, ...)
-- set_variable_metadata(entity, variable_name, ...)
-- get_entity_name(entity)
-- get_data(entity)
-- export_to_stf(study, output_dir)
+Core functions available:
+- entity_from_file(), inspect(), validate()
+- set_parents(), set_variables_multivalued(), redetect_columns_as_variables()
+- sync_variable_metadata()
+
+Follow specific guidance from wrangler's inspect()/validate() output messages.
 `;
 
     const response = await this.client.messages.create({
-      model: 'claude-3-5-sonnet-20241022',
-      max_tokens: 2000,
+      model: 'claude-3-5-sonnet-20241022', 
+      max_tokens: 1500,
       messages: [{ role: 'user', content: prompt }]
     });
     
@@ -760,11 +755,91 @@ paste(outputText, collapse = "\\n")
 - Full inspect() output sent to Claude (high token usage but comprehensive analysis)
 - Claude creates entity mapping plan from inspect() text outputs
 
-## Security & Performance
+## Context Passing for Claude API Calls
+
+Since each Claude API call is stateless, every request must include full context:
+
+### Entity Wrangling Step Context
+```typescript
+async generateEntityWranglingStep(
+  entityName: string,
+  previousOutput: string,
+  userInstructions: string,
+  entityMapping: EntityMapping[],
+  attempt: number
+): Promise<WranglerStep>
+```
+
+**Context included in every prompt:**
+- **User instructions**: Original upload description/requirements
+- **Entity mapping**: Complete plan from Phase 1 (entity relationships, ID columns)
+- **Previous R output**: Raw text from last inspect()/validate() call
+- **Current entity context**: Which entity, what attempt, expected relationships
+- **Basic API functions**: Core wrangler functions (rely on wrangler's built-in guidance for specifics)
+
+### System Prompt Template
+```typescript
+const systemPrompt = `
+You generate study.wrangler R code. Available core functions:
+- entity_from_file(), inspect(), validate()
+- set_parents(), set_variables_multivalued(), redetect_columns_as_variables()
+- sync_variable_metadata(), study_from_entities(), export_to_stf()
+
+Follow the specific fix suggestions in wrangler's inspect()/validate() output.
+`;
+```
+
+## Security & Prompt Injection Protection
+
+### Input Sanitization
+```typescript
+function sanitizeUserInstructions(instructions: string): string {
+  return instructions
+    .replace(/[a-zA-Z_][a-zA-Z0-9_]*\s*\(/g, '') // Remove function calls
+    .replace(/[<>{}]/g, '')                       // Remove dangerous characters  
+    .replace(/system\s*\(/gi, '')                // Remove system calls
+    .slice(0, 2000);                             // Limit length
+}
+```
+
+### Generated Code Validation
+```typescript
+function validateGeneratedCode(code: string): boolean {
+  const allowedFunctions = [
+    // study.wrangler functions
+    'entity_from_file', 'inspect', 'validate', 'set_parents',
+    'set_variables_multivalued', 'set_variables_univalued', 
+    'redetect_columns_as_variables', 'redetect_column_as_id',
+    'sync_variable_metadata', 'study_from_entities', 'export_to_stf',
+    // R basics
+    'library', 'print', 'cat', 'head', 'str', 'summary', 'names'
+  ];
+  
+  const functionCalls = code.match(/[a-zA-Z_][a-zA-Z0-9_]*(?=\s*\()/g) || [];
+  const hasSystemCalls = /system\s*\(|eval\s*\(|source\s*\(/i.test(code);
+  
+  return !hasSystemCalls && 
+         functionCalls.every(fn => allowedFunctions.includes(fn));
+}
+```
+
+### R Environment Sandboxing
+- **Containerized execution**: Docker container with no network access
+- **File system limits**: Read-only except for temp upload directory  
+- **Resource limits**: 2GB RAM, 30-second timeout per step
+- **Function blacklist**: No system(), eval(), source() calls allowed
+- **Session isolation**: Each job gets fresh R session
+
+### Error Handling
+- All generated R code validated before execution
+- Malicious code detection triggers job failure with sanitized error message
+- Failed validation attempts logged for monitoring
+
+## Performance & Infrastructure
 
 - R sessions isolated per job
 - Temporary files cleaned up after processing
-- Rate limiting on API endpoints
+- Rate limiting on API endpoints  
 - Maximum file size limits enforced
 - Timeout protection for long-running operations
 - File type validation on upload
