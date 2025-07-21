@@ -169,6 +169,8 @@ study-wrangler/                   # Root preserves R package structure
 - Web app and services isolated in `apps/` directory
 - Shared code prevents duplication between frontend/backend
 - Docker compose coordinates all services for development
+- Improvements to the `study.wrangler` R package can be made as needed
+  (and easily) during development of the agentic tool.
 
 ## Actual study.wrangler API Patterns (Updated)
 
@@ -299,6 +301,7 @@ interface WranglerStep {
   purpose: string;
   code: string;
   attempt: number;
+  isFinalAttempt?: boolean;  // Mark the step that achieved validation
 }
 
 interface StepResult {
@@ -429,21 +432,25 @@ class WorkflowService {
       // Generate wrangling step
       const step = await this.claude.generateEntityWranglingStep(
         entityName,
-        job.files.find(f => f.name === state.entityMapping[entityName]),
         this.getEntityContext(state, entityName),
+        job.instructions,
+        state.entityMapping,
         attempts
       );
       
       // Execute step
       const result = await this.executeStep(step, state);
       
-      // Let Claude interpret the raw output to determine if entity validates
-      // and what the next step should be
-      if (result.success && result.output.includes('validate(')) {
-        // Claude will interpret validation output to determine success
-        validated = await this.claude.interpretValidationResult(result.output);
-        state.entityValidationStatus[entityName] = validated;
+      // Check if entity validation succeeded
+      if (result.success && result.output.includes('Entity is valid')) {
+        validated = true;
+        step.isFinalAttempt = true;
       }
+      
+      // Store step in audit trail after marking final attempt
+      state.steps.push({ step, result });
+      
+      state.entityValidationStatus[entityName] = validated;
     }
     
     if (validated) {
@@ -468,10 +475,7 @@ class WorkflowService {
         duration: Date.now() - startTime
       };
       
-      // Store step and result
-      state.steps.push({ step, result });
-      
-      // Send real-time update
+      // Send real-time update (steps stored by caller)
       await this.sendProgressUpdate(state);
       
       return result;
@@ -485,7 +489,6 @@ class WorkflowService {
         duration: Date.now() - startTime
       };
       
-      state.steps.push({ step, result });
       return result;
     }
   }
@@ -507,6 +510,17 @@ ${lastStep.result.output}
 
 ${lastStep.result.error ? `Error: ${lastStep.result.error}` : ''}
     `;
+  }
+
+  private assembleFullScript(steps: Array<{ step: WranglerStep; result: StepResult }>): string {
+    // Only include final successful attempts for each entity, plus all non-entity steps
+    const finalSteps = steps.filter(s => 
+      s.step.isFinalAttempt || s.step.phase !== 'entity_wrangling'
+    );
+    
+    return finalSteps
+      .map(s => `# ${s.step.purpose}\n${s.step.code}`)
+      .join('\n\n');
   }
 }
 ```
@@ -551,25 +565,6 @@ Return valid JSON only.
     return JSON.parse(this.extractJSONResponse(response.content[0].text));
   }
 
-  async interpretValidationResult(output: string): Promise<boolean> {
-    const prompt = `
-Analyze this R output from a validate() call and determine if the entity passed validation.
-
-R Output:
-${output}
-
-Return only "true" if validation passed, or "false" if it failed.
-`;
-
-    const response = await this.client.messages.create({
-      model: 'claude-3-5-sonnet-20241022',
-      max_tokens: 10,
-      messages: [{ role: 'user', content: prompt }]
-    });
-    
-    return response.content[0].text.trim().toLowerCase() === 'true';
-  }
-  
   async generateEntityWranglingStep(
     entityName: string,
     previousOutput: string,
