@@ -33,7 +33,6 @@ An AI-powered tool that uses Claude to incrementally build R scripts using the `
 │  │  - Workflow Engine (manages step progression)           │   │
 │  │  - Claude Service (generates next steps)                │   │
 │  │  - Rserve Client (executes R code)                     │   │
-│  │  - Text Parser (extracts info from wrangler output)    │   │
 │  │  - WebSocket Server (real-time updates)                │   │
 │  └─────────────────────────────────────────────────────────┘   │
 └─────────────────────────────────────────────────────────────────┘
@@ -134,8 +133,7 @@ study-wrangler/                   # Root preserves R package structure
 │       │   ├── services/
 │       │   │   ├── claude.service.ts
 │       │   │   ├── rserve.service.ts
-│       │   │   ├── workflow.service.ts
-│       │   │   └── text-parser.service.ts
+│       │   │   └── workflow.service.ts
 │       │   ├── workflows/
 │       │   │   ├── data-understanding.workflow.ts
 │       │   │   ├── entity-wrangling.workflow.ts
@@ -150,8 +148,7 @@ study-wrangler/                   # Root preserves R package structure
 ├── packages/                    # NEW: Shared code
 │   └── shared/                  # Shared TypeScript types & utilities
 │       ├── src/
-│       │   ├── types.ts         # WranglerStep, StepResult interfaces
-│       │   └── text-patterns.ts # R output parsing patterns
+│       │   └── types.ts         # WranglerStep, StepResult, JobUpdate interfaces
 │       ├── package.json
 │       └── tsconfig.json
 │
@@ -323,61 +320,6 @@ interface WorkflowState {
 }
 ```
 
-### Text Parser Service
-
-Since wrangler outputs plain text, we need to parse it intelligently:
-
-```typescript
-class TextParserService {
-  // Parse entity inspection output
-  parseEntityInspection(output: string): EntityInspectionResult {
-    // Extract key information using regex patterns
-    const rowCount = this.extractPattern(output, /Rows:\s*(\d+)/);
-    const columns = this.extractList(output, /Columns:\s*(.+)/);
-    const idColumns = this.extractList(output, /ID columns:\s*(.+)/);
-    const issues = this.extractSection(output, /Issues:/, /^$/m);
-    
-    return { rowCount, columns, idColumns, issues };
-  }
-  
-  // Parse validation output
-  parseValidationResult(output: string): ValidationResult {
-    const isValid = output.includes('Validation passed') || 
-                   output.includes('Entity is valid');
-    const errors = this.extractSection(output, /Errors:/, /^$/m);
-    const warnings = this.extractSection(output, /Warnings:/, /^$/m);
-    
-    return { isValid, errors, warnings };
-  }
-  
-  // Extract patterns from text
-  private extractPattern(text: string, pattern: RegExp): string | null {
-    const match = text.match(pattern);
-    return match ? match[1] : null;
-  }
-  
-  private extractList(text: string, pattern: RegExp): string[] {
-    const match = text.match(pattern);
-    if (!match) return [];
-    return match[1].split(',').map(s => s.trim());
-  }
-  
-  private extractSection(text: string, startPattern: RegExp, endPattern: RegExp): string[] {
-    // Extract lines between patterns
-    const lines = text.split('\n');
-    const startIdx = lines.findIndex(l => startPattern.test(l));
-    if (startIdx === -1) return [];
-    
-    const endIdx = lines.findIndex((l, i) => i > startIdx && endPattern.test(l));
-    const sectionLines = lines.slice(startIdx + 1, endIdx === -1 ? undefined : endIdx);
-    
-    return sectionLines
-      .map(l => l.trim())
-      .filter(l => l.length > 0 && !l.startsWith('-'));
-  }
-}
-```
-
 ### Workflow Service
 
 The main orchestration logic:
@@ -386,8 +328,7 @@ The main orchestration logic:
 class WorkflowService {
   constructor(
     private claude: ClaudeService,
-    private rserve: RserveService,
-    private parser: TextParserService
+    private rserve: RserveService
   ) {}
   
   async executeJob(job: WranglerJob): Promise<WranglerResult> {
@@ -478,16 +419,11 @@ class WorkflowService {
       // Execute step
       const result = await this.executeStep(step, state);
       
-      // Check if entity validates
-      if (result.output.includes('inspect(')) {
-        const inspection = this.parser.parseEntityInspection(result.output);
-        // Store for context
-        state.lastInspection[entityName] = inspection;
-      }
-      
-      if (result.output.includes('validate')) {
-        const validation = this.parser.parseValidationResult(result.output);
-        validated = validation.isValid;
+      // Let Claude interpret the raw output to determine if entity validates
+      // and what the next step should be
+      if (result.success && result.output.includes('validate(')) {
+        // Claude will interpret validation output to determine success
+        validated = await this.claude.interpretValidationResult(result.output);
         state.entityValidationStatus[entityName] = validated;
       }
     }
@@ -552,8 +488,6 @@ Previous attempt output:
 ${lastStep.result.output}
 
 ${lastStep.result.error ? `Error: ${lastStep.result.error}` : ''}
-${state.lastInspection[entityName] ? 
-  `Last inspection showed: ${JSON.stringify(state.lastInspection[entityName])}` : ''}
     `;
   }
 }
@@ -628,6 +562,25 @@ Return valid JSON only.
     });
     
     return JSON.parse(this.extractJSONResponse(response.content[0].text));
+  }
+
+  async interpretValidationResult(output: string): Promise<boolean> {
+    const prompt = `
+Analyze this R output from a validate() call and determine if the entity passed validation.
+
+R Output:
+${output}
+
+Return only "true" if validation passed, or "false" if it failed.
+`;
+
+    const response = await this.client.messages.create({
+      model: 'claude-3-5-sonnet-20241022',
+      max_tokens: 10,
+      messages: [{ role: 'user', content: prompt }]
+    });
+    
+    return response.content[0].text.trim().toLowerCase() === 'true';
   }
   
   async generateEntityWranglingStep(
