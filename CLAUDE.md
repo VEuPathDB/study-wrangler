@@ -7,35 +7,35 @@ An AI-powered tool that uses Claude to incrementally build R scripts using the `
 ## High-Level Architecture
 
 ```
-┌─────────────────────────────────────────────────────────────────┐
-│                    Next.js App (Port 3000)                      │
+┌────────────────────────────────────────────────────────────────┐
+│                    Next.js App (Port 3000)                     │
 │  ┌─────────────────────────────────────────────────────────┐   │
-│  │  Frontend (React Components)                             │   │
-│  │  - File Upload UI                                        │   │
+│  │  Frontend (React Components)                            │   │
+│  │  - File Upload UI                                       │   │
 │  │  - Step Progress Tracker                                │   │
-│  │  - Current State Display                               │   │
-│  │  - R Code Viewer                                       │   │
-│  │  - Wrangler Output Console                             │   │
+│  │  - Current State Display                                │   │
+│  │  - R Code Viewer                                        │   │
+│  │  - Wrangler Output Console                              │   │
 │  └─────────────────────────────────────────────────────────┘   │
 │  ┌─────────────────────────────────────────────────────────┐   │
 │  │  API Routes (/app/api/*)                                │   │
 │  │  - /api/jobs/create                                     │   │
-│  │  - /api/jobs/[id]/status                               │   │
-│  │  - /api/jobs/[id]/steps                                │   │
+│  │  - /api/jobs/[id]/status                                │   │
+│  │  - /api/jobs/[id]/steps                                 │   │
 │  └─────────────────────────────────────────────────────────┘   │
-└─────────────────────────────────────────────────────────────────┘
+└────────────────────────────────────────────────────────────────┘
                                 │
                                 ▼
-┌─────────────────────────────────────────────────────────────────┐
-│           Step Orchestrator Service (Port 4000)                 │
+┌────────────────────────────────────────────────────────────────┐
+│           Step Orchestrator Service (Port 4000)                │
 │  ┌─────────────────────────────────────────────────────────┐   │
-│  │  Core Components:                                        │   │
+│  │  Core Components:                                       │   │
 │  │  - Workflow Engine (manages step progression)           │   │
 │  │  - Claude Service (generates next steps)                │   │
-│  │  - Rserve Client (executes R code)                     │   │
-│  │  - WebSocket Server (real-time updates)                │   │
+│  │  - Rserve Client (executes R code)                      │   │
+│  │  - WebSocket Server (real-time updates)                 │   │
 │  └─────────────────────────────────────────────────────────┘   │
-└─────────────────────────────────────────────────────────────────┘
+└────────────────────────────────────────────────────────────────┘
          │                              │
          ▼                              ▼
 ┌─────────────────────┐       ┌──────────────────────────┐
