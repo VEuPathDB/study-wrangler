@@ -839,6 +839,24 @@ function validateGeneratedCode(code: string): boolean {
 - Timeout protection for long-running operations
 - File type validation on upload
 
+## Testing Considerations
+
+• **Mock Claude API calls** - Create deterministic test fixtures for Claude responses (entity mappings, R code generation) to avoid API costs and flaky tests during development
+
+• **R code execution sandbox** - Test generated R code against known datasets with expected outcomes; validate that malicious code detection works properly  
+
+• **End-to-end workflow tests** - Full pipeline tests from file upload → entity analysis → wrangling → study creation → STF export using sample TSV/CSV files
+
+• **WebSocket integration tests** - Verify real-time progress updates are sent correctly at each phase; test multiple client connections and job state synchronization
+
+• **Error handling and retry logic** - Test failure scenarios: malformed files, validation failures, Claude API timeouts, R execution errors; ensure proper error messages and graceful degradation
+
+**Key testing infrastructure:**
+- `tests/fixtures/` directory with sample datasets (both valid and problematic)
+- Lightweight R test environment that can run actual study.wrangler functions
+- Comprehensive mocking for Claude API interactions
+- Test containers for isolated R execution environment
+
 ## Future Enhancements
 
 1. **Learning from Success**: Store successful wrangling patterns
