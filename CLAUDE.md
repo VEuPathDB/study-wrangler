@@ -52,13 +52,13 @@ An AI-powered tool that uses Claude to incrementally build R scripts using the `
 ```
 User uploads files + instructions
     ↓
-Claude analyzes file structure and relationships
+For each file: entity_from_file() -> inspect() -> capture text output
     ↓
-Generate initial exploration code
+Send all inspect() outputs + user instructions to Claude
     ↓
-Execute and capture output
+Claude analyzes structure, relationships, and creates entity mapping plan
     ↓
-Claude interprets results and plans entity mapping
+Claude returns: entity names, file mappings, parent-child relationships, processing order
 ```
 
 ### Phase 2: Entity-by-Entity Processing
@@ -429,23 +429,27 @@ class WorkflowService {
   }
   
   private async executeDataUnderstanding(job: WranglerJob, state: WorkflowState) {
-    // Get initial exploration code from Claude
-    const step = await this.claude.generateDataUnderstandingStep(
-      job.files,
+    // For each uploaded file, create entity and capture inspect() output
+    const fileAnalyses = [];
+    
+    for (const file of job.files) {
+      const analysisStep = await this.claude.generateFileAnalysisStep(file);
+      const result = await this.executeStep(analysisStep, state);
+      
+      fileAnalyses.push({
+        filename: file.name,
+        inspectOutput: result.output
+      });
+    }
+    
+    // Send all inspect outputs + instructions to Claude for entity planning
+    const entityPlan = await this.claude.planEntityMappings(
+      fileAnalyses,
       job.instructions
     );
     
-    // Execute and capture output
-    const result = await this.executeStep(step, state);
-    
-    // Let Claude interpret the results and plan entity mapping
-    const interpretation = await this.claude.interpretDataStructure(
-      job.files,
-      job.instructions,
-      result.output
-    );
-    
-    state.entityMapping = interpretation.entityMapping;
+    state.entityMapping = entityPlan.entities;
+    state.processingOrder = entityPlan.processing_order;
   }
   
   private async wrangleEntity(
@@ -559,27 +563,62 @@ ${state.lastInspection[entityName] ?
 
 ```typescript
 class ClaudeService {
-  async generateDataUnderstandingStep(
-    files: UploadedFile[],
-    instructions: string
-  ): Promise<WranglerStep> {
+  async generateFileAnalysisStep(file: UploadedFile): Promise<WranglerStep> {
     const prompt = `
-You are analyzing data files to understand their structure and relationships.
-Generate R code to explore the uploaded data files.
+Generate R code to analyze the uploaded file using study.wrangler.
 
-Files uploaded:
-${files.map(f => `- ${f.name} (${f.size} bytes)`).join('\n')}
+File: ${file.name}
+
+Generate R code that:
+1. Loads the file using entity_from_file("${file.name}")
+2. Runs inspect() to show full analysis
+3. Captures and outputs all information about the entity
+
+Use the pattern:
+entity <- entity_from_file("${file.name}")
+inspect(entity)
+`;
+
+    const response = await this.client.messages.create({
+      model: 'claude-3-5-sonnet-20241022',
+      max_tokens: 1000,
+      messages: [{ role: 'user', content: prompt }]
+    });
+    
+    return {
+      id: uuidv4(),
+      phase: 'understanding',
+      purpose: `Analyze file ${file.name}`,
+      code: this.extractRCode(response.content[0].text),
+      attempt: 1
+    };
+  }
+
+  async planEntityMappings(
+    fileAnalyses: Array<{filename: string, inspectOutput: string}>,
+    instructions: string
+  ): Promise<{entities: EntityMapping[], processing_order: string[]}> {
+    const prompt = `
+Based on these file analyses, create a plan for entity creation and relationships.
 
 User instructions: ${instructions}
 
-Generate R code that:
-1. Shows the first few rows of each file
-2. Shows column names and types
-3. Identifies potential ID columns
-4. Shows row counts
-5. Looks for obvious relationships between files
+File analyses:
+${fileAnalyses.map(f => `
+=== ${f.filename} ===
+${f.inspectOutput}
+`).join('\n')}
 
-Use str(), head(), names(), and summary() to explore the data.
+Create a JSON response with:
+1. "entities": Array of entities to create with names, file mappings, and relationships
+2. "processing_order": Array of entity names in dependency order (parents before children)
+
+Consider:
+- Appropriate entity names based on data content
+- Parent-child relationships based on ID columns
+- Processing order to handle dependencies
+
+Return valid JSON only.
 `;
 
     const response = await this.client.messages.create({
@@ -588,13 +627,7 @@ Use str(), head(), names(), and summary() to explore the data.
       messages: [{ role: 'user', content: prompt }]
     });
     
-    return {
-      id: uuidv4(),
-      phase: 'understanding',
-      purpose: 'Initial data exploration',
-      code: this.extractRCode(response.content[0].text),
-      attempt: 1
-    };
+    return JSON.parse(this.extractJSONResponse(response.content[0].text));
   }
   
   async generateEntityWranglingStep(
@@ -764,6 +797,29 @@ paste(outputText, collapse = "\\n")
 - Enables future Java migration
 - Better separation of concerns
 
+## File Upload Restrictions (Phase 1)
+
+**Supported file types:**
+- `.tsv`, `.txt` (tab-delimited)
+- `.csv` (comma-delimited)
+- Auto-detection via `entity_from_file()` function
+
+**File size limits:**
+- Maximum 10MB per file
+- Maximum 50MB total upload
+- Maximum 10 files per job
+
+**Unsupported (future versions):**
+- Excel files (`.xlsx`, `.xls`)
+- JSON, XML formats
+- Compressed archives
+- Binary formats
+
+**Processing approach:**
+- Each file → `entity_from_file(filename)` → `inspect(entity)`
+- Full inspect() output sent to Claude (high token usage but comprehensive analysis)
+- Claude creates entity mapping plan from inspect() text outputs
+
 ## Security & Performance
 
 - R sessions isolated per job
@@ -771,6 +827,7 @@ paste(outputText, collapse = "\\n")
 - Rate limiting on API endpoints
 - Maximum file size limits enforced
 - Timeout protection for long-running operations
+- File type validation on upload
 
 ## Future Enhancements
 
