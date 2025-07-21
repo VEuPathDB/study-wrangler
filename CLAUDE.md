@@ -163,6 +163,76 @@ agentic-data-wrangler/
 └── turbo.json                   # Turborepo config
 ```
 
+## Actual study.wrangler API Patterns (Updated)
+
+### Core Entity Workflow
+Based on examination of the actual package, the typical entity wrangling workflow is:
+
+```r
+# 1. Load entity from file
+entity <- entity_from_file("data.tsv", name = "entity_name")
+
+# 2. Inspect to see current state and issues
+inspect(entity)
+
+# 3. Common fixes based on inspection output:
+# - For multivalued columns (comma-separated values):
+entity <- entity %>% set_variables_multivalued('column_name' = ',')
+
+# - For parent-child relationships:
+entity <- entity %>% set_parents(
+  names = c("parent_entity"),
+  id_columns = c("parent_id_column")
+)
+
+# - For incorrect ID column detection:
+entity <- entity %>% redetect_columns_as_variables(c('wrongly_detected_id'))
+entity <- entity %>% redetect_column_as_id('should_be_id_column')
+
+# - For metadata sync issues:
+entity <- entity %>% sync_variable_metadata()
+
+# 4. Validate entity
+is_valid <- validate(entity)
+
+# 5. Create study from multiple entities
+study <- study_from_entities(list(entity1, entity2), name = "study_name")
+
+# 6. Validate the complete study
+validate(study)
+
+# 7. Export to STF format
+export_to_stf(study, "output_directory")
+```
+
+### Key Data Structures
+
+**Entity Class:**
+- `@data`: tibble with actual data
+- `@variables`: tibble with extensive metadata including data_type, data_shape, display_name, etc.
+- `@name`, `@description`, `@display_name`: entity metadata
+- `@children`: list of child entities for hierarchical relationships
+
+**Variable Metadata Fields (key ones):**
+- `data_type`: factor("id", "string", "number", "date", "longitude", "integer", "category")
+- `data_shape`: factor("continuous", "categorical", "ordinal", "binary")  
+- `provider_label`: original column name from file
+- `is_multi_valued`: boolean for delimited columns
+- `entity_name`, `entity_level`: for hierarchical relationships
+
+### Text Output Patterns
+From examining inspect() and validate() methods, the system outputs structured text like:
+
+```
+Entity-level metadata
+Row counts
+ID columns  
+Summary of important metadata for all variables and categories
+Variable annotation summary
+```
+
+Validation outputs success/failure with specific error messages and fix suggestions.
+
 ## Key Implementation Details
 
 ### Step Definition
@@ -483,25 +553,42 @@ ${context}
 
 Generate R code using study.wrangler functions to:
 ${attempt === 1 ? `
-1. Create an entity object from the data file
-2. Set appropriate ID columns (generate if needed)
-3. Clean any data quality issues
-4. Run inspect() to see the current state
-5. Run validate_entity() to check if it's valid
+1. Load entity from file using entity_from_file(file_path, name = "entity_name")
+2. Run inspect(entity) to see current state and issues  
+3. Address any issues found (multivalued columns, missing ID columns, etc.)
+4. Run validate(entity) to check if it passes validation
+5. If validation fails, address the specific errors and try again
 ` : `
 Fix the validation issues from the previous attempt.
 Focus on the specific errors/warnings shown in the output.
-After fixes, run inspect() and validate_entity() again.
+Common fixes:
+- Use set_parents() for missing parent relationships  
+- Use set_variables_multivalued() for delimited columns
+- Use redetect_columns_as_variables() to change ID detection
+- Use sync_variable_metadata() to fix metadata alignment
+After fixes, run inspect() and validate() again.
 `}
 
-Available functions:
-- create_entity(name, data)
-- set_id_columns(entity, columns)
-- generate_id(entity, prefix)
-- clean_whitespace(entity)
-- standardize_dates(entity, date_columns)
-- inspect(entity)
-- validate_entity(entity)
+Available functions (UPDATED with actual API):
+- entity_from_file(file_path, preprocess_fn = NULL, name = "entity_name", ...)
+- entity_from_csv(file_path, preprocess_fn = NULL, ...)  
+- entity_from_tsv(file_path, preprocess_fn = NULL, ...)
+- entity_from_tibble(data, preprocess_fn = NULL, skip_type_convert = FALSE, ...)
+- inspect(entity, variable_name = NULL)
+- inspect_variable(entity, variable_name)
+- validate(entity) # returns boolean TRUE/FALSE
+- study_from_entities(entities, name = "study_name", ...)
+- set_parents(entity, names = c("parent_name"), id_columns = c("parent.id"))
+- set_variables_multivalued(entity, 'variable.name' = 'delimiter')
+- set_variables_univalued(entity, 'variable.name')
+- redetect_columns_as_variables(entity, c('col_name.1', 'col_name.2'))
+- redetect_column_as_id(entity, column_name)
+- sync_variable_metadata(entity)
+- set_entity_metadata(entity, ...)
+- set_variable_metadata(entity, variable_name, ...)
+- get_entity_name(entity)
+- get_data(entity)
+- export_to_stf(study, output_dir)
 `;
 
     const response = await this.client.messages.create({
