@@ -1,11 +1,5 @@
 # Agentic Data Wrangler Architecture - Stepwise Approach
 
-## Note
-
-This architecture document was created by Claude Opus 4 with only
-minimal knowledge of the study.wrangler's API. Some details will need
-to be updated.
-
 ## Overview
 
 An AI-powered tool that uses Claude to incrementally build R scripts using the `study.wrangler` package. The agent works step-by-step through the wrangler workflow, parsing text feedback to make informed decisions about the next action.
