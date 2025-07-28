@@ -39,6 +39,10 @@ test_that("Study exports to VDI artifact", {
   expect_true("install.json" %in% output_files)
   expect_true("study.cache" %in% output_files)
   
+  # Verify install.json is non-empty
+  install_json_path <- file.path(output_dir, "install.json")
+  expect_true(file.size(install_json_path) > 0)
+  
   # check the is_many_to_one_with_parent column is correct
   entitytypegraph.cache <- file.path(output_dir, 'entitytypegraph.cache')
   expect_equal(
@@ -68,7 +72,26 @@ test_that("A study with collections exports to VDI", {
     )
   )
   
-  # TO DO
-  # Verify the presence of files (see previous test)
+  # Verify the directory was created
+  expect_true(dir.exists(output_dir))
   
+  # List files in the output directory
+  output_files <- list.files(output_dir, full.names = FALSE)
+  
+  # Verify the presence of files
+  expect_true(length(grep("^ancestors.*\\.cache$", output_files)) == 3)  # 3 ancestors*.cache files
+  expect_true(length(grep("^attributegraph.*\\.cache$", output_files)) == 3)  # 3 attributegraph*.cache files
+  expect_true(length(grep("^attributevalue.*\\.cache$", output_files)) == 3)  # 3 attributevalue*.cache files
+  expect_true(length(grep("^collection_.*\\.cache$", output_files)) > 0)  # collection_*.cache files
+  expect_true(length(grep("^collectionattribute_.*\\.cache$", output_files)) > 0)  # collectionattribute_*.cache files
+  expect_true("entitytypegraph.cache" %in% output_files)
+  expect_true("install.json" %in% output_files)
+  expect_true("study.cache" %in% output_files)
+  
+  # Verify install.json is non-empty
+  install_json_path <- file.path(output_dir, "install.json")
+  expect_true(file.size(install_json_path) > 0)
+  
+  # Clean up
+  unlink(output_dir, recursive = TRUE)
 })
