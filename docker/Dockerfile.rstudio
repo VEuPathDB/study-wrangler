@@ -1,0 +1,7 @@
+# RStudio development environment
+FROM veupathdb/study-wrangler:base
+
+## Make a symlink in the rstudio homedir
+RUN ln -s /study.wrangler /home/rstudio/study.wrangler
+
+# Default RStudio server behavior (port 8787)
