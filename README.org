@@ -80,8 +80,10 @@ You can now run code chunks interactively and modify them/play around.
 * To build a docker image
 
 #+begin_example
-docker build -t veupathdb/study-wrangler .
+docker/build.sh
 #+end_example
+
+Builds `veupathdb/study-wrangler:rstudio`
 
 Build notes:
 - add `--progress=plain` if you want to see the errors more easily
@@ -90,13 +92,13 @@ Build notes:
 
 To run in docker:
 #+begin_example
-docker run --rm -ti -e PASSWORD=password -p 8989:8787 veupathdb/study-wrangler
+docker run --rm -ti -e PASSWORD=password -p 8989:8787 veupathdb/study-wrangler:rstudio
 # Then in your web browser navigate to localhost:8989 and login with "rstudio" and "password"
 #+end_example
 
 To add R functions to the repo (using docker):
 #+begin_example
-docker run --rm -ti -v $PWD:/study.wrangler -e PASSWORD=password -p 8888:8787 veupathdb/study-wrangler
+docker run --rm -ti -v $PWD:/study.wrangler -e PASSWORD=password -p 8888:8787 veupathdb/study-wrangler:rstudio
 # Then in your web browser navigate to localhost:8888 and login with "rstudio" and "password"
 
 # at the RStudio prompt

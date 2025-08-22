@@ -1,3 +1,4 @@
+# Base image with study.wrangler and all dependencies
 FROM rocker/tidyverse:4
 
 ## system dependencies for building some R packages
@@ -8,14 +9,10 @@ RUN apt-get update && apt-get install -y \
 COPY . /study.wrangler
 WORKDIR /study.wrangler
 
-## Make a symlink in the rstudio homedir
-RUN ln -s /study.wrangler /home/rstudio/study.wrangler
-
-### CRAN
+### CRAN dependencies
 RUN R -e "install.packages('skimr')"
 
-### github
-
+### GitHub dependencies (order matters!)
 # plot.data dependencies not automatically installed:
 RUN R -e "install.packages('BiocManager')"
 RUN R -e "BiocManager::install('SummarizedExperiment')"
@@ -25,6 +22,8 @@ RUN R -e "remotes::install_github('VEuPathDB/veupathUtils', 'v2.7.0', upgrade_de
 # plot.data for binwidth function
 RUN R -e "remotes::install_github('VEuPathDB/plot.data', 'v5.4.2', upgrade_dependencies=F)"
 
+### Install study.wrangler locally
+RUN R -e "install.packages('/study.wrangler', repos=NULL, type='source')"
 
-### local
-RUN R -e "install.packages('/study.wrangler', repos=NULL , type='source')"
+# Verify installation
+RUN R -e "library(study.wrangler); cat('study.wrangler loaded successfully\n')"

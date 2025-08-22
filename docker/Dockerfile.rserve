@@ -1,0 +1,18 @@
+# RServe service for MCP server
+FROM veupathdb/study-wrangler:base
+
+# Install RServe and devtools for development
+RUN R -e "install.packages(c('Rserve', 'devtools'))"
+
+# Configure RServe for local access only
+RUN echo "port 6311" > /etc/Rserv.conf
+RUN echo "remote disable" >> /etc/Rserv.conf
+RUN echo "auth disable" >> /etc/Rserv.conf
+RUN echo "plaintext enable" >> /etc/Rserv.conf
+
+EXPOSE 6311
+WORKDIR /data
+
+# Support both development and production modes
+COPY docker/start-rserve.R /start-rserve.R
+CMD ["Rscript", "/start-rserve.R"]
