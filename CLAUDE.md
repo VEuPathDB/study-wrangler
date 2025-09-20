@@ -5,8 +5,9 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 ## Common Development Commands
 
 ### Testing
-- `devtools::test()` - Run all package tests
+- `devtools::test()` - Run all package tests (takes ~2 minutes)
 - `testthat::test_check("study.wrangler")` - Alternative test runner
+- Single test file: `devtools::load_all(); library(testthat); test_file('tests/testthat/test-FILENAME.R')`
 
 ### Package Development
 - `devtools::load_all()` - Load all package functions during development (required after code changes)
@@ -19,9 +20,25 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 # Build container
 docker build -t veupathdb/study-wrangler .
 
-# Run development environment with volume mount
-docker run --rm -ti -v $PWD:/study.wrangler -e PASSWORD=password -p 8888:8787 veupathdb/study-wrangler
+# Run named development environment for shared access
+docker run --rm -ti --name study-wrangler-dev -v $PWD:/study.wrangler -e PASSWORD=password -p 8888:8787 veupathdb/study-wrangler
 # Navigate to localhost:8888, login with "rstudio"/"password"
+```
+
+### Claude Code Integration (Shared Container)
+When using the named container `study-wrangler-dev`, Claude Code can run commands in the same environment:
+```bash
+# Run all tests via Claude Code
+docker exec study-wrangler-dev R -e "setwd('/study.wrangler'); library(devtools); test()"
+
+# Run single test file via Claude Code  
+docker exec study-wrangler-dev R -e "setwd('/study.wrangler'); library(devtools); load_all(); library(testthat); test_file('tests/testthat/test-Entity-categories.R')"
+
+# Check package compilation
+docker exec study-wrangler-dev R -e "setwd('/study.wrangler'); library(devtools); load_all()"
+
+# Build documentation
+docker exec study-wrangler-dev R -e "setwd('/study.wrangler'); library(devtools); document()"
 ```
 
 ## Architecture Overview

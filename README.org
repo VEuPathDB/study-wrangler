@@ -96,7 +96,7 @@ docker run --rm -ti -e PASSWORD=password -p 8989:8787 veupathdb/study-wrangler
 
 To add R functions to the repo (using docker):
 #+begin_example
-docker run --rm -ti -v $PWD:/study.wrangler -e PASSWORD=password -p 8888:8787 veupathdb/study-wrangler
+docker run --rm -ti --name study-wrangler-dev -v $PWD:/study.wrangler -e PASSWORD=password -p 8888:8787 veupathdb/study-wrangler
 # Then in your web browser navigate to localhost:8888 and login with "rstudio" and "password"
 
 # at the RStudio prompt
