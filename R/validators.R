@@ -17,13 +17,15 @@ NULL
 #' @param object_type Character vector specifying what objects this validator works on: "entity", "study", or "both"
 #' @param profiles Character vector of profiles this validator applies to
 #' @param description Optional description of what the validator checks
+#' @param stop_on_error Logical, whether to stop validation on first error from this validator
 #' @keywords internal
-register_validator <- function(name, validator_func, object_type = "entity", profiles = "baseline", description = NULL) {
+register_validator <- function(name, validator_func, object_type = "entity", profiles = "baseline", description = NULL, stop_on_error = FALSE) {
   .validator_registry[[name]] <- list(
     func = validator_func,
     object_type = object_type,
     profiles = profiles,
-    description = description
+    description = description,
+    stop_on_error = stop_on_error
   )
 }
 
@@ -31,7 +33,7 @@ register_validator <- function(name, validator_func, object_type = "entity", pro
 #'
 #' @param profiles Character vector of validation profiles
 #' @param object_type Character string: "entity" or "study"
-#' @return List of validator functions
+#' @return List of validator functions with metadata
 #' @keywords internal
 get_validators_for_profiles <- function(profiles, object_type) {
   all_validators <- as.list(.validator_registry)
@@ -45,8 +47,13 @@ get_validators_for_profiles <- function(profiles, object_type) {
     })
   ]
   
-  # Return just the functions
-  lapply(matching_validators, function(v) v$func)
+  # Sort by stop_on_error (TRUE first, then FALSE)
+  sorted_validators <- matching_validators[
+    order(sapply(matching_validators, function(v) !v$stop_on_error))
+  ]
+  
+  # Return validators with metadata
+  sorted_validators
 }
 
 #' List all registered validators
@@ -61,7 +68,8 @@ list_validators <- function() {
       name = character(0),
       object_type = character(0),
       profiles = character(0),
-      description = character(0)
+      description = character(0),
+      stop_on_error = logical(0)
     ))
   }
   
@@ -69,7 +77,8 @@ list_validators <- function() {
     name = names(all_validators),
     object_type = sapply(all_validators, function(v) paste(v$object_type, collapse = ", ")),
     profiles = sapply(all_validators, function(v) paste(v$profiles, collapse = ", ")),
-    description = sapply(all_validators, function(v) v$description %||% "")
+    description = sapply(all_validators, function(v) v$description %||% ""),
+    stop_on_error = sapply(all_validators, function(v) v$stop_on_error %||% FALSE)
   )
 }
 
@@ -84,24 +93,24 @@ list_validators <- function() {
 #' Initialize baseline validators
 #' @keywords internal
 .init_baseline_validators <- function() {
-  # Basic Entity validators
+  # Basic Entity validators (fatal - stop on error)
   register_validator("entity_metadata_not_empty", validate_entity_metadata_not_empty, 
-                    "entity", "baseline", "Check that entity metadata is not empty")
+                    "entity", "baseline", "Check that entity metadata is not empty", stop_on_error = TRUE)
   
   register_validator("entity_data_has_columns", validate_entity_data_has_columns,
-                    "entity", "baseline", "Check that entity data has columns")
+                    "entity", "baseline", "Check that entity data has columns", stop_on_error = TRUE)
   
   register_validator("entity_column_alignment", validate_entity_column_alignment,
-                    "entity", "baseline", "Check column alignment between data and metadata")
+                    "entity", "baseline", "Check column alignment between data and metadata", stop_on_error = TRUE)
   
   register_validator("entity_required_metadata", validate_entity_required_metadata,
-                    "entity", "baseline", "Check for required metadata columns")
+                    "entity", "baseline", "Check for required metadata columns", stop_on_error = TRUE)
   
   register_validator("entity_metadata_types", validate_entity_metadata_types,
-                    "entity", "baseline", "Check metadata values respect types and factor levels")
+                    "entity", "baseline", "Check metadata values respect types and factor levels", stop_on_error = TRUE)
   
   register_validator("entity_data_type_not_na", validate_entity_data_type_not_na,
-                    "entity", "baseline", "Check data_type is not NA for any variable")
+                    "entity", "baseline", "Check data_type is not NA for any variable", stop_on_error = TRUE)
   
   register_validator("entity_has_name", validate_entity_has_name,
                     "entity", "baseline", "Check entity has a name")

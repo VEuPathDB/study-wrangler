@@ -27,12 +27,16 @@ setMethod("validate", "Entity", function(object, profile = NULL) {
   global_varname = find_global_varname(entity, 'entity')
   
   # Run all validators for this profile
-  for (validator in validators) {
-    result <- validator(entity)
+  for (validator_meta in validators) {
+    result <- validator_meta$func(entity)
     
     if (!result$valid) {
       if (result$fatal %||% FALSE) {
         # Fatal error - stop validation immediately
+        give_feedback(fatal_message = result$message)
+        return(invisible(FALSE))
+      } else if (validator_meta$stop_on_error %||% FALSE) {
+        # Stop on error validator failed - stop validation immediately
         give_feedback(fatal_message = result$message)
         return(invisible(FALSE))
       } else {
