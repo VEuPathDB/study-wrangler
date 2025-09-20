@@ -9,9 +9,7 @@ NULL
 #' @keywords internal
 validate_entity_id_columns_no_na <- function(entity) {
   data <- entity@data
-  variables <- entity@variables
-  
-  id_columns <- variables %>% filter(data_type == "id") %>% pull(variable)
+  id_columns <- entity %>% get_id_column_metadata() %>% pull(variable)
   
   if (length(id_columns) == 0) {
     return(list(valid = TRUE))
@@ -38,10 +36,7 @@ validate_entity_id_columns_no_na <- function(entity) {
 #' @keywords internal
 validate_entity_id_columns_no_duplicates <- function(entity) {
   data <- entity@data
-  variables <- entity@variables
-  
-  my_id_columns <- variables %>% 
-    filter(data_type == "id") %>% 
+  my_id_columns <- entity %>% get_id_column_metadata() %>% 
     filter(entity_level == 0) %>% 
     pull(variable)
   
@@ -69,10 +64,7 @@ validate_entity_id_columns_no_duplicates <- function(entity) {
 #' Validator: Check entity has required ID column
 #' @keywords internal
 validate_entity_has_id_column <- function(entity) {
-  variables <- entity@variables
-  
-  my_id_variable <- variables %>%
-    filter(data_type == 'id') %>%
+  my_id_variable <- entity %>% get_id_column_metadata() %>%
     filter(entity_level == 0)
   
   if (nrow(my_id_variable) == 0) {
@@ -89,10 +81,9 @@ validate_entity_has_id_column <- function(entity) {
 #' Validator: Check only one ID column per entity level
 #' @keywords internal
 validate_entity_one_id_per_level <- function(entity) {
-  variables <- entity@variables
+  id_columns <- entity %>% get_id_column_metadata()
   
-  id_col_contraventions <- variables %>%
-    filter(data_type == "id") %>%
+  id_col_contraventions <- id_columns %>%
     group_by(entity_level) %>%
     filter(n() > 1) %>%
     summarise(id_columns = paste0(variable, collapse = ", "), .groups = "drop")
@@ -116,17 +107,15 @@ validate_entity_one_id_per_level <- function(entity) {
 #' Validator: Check ID column entity_name matches entity name
 #' @keywords internal
 validate_entity_id_entity_name_match <- function(entity) {
-  variables <- entity@variables
+  id_columns <- entity %>% get_id_column_metadata()
   
   # Get contraventions to check if there are multiple ID columns at level 0
-  id_col_contraventions <- variables %>%
-    filter(data_type == "id") %>%
+  id_col_contraventions <- id_columns %>%
     group_by(entity_level) %>%
     filter(n() > 1) %>%
     summarise(id_columns = paste0(variable, collapse = ", "), .groups = "drop")
   
-  my_id_variable <- variables %>%
-    filter(data_type == 'id') %>%
+  my_id_variable <- id_columns %>%
     filter(entity_level == 0)
   
   # Only check if entity has name, no contraventions at level 0, and has ID variable
