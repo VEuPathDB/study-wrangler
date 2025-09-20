@@ -10,10 +10,20 @@ NULL
 validate_entity_metadata_not_empty <- function(entity) {
   variables <- entity@variables
   if (nrow(variables) == 0) {
+    # Get global variable name for fix-it suggestions
+    global_varname <- find_global_varname(entity, 'entity')
+    
+    message <- paste(
+      "Variables' metadata is empty. Ensure metadata is correctly populated.",
+      "To reset the metadata to defaults, use the following command:",
+      paste0("    ", global_varname, " <- ", global_varname, " %>% sync_variable_metadata()"),
+      sep = "\n"
+    )
+    
     return(list(
       valid = FALSE,
       fatal = TRUE,
-      message = "Variables' metadata is empty. Ensure metadata is correctly populated."
+      message = message
     ))
   }
   list(valid = TRUE)
@@ -81,10 +91,19 @@ validate_entity_required_metadata <- function(entity) {
     filter(if_any(all_of(required_metadata_cols), is.na))
   
   if (nrow(variables_with_critical_NAs) > 0) {
+    # Format the message to include variable details like the original
+    message <- paste(
+      "Error: NAs found in critical variable metadata columns:",
+      paste(capture.output(kable(variables_with_critical_NAs)), collapse = "\n"),
+      "~~~~",
+      "This error is not expected to occur. Please contact the developers.",
+      sep = "\n"
+    )
+    
     return(list(
       valid = FALSE,
       fatal = TRUE,
-      message = "NAs found in critical variable metadata columns"
+      message = message
     ))
   }
   

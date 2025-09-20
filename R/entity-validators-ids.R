@@ -68,10 +68,25 @@ validate_entity_has_id_column <- function(entity) {
     filter(entity_level == 0)
   
   if (nrow(my_id_variable) == 0) {
+    # Get global variable name for fix-it suggestions
+    global_varname <- find_global_varname(entity, 'entity')
+    
+    message <- paste(
+      "This entity appears to have no ID column.",
+      "It must have a column with a unique value in each row.",
+      "You can create a simple numeric ID as follows:",
+      paste0("    ", global_varname, " <- ", global_varname, " %>%"),
+      paste0("        modify_data(mutate(ID = row_number())) %>%"),
+      paste0("        sync_variable_metadata() %>%"),
+      paste0("        redetect_column_as_id('ID')"),
+      paste0("Then `validate(", global_varname, ")` again"),
+      sep = "\n"
+    )
+    
     return(list(
       valid = FALSE,
       fatal = FALSE,
-      message = "This entity appears to have no ID column. It must have a column with a unique value in each row."
+      message = message
     ))
   }
   

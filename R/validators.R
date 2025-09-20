@@ -10,6 +10,10 @@ NULL
 #' @keywords internal
 .validator_registry <- new.env(parent = emptyenv())
 
+#' Registration order counter
+#' @keywords internal
+.registration_counter <- 0
+
 #' Register a validator function
 #'
 #' @param name Character string name for the validator
@@ -20,12 +24,16 @@ NULL
 #' @param stop_on_error Logical, whether to stop validation on first error from this validator
 #' @keywords internal
 register_validator <- function(name, validator_func, object_type = "entity", profiles = "baseline", description = NULL, stop_on_error = FALSE) {
+  # Increment registration counter
+  .registration_counter <<- .registration_counter + 1
+  
   .validator_registry[[name]] <- list(
     func = validator_func,
     object_type = object_type,
     profiles = profiles,
     description = description,
-    stop_on_error = stop_on_error
+    stop_on_error = stop_on_error,
+    registration_order = .registration_counter
   )
 }
 
@@ -47,9 +55,12 @@ get_validators_for_profiles <- function(profiles, object_type) {
     })
   ]
   
-  # Sort by stop_on_error (TRUE first, then FALSE)
+  # Sort by stop_on_error (TRUE first), then by registration order
   sorted_validators <- matching_validators[
-    order(sapply(matching_validators, function(v) !v$stop_on_error))
+    order(
+      sapply(matching_validators, function(v) !v$stop_on_error),  # stop_on_error TRUE first
+      sapply(matching_validators, function(v) v$registration_order)  # then by registration order
+    )
   ]
   
   # Return validators with metadata
@@ -69,7 +80,8 @@ list_validators <- function() {
       object_type = character(0),
       profiles = character(0),
       description = character(0),
-      stop_on_error = logical(0)
+      stop_on_error = logical(0),
+      registration_order = integer(0)
     ))
   }
   
@@ -78,7 +90,8 @@ list_validators <- function() {
     object_type = sapply(all_validators, function(v) paste(v$object_type, collapse = ", ")),
     profiles = sapply(all_validators, function(v) paste(v$profiles, collapse = ", ")),
     description = sapply(all_validators, function(v) v$description %||% ""),
-    stop_on_error = sapply(all_validators, function(v) v$stop_on_error %||% FALSE)
+    stop_on_error = sapply(all_validators, function(v) v$stop_on_error %||% FALSE),
+    registration_order = sapply(all_validators, function(v) v$registration_order %||% 0L)
   )
 }
 

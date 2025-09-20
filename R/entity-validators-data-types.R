@@ -31,13 +31,15 @@ validate_entity_integer_data_types <- function(entity) {
   
   if (any(not_integers)) {
     problem_columns <- integer_columns[not_integers]
+    # Create individual messages for each problematic column (like original)
+    messages <- sapply(problem_columns, function(col_name) {
+      paste0("The column '", col_name, "' is declared as 'integer' but contains non-integer values.")
+    })
+    
     return(list(
       valid = FALSE,
       fatal = FALSE,
-      message = paste0(
-        "These columns are declared as 'integer' but contain non-integer values: ",
-        paste(problem_columns, collapse = ", ")
-      )
+      message = paste(messages, collapse = "\n")
     ))
   }
   
@@ -64,13 +66,15 @@ validate_entity_number_data_types <- function(entity) {
   
   if (any(not_numbers)) {
     problem_columns <- number_columns[not_numbers]
+    # Create individual messages for each problematic column (like original)
+    messages <- sapply(problem_columns, function(col_name) {
+      paste0("The column '", col_name, "' is declared as 'number' but contains non-numeric values.")
+    })
+    
     return(list(
       valid = FALSE,
       fatal = FALSE,
-      message = paste0(
-        "These columns are declared as 'number' but contain non-numeric values: ",
-        paste(problem_columns, collapse = ", ")
-      )
+      message = paste(messages, collapse = "\n")
     ))
   }
   
@@ -97,13 +101,15 @@ validate_entity_date_data_types <- function(entity) {
   
   if (any(not_dates)) {
     problem_columns <- date_columns[not_dates]
+    # Create individual messages for each problematic column (like original)
+    messages <- sapply(problem_columns, function(col_name) {
+      paste0("The column '", col_name, "' is declared as 'date' but R does not currently recognise it as a date.")
+    })
+    
     return(list(
       valid = FALSE,
       fatal = FALSE,
-      message = paste0(
-        "These columns are declared as 'date' but R does not currently recognise them as dates: ",
-        paste(problem_columns, collapse = ", ")
-      )
+      message = paste(messages, collapse = "\n")
     ))
   }
   
