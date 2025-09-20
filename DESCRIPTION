@@ -22,7 +22,8 @@ Imports:
     glue,
     knitr,
     plot.data,
-    digest
+    digest,
+    yaml
 Suggests: 
     testthat (>= 3.0.0),
     roxygen2,
