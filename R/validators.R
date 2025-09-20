@@ -282,17 +282,13 @@ validate_study_entities_valid <- function(study) {
   invalid_entities <- c()
   
   for (entity in entities) {
-    # Get the validation profiles to use for entity validation
-    profiles <- get_validation_profiles()
-    entity_validators <- get_validators_for_profiles(profiles, "entity")
+    # Use the validation system to validate each entity
+    # We use quiet validation to avoid duplicate output
+    entity_quiet <- entity %>% quiet()
+    is_valid <- validate(entity_quiet, profile = get_validation_profiles())
     
-    # Run entity validators
-    for (validator in entity_validators) {
-      result <- validator(entity)
-      if (!result$valid && (result$fatal %||% FALSE)) {
-        invalid_entities <- c(invalid_entities, get_entity_name(entity))
-        break  # Stop at first fatal error for this entity
-      }
+    if (!is_valid) {
+      invalid_entities <- c(invalid_entities, get_entity_name(entity))
     }
   }
   
