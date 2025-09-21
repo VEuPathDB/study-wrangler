@@ -29,4 +29,4 @@ setGeneric("verbose", function(object, ...) standardGeneric("verbose"))
 #' @param profile Character vector of validation profiles to use. If NULL, uses global config.
 #' @returns a Boolean indicating success or failure
 #' @export
-setGeneric("validate", function(object, profile = NULL) standardGeneric("validate"))
+setGeneric("validate", function(object, profiles = NULL) standardGeneric("validate"))

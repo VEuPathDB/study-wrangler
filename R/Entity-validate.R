@@ -8,12 +8,12 @@
 #' @param profile Character vector of validation profiles to use. If NULL, uses global config.
 #' @returns a Boolean indicating success or failure
 #' @export
-setMethod("validate", "Entity", function(object, profile = NULL) {
+setMethod("validate", "Entity", function(object, profiles = NULL) {
   entity <- object
   quiet <- entity@quiet
   
   # Get validation profiles to use
-  profiles <- get_validation_profiles(profile)
+  profiles <- get_validation_profiles(profiles)
   
   # Get validators for this profile and object type
   validators <- get_validators_for_profiles(profiles, "entity")

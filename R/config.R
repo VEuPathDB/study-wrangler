@@ -168,9 +168,9 @@ get_config <- function() {
 #' # Get profiles from argument or global config
 #' get_validation_profiles(c("baseline", "eda"))
 #' get_validation_profiles(NULL)  # Uses global config
-get_validation_profiles <- function(profile = NULL) {
-  if (!is.null(profile)) {
-    return(profile)
+get_validation_profiles <- function(profiles = NULL) {
+  if (!is.null(profiles)) {
+    return(profiles)
   }
   
   config <- get_config()
