@@ -25,7 +25,8 @@ setGeneric("verbose", function(object, ...) standardGeneric("verbose"))
 #'
 #' Defines the S4 generic for the validate function.
 #' 
-#' @param entity The object to validate.
+#' @param object The object to validate.
+#' @param profile Character vector of validation profiles to use. If NULL, uses global config.
 #' @returns a Boolean indicating success or failure
 #' @export
-setGeneric("validate", function(object) standardGeneric("validate"))
+setGeneric("validate", function(object, profiles = NULL) standardGeneric("validate"))
