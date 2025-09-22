@@ -47,6 +47,9 @@ setMethod("validate", "Study", function(object, profiles = NULL) {
         # Non-fatal warning - continue validation
         add_feedback(result$message)
       }
+    } else if (is_truthy(result$message)) {
+      # Advisory message - validation passed but there's informational feedback
+      add_feedback(result$message)
     }
   }
   

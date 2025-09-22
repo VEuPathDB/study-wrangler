@@ -194,5 +194,14 @@ list_validators <- function() {
                     "study", "baseline", "Check parent-child entity relationships")
 }
 
+#' Initialize EDA validators
+#' @keywords internal
+.init_eda_validators <- function() {
+  # EDA geocoordinate validators
+  register_validator("geocoordinate_variables", validate_geocoordinate_variables,
+                    "entity", "eda", "Validate geocoordinate variables have correct metadata")
+}
+
 # Initialize validators when the package loads
 .init_baseline_validators()
+.init_eda_validators()
