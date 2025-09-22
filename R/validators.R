@@ -202,6 +202,3 @@ list_validators <- function() {
                     "entity", "eda", "Validate geocoordinate variables have correct metadata")
 }
 
-# Initialize validators when the package loads
-.init_baseline_validators()
-.init_eda_validators()
