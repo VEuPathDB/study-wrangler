@@ -20,8 +20,11 @@ test_that("geocoordinate validator gives advisory message for single orphan lati
   
   # Should pass but give advisory message
   expect_message(
-    is_valid <- validate(households, profiles = "eda"),
-    "Advisory messages.*Found single geocoordinate variable 'latitude' without its pair"
+    expect_message(
+      is_valid <- validate(households, profiles = "eda"),
+      "Advisory messages.*Found single geocoordinate variable 'latitude' without its pair"
+    ),
+    "Entity is valid."
   )
   expect_true(is_valid)
 })
@@ -38,8 +41,11 @@ test_that("geocoordinate validator gives advisory message for single orphan long
   
   # Should pass but give advisory message
   expect_message(
-    is_valid <- validate(households, profiles = "eda"),
-    "Advisory messages.*Found single geocoordinate variable 'longitude' without its pair"
+    expect_message(
+      is_valid <- validate(households, profiles = "eda"),
+      "Advisory messages.*Found single geocoordinate variable 'longitude' without its pair"
+    ),
+    "Entity is valid."
   )
   expect_true(is_valid)
 })
@@ -123,8 +129,10 @@ test_that("geocoordinate validator fails when latitude variable has wrong stable
   }
   
   households <- entity_from_file(file_path, name = 'household', preprocess_fn = add_geo_coords) %>%
+    quiet() %>%
     set_variable_metadata('latitude', stable_id = 'WRONG_ID', data_type = 'number') %>%
-    set_variable_metadata('longitude', stable_id = 'OBI_0001621', data_type = 'longitude')
+    set_variable_metadata('longitude', stable_id = 'OBI_0001621', data_type = 'longitude') %>%
+    verbose()
   
   # Should fail validation
   expect_warning(
@@ -146,8 +154,10 @@ test_that("geocoordinate validator fails when latitude variable has wrong data_t
   }
   
   households <- entity_from_file(file_path, name = 'household', preprocess_fn = add_geo_coords) %>%
+    quiet() %>%
     set_variable_metadata('latitude', stable_id = 'OBI_0001620', data_type = 'string') %>%
-    set_variable_metadata('longitude', stable_id = 'OBI_0001621', data_type = 'longitude')
+    set_variable_metadata('longitude', stable_id = 'OBI_0001621', data_type = 'longitude') %>%
+    verbose()
   
   # Should fail validation
   expect_warning(
@@ -169,8 +179,10 @@ test_that("geocoordinate validator fails when longitude variable has wrong stabl
   }
   
   households <- entity_from_file(file_path, name = 'household', preprocess_fn = add_geo_coords) %>%
+    quiet() %>%
     set_variable_metadata('latitude', stable_id = 'OBI_0001620', data_type = 'number') %>%
-    set_variable_metadata('longitude', stable_id = 'WRONG_ID', data_type = 'longitude')
+    set_variable_metadata('longitude', stable_id = 'WRONG_ID', data_type = 'longitude') %>%
+    verbose()
   
   # Should fail validation
   expect_warning(
@@ -192,8 +204,10 @@ test_that("geocoordinate validator fails when longitude variable has wrong data_
   }
   
   households <- entity_from_file(file_path, name = 'household', preprocess_fn = add_geo_coords) %>%
+    quiet() %>%
     set_variable_metadata('latitude', stable_id = 'OBI_0001620', data_type = 'number') %>%
-    set_variable_metadata('longitude', stable_id = 'OBI_0001621', data_type = 'number')
+    set_variable_metadata('longitude', stable_id = 'OBI_0001621', data_type = 'number') %>%
+    verbose()
   
   # Should fail validation
   expect_warning(
@@ -215,11 +229,13 @@ test_that("geocoordinate validator passes when both variables have correct metad
   }
   
   households <- entity_from_file(file_path, name = 'household', preprocess_fn = add_geo_coords) %>%
+    quiet() %>%
     set_variable_metadata('latitude', stable_id = 'OBI_0001620', data_type = 'number') %>%
-    set_variable_metadata('longitude', stable_id = 'OBI_0001621', data_type = 'longitude')
+    set_variable_metadata('longitude', stable_id = 'OBI_0001621', data_type = 'longitude') %>%
+    verbose()
   
-  # Should pass validation
-  expect_true(validate(households, profiles = "eda"))
+  # Should pass validation, include baseline checks too
+  expect_true(households %>% quiet() %>% validate(profiles = c("baseline", "eda")))
 })
 
 test_that("geocoordinate validator detects partial matches in variable names", {
@@ -234,11 +250,13 @@ test_that("geocoordinate validator detects partial matches in variable names", {
   }
   
   households <- entity_from_file(file_path, name = 'household', preprocess_fn = add_partial_names) %>%
+    quiet() %>%
     set_variable_metadata('original_lat', stable_id = 'OBI_0001620', data_type = 'number') %>%
-    set_variable_metadata('original_long', stable_id = 'OBI_0001621', data_type = 'longitude')
+    set_variable_metadata('original_long', stable_id = 'OBI_0001621', data_type = 'longitude') %>%
+    verbose()
   
   # Should pass validation (partial matches should work)
-  expect_true(validate(households, profiles = "eda"))
+  expect_true(households %>% quiet() %>% validate(profiles = "eda"))
 })
 
 test_that("geocoordinate validator ignores false positives", {
@@ -255,8 +273,11 @@ test_that("geocoordinate validator ignores false positives", {
   
   # Should give advisory message about the orphan
   expect_message(
-    is_valid <- validate(households, profiles = "eda"),
-    "Advisory messages.*Found single geocoordinate variable 'long.term.carer' without its pair"
+    expect_message(
+      is_valid <- validate(households, profiles = "eda"),
+      "Advisory messages.*Found single geocoordinate variable 'long.term.carer' without its pair"
+    ),
+    "Entity is valid."
   )
   expect_true(is_valid)
 })
@@ -273,8 +294,10 @@ test_that("geocoordinate validator combines multiple validation errors", {
   }
   
   households <- entity_from_file(file_path, name = 'household', preprocess_fn = add_geo_coords) %>%
+    quiet() %>%
     set_variable_metadata('latitude', stable_id = 'WRONG_LAT_ID', data_type = 'string') %>%
-    set_variable_metadata('longitude', stable_id = 'WRONG_LNG_ID', data_type = 'number')
+    set_variable_metadata('longitude', stable_id = 'WRONG_LNG_ID', data_type = 'number') %>%
+    verbose()
   
   # Should fail with multiple error messages
   expect_warning(
