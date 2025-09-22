@@ -69,10 +69,20 @@ validate_entity_column_alignment <- function(entity) {
   }
   
   if (length(issues) > 0) {
+    # Get global variable name for fix-it suggestions
+    global_varname <- find_global_varname(entity, 'entity')
+    
+    message <- paste(
+      paste(issues, collapse = "\n"),
+      "To synchronize variable metadata with data columns, use the following command:",
+      paste0("    ", global_varname, " <- ", global_varname, " %>% sync_variable_metadata()"),
+      sep = "\n"
+    )
+    
     return(list(
       valid = FALSE,
       fatal = fatal,
-      message = paste(issues, collapse = "\n")
+      message = message
     ))
   }
   
@@ -167,13 +177,22 @@ validate_entity_data_type_not_na <- function(entity) {
     filter(is.na(data_type)) %>% pull(variable)
   
   if (length(missing_data_type) > 0) {
+    # Get global variable name for fix-it suggestions
+    global_varname <- find_global_varname(entity, 'entity')
+    
+    message <- paste(
+      paste0("Metadata data_type must not be NA for these variables:\n",
+             paste(missing_data_type, collapse = ", ")),
+      "To re-detect data types for these variables, use the following command:",
+      paste0("    ", global_varname, " <- ", global_varname, " %>% redetect_columns_as_variables(c('", 
+             paste(missing_data_type, collapse = "', '"), "'))"),
+      sep = "\n"
+    )
+    
     return(list(
       valid = FALSE,
       fatal = TRUE,
-      message = paste0(
-        "Metadata data_type must not be NA for these variables:\n",
-        paste(missing_data_type, collapse = ", ")
-      )
+      message = message
     ))
   }
   
@@ -184,10 +203,20 @@ validate_entity_data_type_not_na <- function(entity) {
 #' @keywords internal
 validate_entity_has_name <- function(entity) {
   if (is.na(entity@name) || entity@name == '') {
+    # Get global variable name for fix-it suggestions
+    global_varname <- find_global_varname(entity, 'entity')
+    
+    message <- paste(
+      "Entity is missing required 'name' metadata",
+      "To set an entity name, use the following command (replace 'my_entity' with an appropriate name):",
+      paste0("    ", global_varname, " <- ", global_varname, " %>% set_entity_name('my_entity')"),
+      sep = "\n"
+    )
+    
     return(list(
       valid = FALSE,
       fatal = FALSE,
-      message = "Entity is missing required 'name' metadata"
+      message = message
     ))
   }
   list(valid = TRUE)
@@ -205,11 +234,25 @@ validate_entity_units_on_numeric_only <- function(entity) {
     pull(variable)
   
   if (length(non_numeric_vars_with_units) > 0) {
+    # Get global variable name for fix-it suggestions
+    global_varname <- find_global_varname(entity, 'entity')
+    
+    # Create commands to remove units from each variable
+    fix_commands <- paste0("    ", global_varname, " <- ", global_varname, " %>% set_variable_metadata('", 
+                          non_numeric_vars_with_units, "', unit = NA)")
+    
+    message <- paste(
+      paste0("These non-numeric variables should not have units: ", 
+             paste0(non_numeric_vars_with_units, collapse=', ')),
+      "To remove units from these variables, use the following commands:",
+      paste(fix_commands, collapse = "\n"),
+      sep = "\n"
+    )
+    
     return(list(
       valid = FALSE,
       fatal = FALSE,
-      message = paste0("These non-numeric variables should not have units: ", 
-                      paste0(non_numeric_vars_with_units, collapse=', '))
+      message = message
     ))
   }
   

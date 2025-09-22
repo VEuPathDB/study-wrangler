@@ -7,7 +7,7 @@ test_that("validate(households) warns about missing entity name and returns FALS
   # validate
   expect_warning(
     is_valid <- validate(households),
-    "Entity is missing required 'name' metadata"
+    "Entity is missing required 'name' metadata.+To set an entity name.+set_entity_name"
   )
   
   # fix it erroneously
@@ -59,7 +59,7 @@ test_that("validate() fails and warns about missing metadata", {
   # validate
   expect_warning(
     is_valid <- validate(households),
-    "Variable metadata is missing for these data columns:\\s+newColumn"
+    "Variable metadata is missing for these data columns:\\s+newColumn.+To synchronize variable metadata.+sync_variable_metadata"
   )
   expect_false(is_valid)
   
@@ -110,7 +110,7 @@ test_that("validate() fails and warns about extra metadata", {
   # validate
   expect_warning(
     is_valid <- validate(households),
-    "These variables have metadata but no data columns:\\s+Owns.property"
+    "These variables have metadata but no data columns:\\s+Owns.property.+To synchronize variable metadata.+sync_variable_metadata"
   )
   expect_false(is_valid)
 
@@ -345,4 +345,34 @@ test_that("validate() complains about date columns with non-ISO-8601 dates", {
   )
 })
 
+test_that("validate() complains about variables with NA data_type and provides remedial advice", {
+  file_path <- system.file("extdata", "toy_example/households.tsv", package = 'study.wrangler')
+  households <- entity_from_file(file_path, name='household')
+  
+  # artificially set data_type to NA for one variable
+  households@variables <- households@variables %>%
+    mutate(data_type = if_else(variable == 'Owns.property', NA, data_type))
+  
+  expect_warning(
+    expect_false(
+      validate(households)
+    ),
+    "Metadata data_type must not be NA.+Owns.property.+To re-detect data types.+redetect_columns_as_variables"
+  )
+})
+
+test_that("validate() complains about units on non-numeric variables and provides remedial advice", {
+  file_path <- system.file("extdata", "toy_example/households.tsv", package = 'study.wrangler')
+  households <- entity_from_file(file_path, name='household')
+  
+  # artificially add units to a non-numeric variable (Owns.property is a logical/factor)
+  households <- households %>% set_variable_metadata('Owns.property', unit = 'yes/no')
+  
+  expect_warning(
+    expect_false(
+      validate(households)
+    ),
+    "These non-numeric variables should not have units.+Owns.property.+To remove units.+set_variable_metadata.+unit = NA"
+  )
+})
 
