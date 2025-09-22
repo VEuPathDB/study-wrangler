@@ -45,7 +45,8 @@ setMethod("validate", "Entity", function(object, profiles = NULL) {
       }
     } else if (is_truthy(result$message)) {
       # Advisory message - validation passed but there's informational feedback
-      add_feedback(result$message)
+      advisory <- result$advisory %||% FALSE
+      add_feedback(result$message, advisory = advisory)
     }
   }
   

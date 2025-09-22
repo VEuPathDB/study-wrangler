@@ -60,8 +60,9 @@ validate_geocoordinate_variables <- function(entity) {
     orphan_var <- c(lat_vars, lng_vars)[1]
     return(list(
       valid = TRUE,
-      message = paste0("Advisory: Found single geocoordinate variable '", orphan_var, 
-                      "' without its pair. Please check that geocoordinate variables have not been missed due to mislabelling.")
+      message = paste0("Found single geocoordinate variable '", orphan_var, 
+                      "' without its pair. Please check that geocoordinate variables have not been missed due to mislabelling."),
+      advisory = TRUE
     ))
   }
   
