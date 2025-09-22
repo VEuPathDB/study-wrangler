@@ -31,15 +31,29 @@ validate_entity_integer_data_types <- function(entity) {
   
   if (any(not_integers)) {
     problem_columns <- integer_columns[not_integers]
+    # Get global variable name for fix-it suggestions
+    global_varname <- find_global_varname(entity, 'entity')
+    
     # Create individual messages for each problematic column (like original)
     messages <- sapply(problem_columns, function(col_name) {
       paste0("The column '", col_name, "' is declared as 'integer' but contains non-integer values.")
     })
     
+    message <- paste(
+      paste(messages, collapse = "\n"),
+      "To re-detect data types for these columns (may change to 'number'), use:",
+      paste0("    ", global_varname, " <- ", global_varname, " %>% redetect_columns_as_variables(c('", 
+             paste(problem_columns, collapse = "', '"), "'))"),
+      "Or to explicitly change metadata to 'number' type, use:",
+      paste0("    ", global_varname, " <- ", global_varname, " %>% set_variable_metadata(c('", 
+             paste(problem_columns, collapse = "', '"), "'), data_type = 'number')"),
+      sep = "\n"
+    )
+    
     return(list(
       valid = FALSE,
       fatal = FALSE,
-      message = paste(messages, collapse = "\n")
+      message = message
     ))
   }
   
@@ -66,15 +80,26 @@ validate_entity_number_data_types <- function(entity) {
   
   if (any(not_numbers)) {
     problem_columns <- number_columns[not_numbers]
+    # Get global variable name for fix-it suggestions
+    global_varname <- find_global_varname(entity, 'entity')
+    
     # Create individual messages for each problematic column (like original)
     messages <- sapply(problem_columns, function(col_name) {
       paste0("The column '", col_name, "' is declared as 'number' but contains non-numeric values.")
     })
     
+    message <- paste(
+      paste(messages, collapse = "\n"),
+      "To re-detect data types for these columns, use:",
+      paste0("    ", global_varname, " <- ", global_varname, " %>% redetect_columns_as_variables(c('", 
+             paste(problem_columns, collapse = "', '"), "'))"),
+      sep = "\n"
+    )
+    
     return(list(
       valid = FALSE,
       fatal = FALSE,
-      message = paste(messages, collapse = "\n")
+      message = message
     ))
   }
   
@@ -101,15 +126,35 @@ validate_entity_date_data_types <- function(entity) {
   
   if (any(not_dates)) {
     problem_columns <- date_columns[not_dates]
+    # Get global variable name for fix-it suggestions
+    global_varname <- find_global_varname(entity, 'entity')
+    
     # Create individual messages for each problematic column (like original)
     messages <- sapply(problem_columns, function(col_name) {
       paste0("The column '", col_name, "' is declared as 'date' but R does not currently recognise it as a date.")
     })
     
+    # Create individual fix commands for each column
+    fix_commands <- sapply(problem_columns, function(col_name) {
+      paste0("    ", global_varname, " <- ", global_varname, " %>% modify_data(mutate(", 
+             col_name, " = as.Date(", col_name, ")))")
+    })
+    
+    message <- paste(
+      paste(messages, collapse = "\n"),
+      "To convert these columns to Date type, use:",
+      paste(fix_commands, collapse = "\n"),
+      "Note: You may need to wrangle non-standard and/or potentially ambiguous date formats in addition to the `as.Date()` casting.",
+      "For example, if dates are in MM-DD-YYYY format, use:",
+      paste0("    ", global_varname, " <- ", global_varname, " %>% modify_data(mutate(", 
+             problem_columns[1], " = as.Date(", problem_columns[1], ", format = '%m-%d-%Y')))"),
+      sep = "\n"
+    )
+    
     return(list(
       valid = FALSE,
       fatal = FALSE,
-      message = paste(messages, collapse = "\n")
+      message = message
     ))
   }
   
@@ -136,13 +181,25 @@ validate_entity_multi_valued_character <- function(entity) {
   
   if (any(not_character_cols)) {
     problem_columns <- multi_valued_columns[not_character_cols]
+    # Get global variable name for fix-it suggestions
+    global_varname <- find_global_varname(entity, 'entity')
+    
+    # Create commands to remove multi-valued metadata from each variable
+    fix_commands <- paste0("    ", global_varname, " <- ", global_varname, " %>% set_variable_metadata('", 
+                          problem_columns, "', is_multi_valued = FALSE, multi_value_delimiter = NA)")
+    
+    message <- paste(
+      paste0("These columns are declared as multi-valued but their R data type is not 'character': ",
+             paste(problem_columns, collapse = ", ")),
+      "To remove multi-valued metadata from these variables, use:",
+      paste(fix_commands, collapse = "\n"),
+      sep = "\n"
+    )
+    
     return(list(
       valid = FALSE,
       fatal = FALSE,
-      message = paste0(
-        "These columns are declared as multi-valued but their R data type is not 'character': ",
-        paste(problem_columns, collapse = ", ")
-      )
+      message = message
     ))
   }
   
@@ -169,13 +226,27 @@ validate_entity_ordinal_factors <- function(entity) {
 
   if (any(not_factors)) {
     problem_columns <- factor_columns[not_factors]
+    # Get global variable name for fix-it suggestions
+    global_varname <- find_global_varname(entity, 'entity')
+    
+    # Create individual fix commands for each column
+    fix_commands <- sapply(problem_columns, function(col_name) {
+      paste0("    ", global_varname, " <- ", global_varname, " %>% modify_data(mutate(", 
+             col_name, " = as.factor(", col_name, ")))")
+    })
+    
+    message <- paste(
+      paste0("These variables have data_shape 'ordinal' but their data columns are not R factors: ",
+             paste(problem_columns, collapse = ", ")),
+      "To convert these columns to factors, use:",
+      paste(fix_commands, collapse = "\n"),
+      sep = "\n"
+    )
+    
     return(list(
       valid = FALSE,
       fatal = FALSE,
-      message = paste0(
-        "These variables have data_shape 'ordinal' but their data columns are not R factors: ",
-        paste(problem_columns, collapse = ", ")
-      )
+      message = message
     ))
   }
   
@@ -204,10 +275,22 @@ validate_entity_ordinal_levels <- function(entity) {
     pull(issue)
   
   if (length(ordinal_issues) > 0) {
+    # Get global variable name for fix-it suggestions
+    global_varname <- find_global_varname(entity, 'entity')
+    
+    message <- paste(
+      paste(ordinal_issues, collapse = "\n"),
+      "To create an ordinal variable without these issues, use:",
+      paste0("    ", global_varname, " <- ", global_varname, " %>% set_variable_ordinal_levels('variable_name', c('level1', 'level2', 'level3'))"),
+      "Or to start from scratch (reset ordinal metadata and re-detect), use:",
+      paste0("    ", global_varname, " <- ", global_varname, " %>% set_variable_metadata('variable_name', ordinal_levels = list()) %>% redetect_columns_as_variables('variable_name')"),
+      sep = "\n"
+    )
+    
     return(list(
       valid = FALSE,
       fatal = FALSE,
-      message = paste(ordinal_issues, collapse = "\n")
+      message = message
     ))
   }
   

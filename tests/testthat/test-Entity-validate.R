@@ -283,7 +283,7 @@ test_that("validate() complains about integer columns with non-integer data", {
     expect_false(
       validate(households)
     ),
-    "Number.of.animals.+contains non-integer values"
+    "Number.of.animals.+contains non-integer values.+redetect_columns_as_variables.+set_variable_metadata"
   )
 })
 
@@ -298,7 +298,7 @@ test_that("validate() complains about number columns with non-numeric data", {
     expect_false(
       validate(observations)
     ),
-    "MUAC..cm..+contains non-numeric values"
+    "MUAC..cm..+contains non-numeric values.+redetect_columns_as_variables"
   )
 })
 
@@ -326,7 +326,7 @@ test_that("validate() complains about date columns with non-ISO-8601 dates", {
     expect_false(
       validate(observations)
     ),
-    "The column 'Observation.date' is declared as 'date' but R does not currently recognise it as a date"
+    "The column 'Observation.date' is declared as 'date' but R does not currently recognise it as a date.+modify_data.+as.Date.+format.*%m-%d-%Y"
   )
   
   # let's see if we can fix it with the recommended command
@@ -373,6 +373,53 @@ test_that("validate() complains about units on non-numeric variables and provide
       validate(households)
     ),
     "These non-numeric variables should not have units.+Owns.property.+To remove units.+set_variable_metadata.+unit = NA"
+  )
+})
+
+test_that("validate() complains about multi-valued variables that are not character type and provides remedial advice", {
+  file_path <- system.file("extdata", "toy_example/households.tsv", package = 'study.wrangler')
+  households <- entity_from_file(file_path, name='household')
+  
+  # artificially set a numeric column as multi-valued
+  households <- households %>% set_variable_metadata('Number.of.animals', is_multi_valued = TRUE, multi_value_delimiter = ',')
+  
+  expect_warning(
+    expect_false(
+      validate(households)
+    ),
+    "multi-valued but their R data type is not 'character'.+Number.of.animals.+set_variable_metadata.+is_multi_valued = FALSE.+multi_value_delimiter = NA"
+  )
+})
+
+test_that("validate() complains about ordinal variables that are not factors and provides remedial advice", {
+  file_path <- system.file("extdata", "toy_example/households.tsv", package = 'study.wrangler')
+  households <- entity_from_file(file_path, name='household')
+  
+  # artificially set a character column as ordinal (but not convert to factor)
+  households <- households %>% set_variable_metadata('Construction.material', data_shape = 'ordinal')
+  
+  expect_warning(
+    expect_false(
+      validate(households)
+    ),
+    "data_shape 'ordinal' but their data columns are not R factors.+Construction.material.+modify_data.+as.factor"
+  )
+})
+
+test_that("validate() complains about ordinal level inconsistencies and provides remedial advice", {
+  file_path <- system.file("extdata", "toy_example/households.tsv", package = 'study.wrangler')
+  households <- entity_from_file(file_path, name='household')
+  
+  # Create an ordinal variable that has no levels defined
+  households <- households %>% 
+    set_variable_metadata('Construction.material', data_shape = 'ordinal', data_type = 'string') %>%
+    modify_data(mutate(Construction.material = as.factor(Construction.material)))
+  
+  expect_warning(
+    expect_false(
+      validate(households)
+    ),
+    "Ordinal variable.+Construction.material.+has no ordinal_levels defined.+set_variable_ordinal_levels.+start from scratch"
   )
 })
 
