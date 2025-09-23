@@ -236,7 +236,7 @@ export_ancestors_to_vdi <- function(entities, output_directory, install_json, st
 set_vdi_field_maxima <- function(metadata, field_def) {
   column_values <- metadata %>% pull(field_def$name) %>% as.character()
   max_length <- column_values %>%
-    nchar() %>% replace(is.na(.), 1) %>% max(na.rm = TRUE)
+    nchar() %>% replace(is.na(.), 1) %>% max(default=1, na.rm = TRUE)
   if (field_def$type == "SQL_VARCHAR") {
     field_def$maxLength <- max_length
   } else if (field_def$type == "SQL_NUMBER") {

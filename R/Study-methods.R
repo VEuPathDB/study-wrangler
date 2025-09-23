@@ -197,7 +197,7 @@ setMethod("get_study_abbreviation", "Study", function(study) {
 # Consider adding caching for performance optimization if needed.
 setMethod("get_entity_abbreviation", "Study", function(study, entity_name) {
   entity_names <- get_entity_names(study)
-  abbreviations <- abbreviate(entity_names, minlength = 4)
+  abbreviations <- abbreviate(entity_names, minlength = 8)
   return(abbreviations[entity_name])
 })
 

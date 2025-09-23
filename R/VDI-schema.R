@@ -232,41 +232,6 @@ attributegraph_table_fields <- list(
   ),
   list(
     cacheFileIndex = 15,
-    list(
-      cacheFileIndex = 14,
-      isNullable = "YES",
-      name = "impute_zero",
-      prec = 1,
-      type = "SQL_NUMBER"
-    ),
-    list(
-      cacheFileIndex = 14,
-      isNullable = "YES",
-      name = "impute_zero",
-      prec = 1,
-      type = "SQL_NUMBER"
-    ),
-    list(
-      cacheFileIndex = 14,
-      isNullable = "YES",
-      name = "impute_zero",
-      prec = 1,
-      type = "SQL_NUMBER"
-    ),
-    list(
-      cacheFileIndex = 14,
-      isNullable = "YES",
-      name = "impute_zero",
-      prec = 1,
-      type = "SQL_NUMBER"
-    ),
-    list(
-      cacheFileIndex = 14,
-      isNullable = "YES",
-      name = "impute_zero",
-      prec = 1,
-      type = "SQL_NUMBER"
-    ),
     isNullable = "YES",
     name = "is_featured",
     prec = 1,
