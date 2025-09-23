@@ -197,7 +197,31 @@ setMethod("get_study_abbreviation", "Study", function(study) {
 # Consider adding caching for performance optimization if needed.
 setMethod("get_entity_abbreviation", "Study", function(study, entity_name) {
   entity_names <- get_entity_names(study)
-  abbreviations <- abbreviate(entity_names, minlength = 8)
-  return(abbreviations[entity_name])
+
+  # calculate length adjustment for `abbreviate()`'s `minlength` based on mean
+  # number of "bad" characters
+  extra_len <- entity_names %>%
+    str_replace_all("[A-Za-z0-9_]", "") %>%
+    nchar() %>%
+    mean(na.rm = TRUE) %>%
+    ceiling()
+  
+  abbr <- entity_names %>%
+    # abbreviate() with no clashes
+    abbreviate(minlength = 8 + extra_len) %>%
+    # replace runs of invalid characters with underscore
+    str_replace_all("[^A-Za-z0-9_]+", "_") %>%  
+    # trim leading/trailing underscores
+    str_replace_all("^_+|_+$", "") %>%
+    # in case it's now completely empty
+    str_replace("^$", "entity") %>%
+    # prepend leading digit with underscore
+    str_replace("^([0-9])", "_\\1") %>%
+    # ensure uniqueness
+    make.unique(sep = "_") %>%
+    # put the names back for the final lookup
+    set_names(entity_names)
+
+  abbr[entity_name]
 })
 
