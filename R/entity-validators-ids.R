@@ -21,11 +21,22 @@ validate_entity_id_columns_no_na <- function(entity) {
     unlist() %>% as.logical()
   
   if (any(na_in_ids)) {
+    message <- paste(
+      paste("ID columns contain NA values:", 
+            paste(id_columns[na_in_ids], collapse = ", ")),
+      "This indicates a data quality issue that requires manual inspection.",
+      "ID columns must have a unique, non-NA value for every row.",
+      "Consider:",
+      "  - Filtering out rows with NA values in ID columns",
+      "  - Finding or creating a different column to use as the ID",
+      "  - Generating a new serial ID column if no suitable ID exists",
+      sep = "\n"
+    )
+    
     return(list(
       valid = FALSE,
       fatal = FALSE,
-      message = paste("ID columns contain NA values:", 
-                     paste(id_columns[na_in_ids], collapse = ", "))
+      message = message
     ))
   }
   
@@ -50,11 +61,23 @@ validate_entity_id_columns_no_duplicates <- function(entity) {
     unlist() %>% as.logical()
   
   if (any(dupes_in_ids)) {
+    message <- paste(
+      paste("ID columns contain duplicates:", 
+            paste(my_id_columns[dupes_in_ids], collapse = ", ")),
+      "This indicates that the column may not be suitable as an ID column.",
+      "ID columns must have unique values for every row.",
+      "Consider:",
+      "  - Using a different column that has unique values",
+      "  - Creating a composite key from multiple columns",
+      "  - Generating a new serial ID column if no suitable unique column exists",
+      "  - Investigating why duplicates exist in your data",
+      sep = "\n"
+    )
+    
     return(list(
       valid = FALSE,
       fatal = FALSE,
-      message = paste("ID columns contain duplicates:", 
-                     paste(my_id_columns[dupes_in_ids], collapse = ", "))
+      message = message
     ))
   }
   
@@ -74,7 +97,9 @@ validate_entity_has_id_column <- function(entity) {
     message <- paste(
       "This entity appears to have no ID column.",
       "It must have a column with a unique value in each row.",
-      "You can create a simple numeric ID as follows:",
+      "You can create a simple numeric ID using the convenience function:",
+      paste0("    ", global_varname, " <- ", global_varname, " %>% create_serial_id_column('ID')"),
+      "Or manually create one as follows:",
       paste0("    ", global_varname, " <- ", global_varname, " %>%"),
       paste0("        modify_data(mutate(ID = row_number())) %>%"),
       paste0("        sync_variable_metadata() %>%"),
@@ -104,15 +129,25 @@ validate_entity_one_id_per_level <- function(entity) {
     summarise(id_columns = paste0(variable, collapse = ", "), .groups = "drop")
   
   if (nrow(id_col_contraventions) > 0) {
+    # Get global variable name for fix-it suggestions
+    global_varname <- find_global_varname(entity, 'entity')
+    
+    message <- paste(
+      "There are multiple ID columns per entity level:",
+      paste(capture.output(kable(id_col_contraventions)), collapse = "\n"),
+      "",
+      "Entity level 0 is this entity. Level -1 is the parent entity, -2 is the grandparent, etc.",
+      "It is likely that one or more variable columns have been incorrectly detected as ID columns.",
+      "",
+      "To fix incorrect ID detection, re-detect the problematic columns as regular variables:",
+      paste0("    ", global_varname, " <- ", global_varname, " %>% redetect_columns_as_variables(c('column1', 'column2'))"),
+      sep = "\n"
+    )
+    
     return(list(
       valid = FALSE,
       fatal = FALSE,
-      message = paste0(
-        "There are multiple ID columns per entity level:\n",
-        paste(capture.output(kable(id_col_contraventions)), collapse = "\n"),
-        "\nEntity level 0 is this entity. Level -1 is the parent entity, -2 is the grandparent, etc.",
-        "\nIt is likely that one or more variable columns have been incorrectly detected as ID columns."
-      )
+      message = message
     ))
   }
   
@@ -140,13 +175,23 @@ validate_entity_id_entity_name_match <- function(entity) {
       nrow(my_id_variable) > 0) {
     
     if (my_id_variable %>% pull(entity_name) %>% coalesce("") != entity@name) {
+      # Get global variable name for fix-it suggestions
+      global_varname <- find_global_varname(entity, 'entity')
+      id_column_name <- my_id_variable %>% pull(variable)
+      
+      message <- paste(
+        paste0("ID column '", id_column_name, "' has incorrect `entity_name`."),
+        paste0("It is '", my_id_variable %>% pull(entity_name), "' and should be '", entity@name, "'"),
+        "To fix the entity_name in the ID column metadata, use:",
+        paste0("    ", global_varname, " <- ", global_varname, " %>% set_variable_metadata('", 
+               id_column_name, "', entity_name = '", entity@name, "')"),
+        sep = "\n"
+      )
+      
       return(list(
         valid = FALSE,
         fatal = FALSE,
-        message = paste0(
-          "ID column '", my_id_variable %>% pull(variable), "' has incorrect `entity_name`.\n",
-          "It is '", my_id_variable %>% pull(entity_name), "' and should be '", entity@name, "'"
-        )
+        message = message
       ))
     }
   }

@@ -228,7 +228,8 @@ validate_entity_ordinal_factors <- function(entity) {
     problem_columns <- factor_columns[not_factors]
     # Get global variable name for fix-it suggestions
     global_varname <- find_global_varname(entity, 'entity')
-    
+
+    # TO DO: probably recommend set_variable_ordinal_levels() instead    
     # Create individual fix commands for each column
     fix_commands <- sapply(problem_columns, function(col_name) {
       paste0("    ", global_varname, " <- ", global_varname, " %>% modify_data(mutate(", 

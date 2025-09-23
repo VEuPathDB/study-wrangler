@@ -366,7 +366,8 @@ test_that("validate() complains about units on non-numeric variables and provide
   households <- entity_from_file(file_path, name='household')
   
   # artificially add units to a non-numeric variable (Owns.property is a logical/factor)
-  households <- households %>% set_variable_metadata('Owns.property', unit = 'yes/no')
+  households <- households %>%
+    quiet() %>% set_variable_metadata('Owns.property', unit = 'yes/no') %>% verbose()
   
   expect_warning(
     expect_false(
@@ -381,7 +382,10 @@ test_that("validate() complains about multi-valued variables that are not charac
   households <- entity_from_file(file_path, name='household')
   
   # artificially set a numeric column as multi-valued
-  households <- households %>% set_variable_metadata('Number.of.animals', is_multi_valued = TRUE, multi_value_delimiter = ',')
+  households <- households %>%
+    quiet() %>%
+    set_variable_metadata('Number.of.animals', is_multi_valued = TRUE, multi_value_delimiter = ',') %>%
+    verbose()
   
   expect_warning(
     expect_false(
@@ -396,7 +400,9 @@ test_that("validate() complains about ordinal variables that are not factors and
   households <- entity_from_file(file_path, name='household')
   
   # artificially set a character column as ordinal (but not convert to factor)
-  households <- households %>% set_variable_metadata('Construction.material', data_shape = 'ordinal')
+  households <- households %>%
+    quiet() %>% set_variable_metadata('Construction.material', data_shape = 'ordinal') %>%
+    verbose()
   
   expect_warning(
     expect_false(
@@ -412,14 +418,51 @@ test_that("validate() complains about ordinal level inconsistencies and provides
   
   # Create an ordinal variable that has no levels defined
   households <- households %>% 
+    quiet() %>%
     set_variable_metadata('Construction.material', data_shape = 'ordinal', data_type = 'string') %>%
-    modify_data(mutate(Construction.material = as.factor(Construction.material)))
+    modify_data(mutate(Construction.material = as.factor(Construction.material))) %>%
+    verbose()
   
   expect_warning(
     expect_false(
       validate(households)
     ),
     "Ordinal variable.+Construction.material.+has no ordinal_levels defined.+set_variable_ordinal_levels.+start from scratch"
+  )
+})
+
+
+test_that("validate() provides remedial advice for missing parent variables", {
+  # Create entity with invalid parent_variable reference
+  file_path <- system.file("extdata", "toy_example/households.tsv", package = 'study.wrangler')
+  households <- entity_from_file(file_path, name="household")
+  
+  # Set an invalid parent_variable reference
+  households <- households %>% quiet() %>% set_variable_metadata('Household.Id', parent_variable = 'nonexistent_parent') %>% verbose()
+  
+  # Validate should provide remedial advice
+  expect_warning(
+    validate(households),
+    "parent_variable.+values that do not exist.+set_variable_metadata.+parent_variable = NA.+create_variable_category"
+  )
+})
+
+
+test_that("validate() provides remedial advice for circular variable relationships", {
+  # Create entity with circular parent_variable references  
+  file_path <- system.file("extdata", "toy_example/households.tsv", package = 'study.wrangler')
+  households <- entity_from_file(file_path, name="household")
+  
+  # Create circular reference: A -> B -> A
+  households <- households %>% quiet() %>%
+    set_variable_metadata('Household.Id', parent_variable = 'Number.of.animals') %>%
+    set_variable_metadata('Number.of.animals', parent_variable = 'Household.Id') %>%
+    verbose()
+  
+  # Validate should provide remedial advice
+  expect_warning(
+    validate(households),
+    "Illegal circular path detected.+set_variable_metadata.+parent_variable = NA"
   )
 })
 

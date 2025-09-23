@@ -11,6 +11,8 @@ setGeneric("redetect_columns_as_variables", function(entity, columns) standardGe
 #' @export
 setGeneric("redetect_column_as_id", function(entity, column) standardGeneric("redetect_column_as_id"))
 #' @export
+setGeneric("create_serial_id_column", function(entity, new_column_name) standardGeneric("create_serial_id_column"))
+#' @export
 setGeneric("set_entity_metadata", function(entity, ...) standardGeneric("set_entity_metadata"))
 #' @export
 setGeneric("set_entity_name", function(entity, name) standardGeneric("set_entity_name"))
@@ -238,6 +240,21 @@ setMethod("redetect_column_as_id", "Entity", function(entity, column) {
   if (length(column) > 1)
     stop("Error: you can only `redetect_column_as_id()` for one column.")
   return(redetect_columns(entity, columns = column, .allowed_data_types = c("id")))
+})
+
+#' create_serial_id_column
+#' 
+#' Creates a new serial ID column using row_number(), syncs metadata, and detects it as ID
+#' 
+#' @param entity an Entity object
+#' @param new_column_name name for the new ID column
+#' @returns modified entity with new serial ID column
+#' @export
+setMethod("create_serial_id_column", "Entity", function(entity, new_column_name) {
+  entity %>%
+    modify_data(mutate(!!new_column_name := row_number())) %>%
+    sync_variable_metadata() %>%
+    redetect_column_as_id(new_column_name)
 })
 
 
