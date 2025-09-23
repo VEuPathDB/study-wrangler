@@ -198,10 +198,11 @@ export_ancestors_to_vdi <- function(entities, output_directory, install_json, st
   
   # Map the list of entities to a list of field definitions
   field_defs <- map2(entities, seq_along(entities) - 1, function(entity, index_minus_one) {
+    e_abbrev <- study %>% get_entity_abbreviation(entity %>% get_entity_name())
     field_def <- ancestors_table_field_def
     
-    # Set the field name to {entity_abbreviation}_stable_id
-    field_def$name <- glue("{entity_abbreviation}_stable_id")
+    # Set the field name to {e_abbrev}_stable_id
+    field_def$name <- glue("{e_abbrev}_stable_id")
     
     # Set the cacheFileIndex to the entity's index (starting at zero)
     field_def$cacheFileIndex <- index_minus_one
