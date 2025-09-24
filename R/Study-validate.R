@@ -53,9 +53,20 @@ setMethod("validate", "Study", function(object, profiles = NULL) {
     }
   }
   
+  # Validate all entities in the study with the same profiles
+  for (entity in entities) {
+    # Use quiet validation to avoid duplicate output
+    entity_quiet <- entity %>% quiet()
+    is_valid <- validate(entity_quiet, profiles = profiles)
+
+    if (!is_valid) {
+      add_feedback(paste("Entity", get_entity_name(entity), "failed validation"))
+    }
+  }
+
   # TODO: Add remaining validation logic that hasn't been converted to validators yet
   # This includes study-specific validation checks that will be migrated in phases
-  
+
   give_feedback()
   return(invisible(get_is_valid()))  
 })

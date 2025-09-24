@@ -8,6 +8,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 - `devtools::test()` - Run all package tests (takes ~2 minutes)
 - `testthat::test_check("study.wrangler")` - Alternative test runner
 - Single test file: `devtools::load_all(); library(testthat); test_file('tests/testthat/test-FILENAME.R')`
+- `devtools::check()` - Full R CMD check (includes tests, documentation, and package structure validation)
 
 ### Package Development
 - `devtools::load_all()` - Load all package functions during development (required after code changes)
@@ -66,9 +67,10 @@ docker exec study-wrangler-dev R -e "setwd('/study.wrangler'); library(devtools)
 2. `export_to_vdi()` - Export studies to VDI format for database loading
 
 **Data Validation & QC**:
-- `validate()` methods for entities and studies
+- `validate()` methods for entities and studies with plugin-based validation profiles
 - `inspect()` methods for data quality assessment
 - Type inference and conversion utilities
+- Validation profiles: "baseline" (default), "eda" (extended validation for EDA platform)
 
 ### File Organization
 
@@ -77,9 +79,12 @@ docker exec study-wrangler-dev R -e "setwd('/study.wrangler'); library(devtools)
   - `Entity-*` files: Entity class methods and functionality
   - `Study-*` files: Study class methods and functionality
   - `entity_from_*` and `study_from_*`: Constructor functions
+  - `entity-validators-*` files: Validation functions organized by category
+  - `validators.R`: Plugin-based validation registry system
 - **tests/testthat/**: Test suite using testthat framework
 - **inst/extdata/toy_example/**: Example datasets for testing
 - **vignettes/**: Package tutorials and documentation
+- **STF_documentation/**: Documentation for Study Transfer Format
 
 ### Dependencies
 
@@ -89,7 +94,8 @@ docker exec study-wrangler-dev R -e "setwd('/study.wrangler'); library(devtools)
 - `glue` - String interpolation
 - `knitr` - Dynamic document generation
 - `digest` - Hashing utilities
-- Custom: `plot.data` (VEuPathDB package)
+- `yaml` - YAML parsing for STF format
+- Custom: `plot.data` (VEuPathDB package for data visualization)
 
 **Development Dependencies**:
 - `testthat` - Testing framework
