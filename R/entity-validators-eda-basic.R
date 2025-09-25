@@ -8,7 +8,7 @@ NULL
 #' Validator: Check display_name is not null for any variable
 #' @keywords internal
 validate_eda_variable_display_name_not_null <- function(entity) {
-  variables <- entity@variables
+  variables <- entity %>% get_variable_metadata()
 
   # Find variables with null/NA display_name
   null_display_name_vars <- variables %>%
@@ -19,7 +19,7 @@ validate_eda_variable_display_name_not_null <- function(entity) {
     return(list(
       valid = FALSE,
       fatal = TRUE,
-      message = paste0("EDA validation requires display_name for all variables. Missing display_name for: ",
+      message = paste0("EDA validation requires display_name for all variable columns. Missing display_name for: ",
                       paste(null_display_name_vars, collapse = ", "))
     ))
   }

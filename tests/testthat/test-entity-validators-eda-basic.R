@@ -4,10 +4,10 @@ test_that("eda_display_name_not_null validator passes when all variables have di
 
   households <- entity_from_file(file_path, name = 'household') %>%
     quiet() %>%
-    set_variable_metadata('HHID', display_name = 'Household ID') %>%
-    set_variable_metadata('VILLAGE_NAME', display_name = 'Village Name') %>%
-    set_variable_metadata('OWNERSHIP', display_name = 'Ownership') %>%
-    set_variable_metadata('ROOMS', display_name = 'Number of Rooms') %>%
+    set_variable_metadata('Number.of.animals', display_name = 'Number of animals') %>%
+    set_variable_metadata('Owns.property', display_name = 'Owns property') %>%
+    set_variable_metadata('Enrollment.date', display_name = 'Enrollment date') %>%
+    set_variable_metadata('Construction.material', display_name = 'Construction material') %>%
     verbose()
 
   # Should pass EDA validation
@@ -19,15 +19,15 @@ test_that("eda_display_name_not_null validator fails when some variables missing
 
   households <- entity_from_file(file_path, name = 'household') %>%
     quiet() %>%
-    set_variable_metadata('HHID', display_name = 'Household ID') %>%
-    set_variable_metadata('VILLAGE_NAME', display_name = 'Village Name') %>%
-    # Leave OWNERSHIP and ROOMS without display_name
+    set_variable_metadata('Number.of.animals', display_name = 'Number of animals') %>%
+    set_variable_metadata('Owns.property', display_name = 'Owns property') %>%
+    # Leave Enrollment.date and Construction.material without display_name
     verbose()
 
   # Should fail validation with specific error message
   expect_warning(
     is_valid <- validate(households, profiles = "eda"),
-    "Validation issues found.*EDA validation requires display_name for all variables. Missing display_name for: OWNERSHIP, ROOMS"
+    "Fatal issue encountered.*EDA validation requires display_name for all variable columns. Missing display_name for: Enrollment.date, Construction.material"
   )
   expect_false(is_valid)
 })
@@ -40,7 +40,7 @@ test_that("eda_display_name_not_null validator fails when all variables missing 
   # Should fail validation listing all variables
   expect_warning(
     is_valid <- validate(households, profiles = "eda"),
-    "Validation issues found.*EDA validation requires display_name for all variables. Missing display_name for: HHID, VILLAGE_NAME, OWNERSHIP, ROOMS"
+    "Fatal issue encountered.*EDA validation requires display_name for all variable columns. Missing display_name for: Number.of.animals, Owns.property, Enrollment.date, Construction.material"
   )
   expect_false(is_valid)
 })
@@ -50,10 +50,10 @@ test_that("eda_display_name_not_null validator passes when display_name set via 
 
   households <- entity_from_file(file_path, name = 'household') %>%
     quiet() %>%
-    set_variable_metadata('HHID', provider_label = list(c("Household ID"))) %>%
-    set_variable_metadata('VILLAGE_NAME', provider_label = list(c("Village Name"))) %>%
-    set_variable_metadata('OWNERSHIP', provider_label = list(c("Ownership Status"))) %>%
-    set_variable_metadata('ROOMS', provider_label = list(c("Number of Rooms"))) %>%
+    set_variable_metadata('Number.of.animals', provider_label = list(c("Number of animals"))) %>%
+    set_variable_metadata('Owns.property', provider_label = list(c("Owns property"))) %>%
+    set_variable_metadata('Enrollment.date', provider_label = list(c("Enrollment date"))) %>%
+    set_variable_metadata('Construction.material', provider_label = list(c("Construction material"))) %>%
     set_variable_display_names_from_provider_labels() %>%
     verbose()
 
