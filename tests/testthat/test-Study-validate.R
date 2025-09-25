@@ -11,6 +11,24 @@ test_that("validate(study) does the right thing", {
   
 })
 
+test_that("validate(study) fails with an invalid entity", {
+  
+  expect_silent(study <- make_study(name='my study'))
+  
+  study@root_entity <- study@root_entity %>% redetect_columns_as_variables('Household.Id')
+  
+  expect_warning(
+    expect_warning(
+      expect_false(
+        validate(study)
+      ),
+      "The entity named 'household' is not valid.+Please run.+validate"
+    ),
+    "Error: one or more entities is invalid"
+  )
+  
+})
+
 test_that("validate(study) fails for things", {
   
   expect_silent(study <- make_study())
