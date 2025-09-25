@@ -187,9 +187,6 @@ list_validators <- function() {
   register_validator("study_has_name", validate_study_has_name,
                     "study", "baseline", "Check study has a name")
   
-  register_validator("study_entities_valid", validate_study_entities_valid,
-                    "study", "baseline", "Check all entities in study are valid")
-  
   register_validator("study_entity_relationships", validate_study_entity_relationships,
                     "study", "baseline", "Check parent-child entity relationships")
 }
@@ -200,5 +197,8 @@ list_validators <- function() {
   # EDA geocoordinate validators
   register_validator("geocoordinate_variables", validate_geocoordinate_variables,
                     "entity", "eda", "Validate geocoordinate variables have correct metadata")
-}
 
+  # EDA display_name validators
+   register_validator("eda_variable_display_name_not_null", validate_eda_variable_display_name_not_null,
+                     "entity", "eda", "Validate display_name is not null for any variable")
+}

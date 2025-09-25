@@ -2,7 +2,8 @@ test_that("geocoordinate validator passes when no geocoordinate variables presen
   file_path <- system.file("extdata", "toy_example/households.tsv", package = 'study.wrangler')
   
   # Use original households data (no lat/lng columns)
-  households <- entity_from_file(file_path, name = 'household')
+  households <- entity_from_file(file_path, name = 'household') %>%
+    quiet() %>% set_variable_display_names_from_provider_labels() %>% verbose()
   
   # Should pass validation (no geocoordinate variables)
   expect_true(households %>% quiet() %>% validate(profiles = "eda"))
@@ -16,7 +17,8 @@ test_that("geocoordinate validator gives advisory message for single orphan lati
     return(data %>% mutate(latitude = c("40.7", "41.0", "42.0")))
   }
   
-  households <- entity_from_file(file_path, name = 'household', preprocess_fn = add_latitude_only)
+  households <- entity_from_file(file_path, name = 'household', preprocess_fn = add_latitude_only) %>%
+    quiet() %>% set_variable_display_names_from_provider_labels() %>% verbose()
   
   # Should pass but give advisory message
   expect_message(
@@ -37,7 +39,8 @@ test_that("geocoordinate validator gives advisory message for single orphan long
     return(data %>% mutate(longitude = c("-74.0", "-73.0", "-72.0")))
   }
   
-  households <- entity_from_file(file_path, name = 'household', preprocess_fn = add_longitude_only)
+  households <- entity_from_file(file_path, name = 'household', preprocess_fn = add_longitude_only) %>%
+    quiet() %>% set_variable_display_names_from_provider_labels() %>% verbose()
   
   # Should pass but give advisory message
   expect_message(
@@ -65,6 +68,7 @@ test_that("geocoordinate validator detects variables by provider_label", {
     quiet() %>%
     set_variable_metadata('coord_x', provider_label = list(c("longitude"))) %>%
     set_variable_metadata('coord_y', provider_label = list(c("latitude"))) %>%
+    set_variable_display_names_from_provider_labels() %>%
     verbose()
   
   # Should give validation warning since metadata is not yet set correctly
@@ -86,7 +90,8 @@ test_that("geocoordinate validator fails when more than 2 geocoordinate variable
     ))
   }
   
-  households <- entity_from_file(file_path, name = 'household', preprocess_fn = add_too_many_geo)
+  households <- entity_from_file(file_path, name = 'household', preprocess_fn = add_too_many_geo) %>%
+    quiet() %>% set_variable_display_names_from_provider_labels() %>% verbose()
   
   # Should fail validation
   expect_warning(
@@ -107,7 +112,8 @@ test_that("geocoordinate validator fails when 2 variables but not one lat and on
     ))
   }
   
-  households <- entity_from_file(file_path, name = 'household', preprocess_fn = add_two_lats)
+  households <- entity_from_file(file_path, name = 'household', preprocess_fn = add_two_lats) %>%
+    quiet() %>% set_variable_display_names_from_provider_labels() %>% verbose()
   
   # Should fail validation
   expect_warning(
@@ -132,6 +138,7 @@ test_that("geocoordinate validator fails when latitude variable has wrong stable
     quiet() %>%
     set_variable_metadata('latitude', stable_id = 'WRONG_ID', data_type = 'number') %>%
     set_variable_metadata('longitude', stable_id = 'OBI_0001621', data_type = 'longitude') %>%
+    set_variable_display_names_from_provider_labels() %>%
     verbose()
   
   # Should fail validation
@@ -157,6 +164,7 @@ test_that("geocoordinate validator fails when latitude variable has wrong data_t
     quiet() %>%
     set_variable_metadata('latitude', stable_id = 'OBI_0001620', data_type = 'string') %>%
     set_variable_metadata('longitude', stable_id = 'OBI_0001621', data_type = 'longitude') %>%
+    set_variable_display_names_from_provider_labels() %>%
     verbose()
   
   # Should fail validation
@@ -182,6 +190,7 @@ test_that("geocoordinate validator fails when longitude variable has wrong stabl
     quiet() %>%
     set_variable_metadata('latitude', stable_id = 'OBI_0001620', data_type = 'number') %>%
     set_variable_metadata('longitude', stable_id = 'WRONG_ID', data_type = 'longitude') %>%
+    set_variable_display_names_from_provider_labels() %>%
     verbose()
   
   # Should fail validation
@@ -207,6 +216,7 @@ test_that("geocoordinate validator fails when longitude variable has wrong data_
     quiet() %>%
     set_variable_metadata('latitude', stable_id = 'OBI_0001620', data_type = 'number') %>%
     set_variable_metadata('longitude', stable_id = 'OBI_0001621', data_type = 'number') %>%
+    set_variable_display_names_from_provider_labels() %>%
     verbose()
   
   # Should fail validation
@@ -232,6 +242,7 @@ test_that("geocoordinate validator passes when both variables have correct metad
     quiet() %>%
     set_variable_metadata('latitude', stable_id = 'OBI_0001620', data_type = 'number') %>%
     set_variable_metadata('longitude', stable_id = 'OBI_0001621', data_type = 'longitude') %>%
+    set_variable_display_names_from_provider_labels() %>%
     verbose()
   
   # Should pass validation, include baseline checks too
@@ -253,6 +264,7 @@ test_that("geocoordinate validator detects partial matches in variable names", {
     quiet() %>%
     set_variable_metadata('original_lat', stable_id = 'OBI_0001620', data_type = 'number') %>%
     set_variable_metadata('original_long', stable_id = 'OBI_0001621', data_type = 'longitude') %>%
+    set_variable_display_names_from_provider_labels() %>%
     verbose()
   
   # Should pass validation (partial matches should work)
@@ -269,7 +281,8 @@ test_that("geocoordinate validator ignores false positives", {
     ))
   }
   
-  households <- entity_from_file(file_path, name = 'household', preprocess_fn = add_false_positive)
+  households <- entity_from_file(file_path, name = 'household', preprocess_fn = add_false_positive) %>%
+    quiet() %>% set_variable_display_names_from_provider_labels() %>% verbose()
   
   # Should give advisory message about the orphan
   expect_message(
@@ -297,6 +310,7 @@ test_that("geocoordinate validator combines multiple validation errors", {
     quiet() %>%
     set_variable_metadata('latitude', stable_id = 'WRONG_LAT_ID', data_type = 'string') %>%
     set_variable_metadata('longitude', stable_id = 'WRONG_LNG_ID', data_type = 'number') %>%
+    set_variable_display_names_from_provider_labels() %>%
     verbose()
   
   # Should fail with multiple error messages

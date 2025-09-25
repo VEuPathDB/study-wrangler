@@ -30,6 +30,26 @@ setMethod("validate", "Study", function(object, profiles = NULL) {
   give_feedback <- tools$give_feedback
   get_is_valid <- tools$get_is_valid
 
+  # Validate all entities  
+  entities %>% map(
+    function(entity) {
+      is_valid <- entity %>% quiet() %>% validate(profiles = profiles)
+      if (!is_valid) {
+        entity_name <- get_entity_name(entity)
+        add_feedback(
+          glue(
+            "The entity named '{entity_name}' is not valid.\nPlease run `{global_varname} %>% get_entity('{entity_name}') %>% verbose() %>% validate()` for more details."
+          )
+        )
+      }
+    }
+  )
+  # early termination if any of the entities are invalid
+  if (!get_is_valid()) {
+    give_feedback(fatal_message = "Error: one or more entities is invalid.")
+    return(invisible(FALSE))
+  }
+  
   # Run all study validators for this profile
   for (validator_meta in validators) {
     result <- validator_meta$func(study)
@@ -52,9 +72,6 @@ setMethod("validate", "Study", function(object, profiles = NULL) {
       add_feedback(result$message)
     }
   }
-  
-  # TODO: Add remaining validation logic that hasn't been converted to validators yet
-  # This includes study-specific validation checks that will be migrated in phases
   
   give_feedback()
   return(invisible(get_is_valid()))  

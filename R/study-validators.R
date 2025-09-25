@@ -18,34 +18,6 @@ validate_study_has_name <- function(study) {
   list(valid = TRUE)
 }
 
-#' Validator: Check all entities in study are valid
-#' @keywords internal
-validate_study_entities_valid <- function(study) {
-  entities <- get_entities(study)
-  
-  invalid_entities <- c()
-  
-  for (entity in entities) {
-    # Use the validation system to validate each entity
-    # We use quiet validation to avoid duplicate output
-    entity_quiet <- entity %>% quiet()
-    is_valid <- validate(entity_quiet, profile = get_validation_profiles())
-    
-    if (!is_valid) {
-      invalid_entities <- c(invalid_entities, get_entity_name(entity))
-    }
-  }
-  
-  if (length(invalid_entities) > 0) {
-    return(list(
-      valid = FALSE,
-      fatal = TRUE,
-      message = paste("Invalid entities found:", paste(invalid_entities, collapse = ", "))
-    ))
-  }
-  
-  list(valid = TRUE)
-}
 
 #' Validator: Check parent-child entity relationships
 #' @keywords internal
