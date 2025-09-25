@@ -27,7 +27,7 @@ test_that("eda_display_name_not_null validator fails when some variables missing
   # Should fail validation with specific error message
   expect_warning(
     is_valid <- validate(households, profiles = "eda"),
-    "Fatal issue encountered.*EDA validation requires display_name for all variable columns. Missing display_name for: Enrollment.date, Construction.material"
+    "Fatal issue encountered.*EDA validation requires display_name for all variable columns. Missing display_name for: Enrollment.date, Construction.material.*To set display_name for these variables, use:.*set_variable_metadata"
   )
   expect_false(is_valid)
 })
@@ -40,7 +40,7 @@ test_that("eda_display_name_not_null validator fails when all variables missing 
   # Should fail validation listing all variables
   expect_warning(
     is_valid <- validate(households, profiles = "eda"),
-    "Fatal issue encountered.*EDA validation requires display_name for all variable columns. Missing display_name for: Number.of.animals, Owns.property, Enrollment.date, Construction.material"
+    "Fatal issue encountered.*EDA validation requires display_name for all variable columns. Missing display_name for: Number.of.animals, Owns.property, Enrollment.date, Construction.material.*To set display_name for these variables, use:.*set_variable_metadata"
   )
   expect_false(is_valid)
 })
