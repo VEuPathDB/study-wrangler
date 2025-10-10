@@ -107,7 +107,7 @@ export_entity_to_vdi_recursively <- function(
     description = current_entity %>% get_description(),
     display_name = current_entity %>% get_display_name(),
     display_name_plural = current_entity %>% get_display_name_plural(),
-    has_attribute_collections = 0L, # Placeholder for now
+    has_attribute_collections = as.integer(nrow(current_entity@collections) > 0),
     is_many_to_one_with_parent = as.integer(is_many_to_one_with_ancestor(current_entity)),
     cardinality = current_entity %>% get_data() %>% nrow()
   )
