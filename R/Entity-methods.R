@@ -1138,45 +1138,42 @@ setMethod("get_hydrated_variable_and_category_metadata", "Entity", function(enti
       column_data = NULL
     )
 
-  # 2. Continuous variables - compute stats in bulk
+  # 2. Continuous variables - compute stats in bulk (vectorized with map)
   continuous_vars <- var_metadata %>%
     filter(has_values, data_shape == 'continuous') %>%
-    rowwise() %>%
     mutate(
       is_date = data_type == "date",
-      vocabulary = list(NA),
+      vocabulary = map(seq_len(n()), ~ NA),
       precision = case_when(
         data_type == 'integer' ~ 0L,
-        data_type == 'number' ~ column_data %>% max_decimals(),
+        data_type == 'number' ~ map_int(column_data, max_decimals),
         TRUE ~ NA_integer_
       ),
-      distinct_values_count = column_data %>% n_distinct(),
-      mean = column_data %>% safe_fn(mean) %>% as.character(),
-      bin_width_computed = column_data %>% safe_fn(findBinWidth) %>% as.character(),
-      summary_stats = list(safe_fivenum(column_data, is_date = is_date)),
-      range_min = as.character(summary_stats[[1]]),
-      lower_quartile = as.character(summary_stats[[2]]),
-      median = as.character(summary_stats[[3]]),
-      upper_quartile = as.character(summary_stats[[4]]),
-      range_max = as.character(summary_stats[[5]]),
+      distinct_values_count = map_int(column_data, n_distinct),
+      mean = map_chr(column_data, ~ safe_fn(.x, mean) %>% as.character()),
+      bin_width_computed = map_chr(column_data, ~ safe_fn(.x, findBinWidth) %>% as.character()),
+      summary_stats = map2(column_data, is_date, ~ safe_fivenum(.x, is_date = .y)),
+      range_min = map_chr(summary_stats, ~ as.character(.x[[1]])),
+      lower_quartile = map_chr(summary_stats, ~ as.character(.x[[2]])),
+      median = map_chr(summary_stats, ~ as.character(.x[[3]])),
+      upper_quartile = map_chr(summary_stats, ~ as.character(.x[[4]])),
+      range_max = map_chr(summary_stats, ~ as.character(.x[[5]])),
       is_date = NULL,
       column_data = NULL,
       summary_stats = NULL
-    ) %>%
-    ungroup()
+    )
 
-  # 3. Categorical variables - just vocabulary and distinct count
+  # 3. Categorical variables - just vocabulary and distinct count (vectorized with map)
   categorical_vars <- var_metadata %>%
     filter(has_values, data_shape != 'continuous') %>%
-    rowwise() %>%
     mutate(
-      vocabulary = list(column_data %>% as.factor() %>% levels()),
+      vocabulary = map(column_data, ~ as.factor(.x) %>% levels()),
       precision = case_when(
         data_type == 'integer' ~ 0L,
-        data_type == 'number' ~ column_data %>% max_decimals(),
+        data_type == 'number' ~ map_int(column_data, max_decimals),
         TRUE ~ NA_integer_
       ),
-      distinct_values_count = column_data %>% n_distinct(),
+      distinct_values_count = map_int(column_data, n_distinct),
       mean = NA_character_,
       bin_width_computed = NA_character_,
       range_min = NA_character_,
@@ -1185,8 +1182,7 @@ setMethod("get_hydrated_variable_and_category_metadata", "Entity", function(enti
       upper_quartile = NA_character_,
       range_max = NA_character_,
       column_data = NULL
-    ) %>%
-    ungroup()
+    )
 
   # Combine all back together
   metadata <- bind_rows(no_data_vars, continuous_vars, categorical_vars)
