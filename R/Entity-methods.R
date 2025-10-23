@@ -1120,52 +1120,76 @@ setMethod("get_hydrated_variable_and_category_metadata", "Entity", function(enti
   var_metadata <- var_metadata %>%
     mutate(column_data = column_data_list)
 
-  # Now compute statistics - still need rowwise for non-vectorized operations
-  metadata <- var_metadata %>%
+  # Split processing by variable type for performance
+  # 1. Variables with no data
+  no_data_vars <- var_metadata %>%
+    filter(!has_values) %>%
+    mutate(
+      vocabulary = list(NA),
+      precision = NA_integer_,
+      distinct_values_count = NA_integer_,
+      mean = NA_character_,
+      bin_width_computed = NA_character_,
+      range_min = NA_character_,
+      lower_quartile = NA_character_,
+      median = NA_character_,
+      upper_quartile = NA_character_,
+      range_max = NA_character_,
+      column_data = NULL
+    )
+
+  # 2. Continuous variables - compute stats in bulk
+  continuous_vars <- var_metadata %>%
+    filter(has_values, data_shape == 'continuous') %>%
     rowwise() %>%
     mutate(
-      vocabulary = if_else(
-        has_values & data_shape != 'continuous',
-        list(column_data %>% as.factor() %>% levels()),
-        NA
-      ),
+      is_date = data_type == "date",
+      vocabulary = list(NA),
       precision = case_when(
-        !has_values ~ NA,
         data_type == 'integer' ~ 0L,
         data_type == 'number' ~ column_data %>% max_decimals(),
-        TRUE ~ NA
+        TRUE ~ NA_integer_
       ),
-      # do this for all actual variables
-      distinct_values_count = if_else(
-        has_values,
-        column_data %>% n_distinct(),
-        NA
-      ),
-      mean = if_else(
-        has_values & data_shape == 'continuous',
-        column_data %>% safe_fn(mean) %>% as.character(),
-        NA_character_
-      ),
-      bin_width_computed = if_else(
-        has_values & data_shape == 'continuous',
-        column_data %>% safe_fn(findBinWidth) %>% as.character(),
-        NA_character_
-      ),
-      # Use fivenum() for continuous data to get summary statistics
-      summary_stats = if_else(
-        has_values & data_shape == 'continuous',
-        list(safe_fivenum(column_data, is_date = data_type == "date")),
-        list(rep(NA_real_, 5))
-      ),
-      range_min = if_else(has_values & data_shape == 'continuous', as.character(summary_stats[[1]]), NA_character_),
-      lower_quartile = if_else(has_values & data_shape == 'continuous', as.character(summary_stats[[2]]), NA_character_),
-      median = if_else(has_values & data_shape == 'continuous', as.character(summary_stats[[3]]), NA_character_),
-      upper_quartile = if_else(has_values & data_shape == 'continuous', as.character(summary_stats[[4]]), NA_character_),
-      range_max = if_else(has_values & data_shape == 'continuous', as.character(summary_stats[[5]]), NA_character_),
-      column_data = NULL, # don't need this any more
-      summary_stats = NULL  # nor this
+      distinct_values_count = column_data %>% n_distinct(),
+      mean = column_data %>% safe_fn(mean) %>% as.character(),
+      bin_width_computed = column_data %>% safe_fn(findBinWidth) %>% as.character(),
+      summary_stats = list(safe_fivenum(column_data, is_date = is_date)),
+      range_min = as.character(summary_stats[[1]]),
+      lower_quartile = as.character(summary_stats[[2]]),
+      median = as.character(summary_stats[[3]]),
+      upper_quartile = as.character(summary_stats[[4]]),
+      range_max = as.character(summary_stats[[5]]),
+      is_date = NULL,
+      column_data = NULL,
+      summary_stats = NULL
     ) %>%
     ungroup()
+
+  # 3. Categorical variables - just vocabulary and distinct count
+  categorical_vars <- var_metadata %>%
+    filter(has_values, data_shape != 'continuous') %>%
+    rowwise() %>%
+    mutate(
+      vocabulary = list(column_data %>% as.factor() %>% levels()),
+      precision = case_when(
+        data_type == 'integer' ~ 0L,
+        data_type == 'number' ~ column_data %>% max_decimals(),
+        TRUE ~ NA_integer_
+      ),
+      distinct_values_count = column_data %>% n_distinct(),
+      mean = NA_character_,
+      bin_width_computed = NA_character_,
+      range_min = NA_character_,
+      lower_quartile = NA_character_,
+      median = NA_character_,
+      upper_quartile = NA_character_,
+      range_max = NA_character_,
+      column_data = NULL
+    ) %>%
+    ungroup()
+
+  # Combine all back together
+  metadata <- bind_rows(no_data_vars, continuous_vars, categorical_vars)
   
   # append category metadata and add fallback stable_id if needed
   metadata <- metadata %>%
