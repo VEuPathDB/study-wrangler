@@ -107,12 +107,12 @@ function(
         data_type,
         is.na(data_type),
         infer_data_type(
-          if (data_type %in% c('category')) 
+          if (data_type %in% c('category'))
             NA
-          else if (is_multi_valued) 
-            expand_multivalued_data_column(data, variable, is_multi_valued, multi_value_delimiter, .type_convert = TRUE) %>% pull(variable)
+          else if (is_multi_valued)
+            expand_multivalued_data_column(data, variable, is_multi_valued, multi_value_delimiter, .type_convert = TRUE)[["variable"]]
           else
-            data %>% pull(variable),
+            data[[variable]],
           .allowed_data_types = .allowed_data_types,
           .disallowed_data_types = .disallowed_data_types
         )

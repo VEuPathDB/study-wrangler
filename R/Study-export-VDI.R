@@ -391,10 +391,11 @@ export_attributes_to_vdi <- function(entities, output_directory, install_json, s
   }
 
   # Combine all data types
-  attribute_values_data <- bind_rows(string_data, number_data, date_data) %>%
-    arrange(!!sym(id_col_vdi))
-  # TO DO: find out if the sort (arrange) is necessary/desirable.
-  
+  attribute_values_data <- bind_rows(string_data, number_data, date_data)
+  # NOTE: this was previously sorted on the ID column
+  #  %>% arrange(!!sym(id_col_vdi))
+  # It's a small performance win to remove it.
+
   # Output the data
   tablename <- glue("attributevalue_{study %>% get_study_abbreviation()}_{entity_abbreviation}")
   filename <- glue("{tablename}.cache")
