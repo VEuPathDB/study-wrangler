@@ -110,7 +110,7 @@ function(
           if (data_type %in% c('category'))
             NA
           else if (is_multi_valued)
-            expand_multivalued_data_column(data, variable, is_multi_valued, multi_value_delimiter, .type_convert = TRUE)[["variable"]]
+            expand_multivalued_data_column(data, variable, is_multi_valued, multi_value_delimiter, .type_convert = TRUE)[[variable]]
           else
             data[[variable]],
           .allowed_data_types = .allowed_data_types,
@@ -1075,28 +1075,14 @@ setMethod("get_hydrated_variable_and_category_metadata", "Entity", function(enti
     return(empty_variable_metadata)
   }
   
-  safe_fn <- function(x, fn) {
-    if (!is.factor(x) & !is.character(x)) {
-      fn(x, na.rm = TRUE)
-    } else {
-      NA
-    }
-  }
-  
   safe_fivenum <- function(x, is_date = FALSE) {
-    if (is.factor(x)) {
-      # Return NA if input is a factor
-      return(rep(NA_real_, 5))
-    } else if (is_date) {
+    if (is_date) {
       # Handle date input by converting to numeric and back to Date
-      stats <- as.Date(stats::fivenum(as.numeric(x)), origin = "1970-01-01")
+      stats <- as.Date(stats::fivenum(as.numeric(x), na.rm = TRUE), origin = "1970-01-01")
       return(stats)
-    } else if (is.numeric(x)) {
+    } else {
       # Standard numeric input
       return(stats::fivenum(x, na.rm = TRUE))
-    } else {
-      # Return NA for unsupported types
-      return(rep(NA_real_, 5))
     }
   }
   
@@ -1106,10 +1092,11 @@ setMethod("get_hydrated_variable_and_category_metadata", "Entity", function(enti
 
   # Extract column data for all variables at once
   column_data_list <- pmap(
-    list(var_metadata$variable, var_metadata$is_multi_valued, var_metadata$multi_value_delimiter, var_metadata$data_type),
-    function(var, is_mv, delim, dtype) {
+    list(var_metadata$variable, var_metadata$is_multi_valued, var_metadata$multi_value_delimiter),
+    function(var, is_mv, delim) {
       if (is_mv) {
-        expand_multivalued_data_column(data, var, is_mv, delim, dtype)[[var]]
+        expanded <- expand_multivalued_data_column(data, var, is_mv, delim, .type_convert = TRUE)
+        expanded[[var]]
       } else {
         data[[var]]
       }
@@ -1150,8 +1137,8 @@ setMethod("get_hydrated_variable_and_category_metadata", "Entity", function(enti
         TRUE ~ NA_integer_
       ),
       distinct_values_count = map_int(column_data, n_distinct),
-      mean = map_chr(column_data, ~ safe_fn(.x, mean) %>% as.character()),
-      bin_width_computed = map_chr(column_data, ~ safe_fn(.x, findBinWidth) %>% as.character()),
+      mean = map_chr(column_data, ~ as.character(mean(.x, na.rm = TRUE))),
+      bin_width_computed = map_chr(column_data, ~ as.character(findBinWidth(.x, na.rm = TRUE))),
       summary_stats = map2(column_data, is_date, ~ safe_fivenum(.x, is_date = .y)),
       range_min = map_chr(summary_stats, ~ as.character(.x[[1]])),
       lower_quartile = map_chr(summary_stats, ~ as.character(.x[[2]])),
