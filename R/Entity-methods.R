@@ -1101,18 +1101,29 @@ setMethod("get_hydrated_variable_and_category_metadata", "Entity", function(enti
   }
   
   # start with actual-variable metadata and fill in data-derived values
-  metadata <- entity %>%
-    get_variable_metadata() %>%
-    rowwise() %>% # because functions applied below aren't vectorized
+  # First, pre-extract all column data to avoid repeated access inside rowwise()
+  var_metadata <- entity %>% get_variable_metadata()
+
+  # Extract column data for all variables at once
+  column_data_list <- pmap(
+    list(var_metadata$variable, var_metadata$is_multi_valued, var_metadata$multi_value_delimiter, var_metadata$data_type),
+    function(var, is_mv, delim, dtype) {
+      if (is_mv) {
+        expand_multivalued_data_column(data, var, is_mv, delim, dtype)[[var]]
+      } else {
+        data[[var]]
+      }
+    }
+  )
+
+  # Add the pre-extracted column data to metadata
+  var_metadata <- var_metadata %>%
+    mutate(column_data = column_data_list)
+
+  # Now compute statistics - still need rowwise for non-vectorized operations
+  metadata <- var_metadata %>%
+    rowwise() %>%
     mutate(
-      # handle multi-valued data columns
-      column_data = expand_multivalued_data_column(
-        data,
-        variable,
-        is_multi_valued,
-        multi_value_delimiter,
-        data_type
-      ) %>% pull(variable) %>% list(),
       vocabulary = if_else(
         has_values & data_shape != 'continuous',
         list(column_data %>% as.factor() %>% levels()),
@@ -1153,7 +1164,7 @@ setMethod("get_hydrated_variable_and_category_metadata", "Entity", function(enti
       range_max = if_else(has_values & data_shape == 'continuous', as.character(summary_stats[[5]]), NA_character_),
       column_data = NULL, # don't need this any more
       summary_stats = NULL  # nor this
-    ) %>% 
+    ) %>%
     ungroup()
   
   # append category metadata and add fallback stable_id if needed
