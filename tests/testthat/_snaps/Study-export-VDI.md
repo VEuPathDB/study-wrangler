@@ -1400,7 +1400,8 @@
     Code
       for (f in cache_files) {
         cat("\n## ", basename(f), "\n")
-        cat(readLines(f), sep = "\n")
+        lines <- readLines(f)
+        cat(sort(lines), sep = "\n")
       }
     Output
       
@@ -1433,136 +1434,136 @@
       H003	H003-P3
       
       ##  attributegraph_sde41bbea90_househld.cache 
-      1		continuous	integer						default	2		1			0	0	0	0	0	3	3.33333333333333	3	ENT_6a7855ea	0	["Number of animals"]	4	3		VAR_1513b065		3.5			
-      		categorical	string						default	2		1			0	0	0	0	0				ENT_6a7855ea		["Owns property"]				VAR_94999355				["No","Yes"]	
-      week		continuous	date						default	3		1			0	0	0	0	0	2021-02-03	2021-02-15	2021-02-28	ENT_6a7855ea		["Enrollment date"]	2021-03-13	2021-01-09		VAR_ec493713		2021-03-06			
       		categorical	string						default	2		1			0	0	0	0	0				ENT_6a7855ea		["Construction material"]				VAR_3b2f7286				["Concrete","Timber"]	
+      		categorical	string						default	2		1			0	0	0	0	0				ENT_6a7855ea		["Owns property"]				VAR_94999355				["No","Yes"]	
+      1		continuous	integer						default	2		1			0	0	0	0	0	3	3.33333333333333	3	ENT_6a7855ea	0	["Number of animals"]	4	3		VAR_1513b065		3.5			
+      week		continuous	date						default	3		1			0	0	0	0	0	2021-02-03	2021-02-15	2021-02-28	ENT_6a7855ea		["Enrollment date"]	2021-03-13	2021-01-09		VAR_ec493713		2021-03-06			
       
       ##  attributegraph_sde41bbea90_observtn.cache 
-      month		continuous	date						default	11		1			0	0	0	0	0	2023-03-26	2023-06-11	2023-05-04	ENT_7c02c7e8		["Observation date"]	2023-11-30	2023-01-05		VAR_5c3c88eb		2023-09-03			
+      			category	integer-based anatomical measures	integer-based anatomical measures				default			0			0	0	0	0	0				ENT_7c02c7e8						VAR_60b0b28d					
+      1		continuous	integer						default	4		1			0	0	0	0	0	1	0.888888888888889	1	ENT_7c02c7e8	0	["Teeth brushed today"]	2	0		VAR_74213e92		1			
+      4.812		continuous	number						default	8		1			0	0	0	0	0	16.66	21.8671428571429	19.83	ENT_7c02c7e8	2	["MUAC (cm)"]	31.84	12.59		VAR_156a6e1b		27.745			
       7		continuous	integer						default	11		1			0	0	0	0	0	131.5	145.090909090909	140	VAR_60b0b28d	0	["Height (cm)"]	175	127		VAR_7d2a26d7		155			
       9		continuous	integer						default	11		1			0	0	0	0	0	36.5	51.5454545454545	45	VAR_60b0b28d	0	["Weight (kg)"]	91	32		VAR_0789e56a		62.5			
-      4.812		continuous	number						default	8		1			0	0	0	0	0	16.66	21.8671428571429	19.83	ENT_7c02c7e8	2	["MUAC (cm)"]	31.84	12.59		VAR_156a6e1b		27.745			
-      1		continuous	integer						default	4		1			0	0	0	0	0	1	0.888888888888889	1	ENT_7c02c7e8	0	["Teeth brushed today"]	2	0		VAR_74213e92		1			
-      			category	integer-based anatomical measures	integer-based anatomical measures				default			0			0	0	0	0	0				ENT_7c02c7e8						VAR_60b0b28d					
+      month		continuous	date						default	11		1			0	0	0	0	0	2023-03-26	2023-06-11	2023-05-04	ENT_7c02c7e8		["Observation date"]	2023-11-30	2023-01-05		VAR_5c3c88eb		2023-09-03			
       
       ##  attributegraph_sde41bbea90_partcpnt.cache 
-      		categorical	string						default	8		1			0	0	0	0	0				ENT_7a211045		["Name"]				VAR_709a2322				["Alice","Anna","Bob","Charlie","Diana","Eve","Helen","Michael"]	
-      		categorical	string						default	6		1			0	0	0	0	0				ENT_7a211045		["Nickname"]				VAR_ce2bd99c				["Bobby","Chuck","Di","Hells","Micky"]	
       		categorical	string						default	2		1			0	0	0	0	0				ENT_7a211045		["Sex"]				VAR_e301dd60				["Female","Male"]	
       		categorical	string						default	3		1			0	0	0	0	0				ENT_7a211045		["Family Role"]				VAR_c4dab5fd				["Child","Parent","Relative"]	
+      		categorical	string						default	6		1			0	0	0	0	0				ENT_7a211045		["Nickname"]				VAR_ce2bd99c				["Bobby","Chuck","Di","Hells","Micky"]	
+      		categorical	string						default	8		1			0	0	0	0	0				ENT_7a211045		["Name"]				VAR_709a2322				["Alice","Anna","Bob","Charlie","Diana","Eve","Helen","Michael"]	
       
       ##  attributevalue_sde41bbea90_househld.cache 
-      H001	VAR_94999355	Yes		
-      H001	VAR_3b2f7286	Concrete		
       H001	VAR_1513b065		4	
+      H001	VAR_3b2f7286	Concrete		
+      H001	VAR_94999355	Yes		
       H001	VAR_ec493713			2021-01-09
-      H002	VAR_94999355	No		
-      H002	VAR_3b2f7286	Timber		
       H002	VAR_1513b065		3	
+      H002	VAR_3b2f7286	Timber		
+      H002	VAR_94999355	No		
       H002	VAR_ec493713			2021-02-28
-      H003	VAR_94999355	Yes		
-      H003	VAR_3b2f7286	Concrete		
       H003	VAR_1513b065		3	
+      H003	VAR_3b2f7286	Concrete		
+      H003	VAR_94999355	Yes		
       H003	VAR_ec493713			2021-03-13
       
       ##  attributevalue_sde41bbea90_observtn.cache 
-      H001-P1-Obs1	VAR_7d2a26d7		145	
       H001-P1-Obs1	VAR_0789e56a		35	
       H001-P1-Obs1	VAR_156a6e1b		15.82	
-      H001-P1-Obs1	VAR_74213e92		1	
       H001-P1-Obs1	VAR_5c3c88eb			2023-09-29
-      H001-P2-Obs1	VAR_7d2a26d7		135	
+      H001-P1-Obs1	VAR_74213e92		1	
+      H001-P1-Obs1	VAR_7d2a26d7		145	
       H001-P2-Obs1	VAR_0789e56a		47	
       H001-P2-Obs1	VAR_156a6e1b			
-      H001-P2-Obs1	VAR_74213e92		1	
       H001-P2-Obs1	VAR_5c3c88eb			2023-05-04
-      H001-P2-Obs2	VAR_7d2a26d7		129	
+      H001-P2-Obs1	VAR_74213e92		1	
+      H001-P2-Obs1	VAR_7d2a26d7		135	
       H001-P2-Obs2	VAR_0789e56a		80	
       H001-P2-Obs2	VAR_156a6e1b		28.81	
-      H001-P2-Obs2	VAR_74213e92		0	
       H001-P2-Obs2	VAR_5c3c88eb			2023-11-30
-      H001-P3-Obs1	VAR_7d2a26d7		133	
+      H001-P2-Obs2	VAR_74213e92		0	
+      H001-P2-Obs2	VAR_7d2a26d7		129	
       H001-P3-Obs1	VAR_0789e56a		51	
       H001-P3-Obs1	VAR_156a6e1b			
-      H001-P3-Obs1	VAR_74213e92		1	
       H001-P3-Obs1	VAR_5c3c88eb			2023-04-21
-      H002-P1-Obs1	VAR_7d2a26d7		175	
+      H001-P3-Obs1	VAR_74213e92		1	
+      H001-P3-Obs1	VAR_7d2a26d7		133	
       H002-P1-Obs1	VAR_0789e56a		32	
       H002-P1-Obs1	VAR_156a6e1b		26.68	
-      H002-P1-Obs1	VAR_74213e92			
       H002-P1-Obs1	VAR_5c3c88eb			2023-08-08
-      H002-P1-Obs2	VAR_7d2a26d7		172	
+      H002-P1-Obs1	VAR_74213e92			
+      H002-P1-Obs1	VAR_7d2a26d7		175	
       H002-P1-Obs2	VAR_0789e56a		34	
       H002-P1-Obs2	VAR_156a6e1b		12.59	
-      H002-P1-Obs2	VAR_74213e92		1	
       H002-P1-Obs2	VAR_5c3c88eb			2023-10-18
-      H002-P2-Obs1	VAR_7d2a26d7		160	
+      H002-P1-Obs2	VAR_74213e92		1	
+      H002-P1-Obs2	VAR_7d2a26d7		172	
       H002-P2-Obs1	VAR_0789e56a		74	
       H002-P2-Obs1	VAR_156a6e1b		19.83	
-      H002-P2-Obs1	VAR_74213e92		2	
       H002-P2-Obs1	VAR_5c3c88eb			2023-02-28
-      H003-P1-Obs1	VAR_7d2a26d7		150	
+      H002-P2-Obs1	VAR_74213e92		2	
+      H002-P2-Obs1	VAR_7d2a26d7		160	
       H003-P1-Obs1	VAR_0789e56a		40	
       H003-P1-Obs1	VAR_156a6e1b		31.84	
-      H003-P1-Obs1	VAR_74213e92		1	
       H003-P1-Obs1	VAR_5c3c88eb			2023-05-02
-      H003-P2-Obs1	VAR_7d2a26d7		140	
+      H003-P1-Obs1	VAR_74213e92		1	
+      H003-P1-Obs1	VAR_7d2a26d7		150	
       H003-P2-Obs1	VAR_0789e56a		38	
       H003-P2-Obs1	VAR_156a6e1b		17.5	
-      H003-P2-Obs1	VAR_74213e92		0	
       H003-P2-Obs1	VAR_5c3c88eb			2023-01-30
-      H003-P3-Obs1	VAR_7d2a26d7		130	
+      H003-P2-Obs1	VAR_74213e92		0	
+      H003-P2-Obs1	VAR_7d2a26d7		140	
       H003-P3-Obs1	VAR_0789e56a		45	
       H003-P3-Obs1	VAR_156a6e1b			
-      H003-P3-Obs1	VAR_74213e92			
       H003-P3-Obs1	VAR_5c3c88eb			2023-01-05
-      H003-P3-Obs2	VAR_7d2a26d7		127	
+      H003-P3-Obs1	VAR_74213e92			
+      H003-P3-Obs1	VAR_7d2a26d7		130	
       H003-P3-Obs2	VAR_0789e56a		91	
       H003-P3-Obs2	VAR_156a6e1b			
-      H003-P3-Obs2	VAR_74213e92		1	
       H003-P3-Obs2	VAR_5c3c88eb			2023-08-07
+      H003-P3-Obs2	VAR_74213e92		1	
+      H003-P3-Obs2	VAR_7d2a26d7		127	
       
       ##  attributevalue_sde41bbea90_partcpnt.cache 
       H001-P1	VAR_709a2322	Alice		
+      H001-P1	VAR_c4dab5fd	Relative		
       H001-P1	VAR_ce2bd99c	Di		
       H001-P1	VAR_e301dd60	Female		
-      H001-P1	VAR_c4dab5fd	Relative		
       H001-P2	VAR_709a2322	Bob		
+      H001-P2	VAR_c4dab5fd	Child		
       H001-P2	VAR_ce2bd99c	Bobby		
       H001-P2	VAR_e301dd60	Male		
-      H001-P2	VAR_c4dab5fd	Child		
       H001-P3	VAR_709a2322	Diana		
+      H001-P3	VAR_c4dab5fd	Parent		
       H001-P3	VAR_ce2bd99c			
       H001-P3	VAR_e301dd60	Female		
-      H001-P3	VAR_c4dab5fd	Parent		
       H002-P1	VAR_709a2322	Charlie		
+      H002-P1	VAR_c4dab5fd	Child		
       H002-P1	VAR_ce2bd99c	Chuck		
       H002-P1	VAR_e301dd60	Male		
-      H002-P1	VAR_c4dab5fd	Child		
       H002-P2	VAR_709a2322	Anna		
+      H002-P2	VAR_c4dab5fd	Relative		
       H002-P2	VAR_ce2bd99c			
       H002-P2	VAR_e301dd60	Female		
-      H002-P2	VAR_c4dab5fd	Relative		
       H003-P1	VAR_709a2322	Helen		
+      H003-P1	VAR_c4dab5fd	Parent		
       H003-P1	VAR_ce2bd99c	Hells		
       H003-P1	VAR_e301dd60	Female		
-      H003-P1	VAR_c4dab5fd	Parent		
       H003-P2	VAR_709a2322	Eve		
+      H003-P2	VAR_c4dab5fd	Child		
       H003-P2	VAR_ce2bd99c			
       H003-P2	VAR_e301dd60	Female		
-      H003-P2	VAR_c4dab5fd	Child		
       H003-P3	VAR_709a2322	Michael		
+      H003-P3	VAR_c4dab5fd	Child		
       H003-P3	VAR_ce2bd99c	Micky		
       H003-P3	VAR_e301dd60	Male		
-      H003-P3	VAR_c4dab5fd	Child		
       
       ##  collection_sde41bbea90_observtn.cache 
       COL_60b0b28d	integer-based anatomical measures	2			32	175		integer	continuous		0	0	0		measurement	measurements
       
       ##  collectionattribute_sde41bbea90_observtn.cache 
-      COL_60b0b28d	VAR_7d2a26d7
       COL_60b0b28d	VAR_0789e56a
+      COL_60b0b28d	VAR_7d2a26d7
       
       ##  entitytypegraph.cache 
       ENT_6a7855ea	STUDY_de41bbea90		househld		household	households	0	0	3
