@@ -114,14 +114,17 @@ test_that("A study with collections exports to VDI", {
     cat(jsonlite::toJSON(install_json, pretty = TRUE, auto_unbox = TRUE))
   })
 
-  # Snapshot all cache files (raw TSV content)
+  # Snapshot all cache files (raw TSV content, sorted for order-independence)
+  # Lines are sorted lexicographically so the snapshot is insensitive to
+  # row ordering changes in the VDI export logic
   cache_files <- sort(list.files(output_dir, pattern = "\\.cache$", full.names = TRUE))
 
   expect_snapshot({
     cat("=== Cache files (raw TSV) ===\n")
     for (f in cache_files) {
       cat("\n## ", basename(f), "\n")
-      cat(readLines(f), sep = "\n")
+      lines <- readLines(f)
+      cat(sort(lines), sep = "\n")
     }
   })
 
