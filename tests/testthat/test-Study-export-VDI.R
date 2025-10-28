@@ -91,7 +91,40 @@ test_that("A study with collections exports to VDI", {
   # Verify install.json is non-empty
   install_json_path <- file.path(output_dir, "install.json")
   expect_true(file.size(install_json_path) > 0)
-  
+
+  # Snapshot testing for VDI export consistency
+  # ============================================
+  # Snapshot tests capture the exact output of the VDI export and store it in
+  # tests/testthat/_snaps/Study-export-VDI.md for regression testing.
+  #
+  # On first run, snapshots are created. On subsequent runs, the output is compared
+  # against the stored snapshot. If they differ, the test fails with a clear diff.
+  #
+  # To regenerate snapshots (e.g., after intentional format changes):
+  #   1. Delete tests/testthat/_snaps/Study-export-VDI.md
+  #   2. Run this test - it will create a new baseline
+  #   3. Review the new snapshot carefully before committing
+  #
+  # See: https://testthat.r-lib.org/articles/snapshotting.html
+
+  # Parse and snapshot install.json
+  install_json <- jsonlite::fromJSON(install_json_path)
+  expect_snapshot({
+    cat("=== install.json structure ===\n")
+    cat(jsonlite::toJSON(install_json, pretty = TRUE, auto_unbox = TRUE))
+  })
+
+  # Snapshot all cache files (raw TSV content)
+  cache_files <- sort(list.files(output_dir, pattern = "\\.cache$", full.names = TRUE))
+
+  expect_snapshot({
+    cat("=== Cache files (raw TSV) ===\n")
+    for (f in cache_files) {
+      cat("\n## ", basename(f), "\n")
+      cat(readLines(f), sep = "\n")
+    }
+  })
+
   # Clean up
   unlink(output_dir, recursive = TRUE)
 })
