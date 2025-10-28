@@ -10,6 +10,37 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 - Single test file: `devtools::load_all(); library(testthat); test_file('tests/testthat/test-FILENAME.R')`
 - `devtools::check()` - Full R CMD check (includes tests, documentation, and package structure validation)
 
+#### Snapshot Testing
+Some tests use `testthat`'s snapshot testing to capture and validate exact output (e.g., VDI export format).
+
+**Snapshot files location:** `tests/testthat/_snaps/`
+
+**When to regenerate snapshots:**
+- After intentional changes to export formats
+- When adding new snapshot tests
+- If snapshots become corrupted
+
+**How to regenerate snapshots:**
+```r
+# From RStudio or R console
+unlink("tests/testthat/_snaps/Test-Name.md")  # Delete specific snapshot
+devtools::test_file("tests/testthat/test-File.R")  # Run test to regenerate
+# Review the new snapshot carefully before committing!
+```
+
+**File permission issues (Docker):**
+When running tests via `docker exec` as Claude Code does, snapshot files may be created with root ownership, causing permission errors in RStudio. Fix with:
+```bash
+docker exec study-wrangler-dev chown -R rstudio:rstudio /study.wrangler/tests/testthat/_snaps
+```
+
+To avoid this, Claude Code should run tests with the rstudio user:
+```bash
+docker exec --user rstudio study-wrangler-dev R -e "..."
+```
+
+**Committing snapshots:** Always commit the `_snaps/` directory contents to git. These serve as the baseline for future test runs.
+
 ### Package Development
 - `devtools::load_all()` - Load all package functions during development (required after code changes)
 - `devtools::document()` - Generate documentation and update NAMESPACE file
