@@ -107,12 +107,12 @@ function(
         data_type,
         is.na(data_type),
         infer_data_type(
-          if (data_type %in% c('category')) 
+          if (data_type %in% c('category'))
             NA
-          else if (is_multi_valued) 
-            expand_multivalued_data_column(data, variable, is_multi_valued, multi_value_delimiter, .type_convert = TRUE) %>% pull(variable)
+          else if (is_multi_valued)
+            expand_multivalued_data_column(data, variable, is_multi_valued, multi_value_delimiter, .type_convert = TRUE)[[variable]]
           else
-            data %>% pull(variable),
+            data[[variable]],
           .allowed_data_types = .allowed_data_types,
           .disallowed_data_types = .disallowed_data_types
         )
@@ -1075,86 +1075,104 @@ setMethod("get_hydrated_variable_and_category_metadata", "Entity", function(enti
     return(empty_variable_metadata)
   }
   
-  safe_fn <- function(x, fn) {
-    if (!is.factor(x) & !is.character(x)) {
-      fn(x, na.rm = TRUE)
-    } else {
-      NA
-    }
-  }
-  
   safe_fivenum <- function(x, is_date = FALSE) {
-    if (is.factor(x)) {
-      # Return NA if input is a factor
-      return(rep(NA_real_, 5))
-    } else if (is_date) {
+    if (is_date) {
       # Handle date input by converting to numeric and back to Date
-      stats <- as.Date(stats::fivenum(as.numeric(x)), origin = "1970-01-01")
+      stats <- as.Date(stats::fivenum(as.numeric(x), na.rm = TRUE), origin = "1970-01-01")
       return(stats)
-    } else if (is.numeric(x)) {
+    } else {
       # Standard numeric input
       return(stats::fivenum(x, na.rm = TRUE))
-    } else {
-      # Return NA for unsupported types
-      return(rep(NA_real_, 5))
     }
   }
   
   # start with actual-variable metadata and fill in data-derived values
-  metadata <- entity %>%
-    get_variable_metadata() %>%
-    rowwise() %>% # because functions applied below aren't vectorized
+  # First, pre-extract all column data to avoid repeated access inside rowwise()
+  var_metadata <- entity %>% get_variable_metadata()
+
+  # Extract column data for all variables at once
+  column_data_list <- pmap(
+    list(var_metadata$variable, var_metadata$is_multi_valued, var_metadata$multi_value_delimiter),
+    function(var, is_mv, delim) {
+      if (is_mv) {
+        expanded <- expand_multivalued_data_column(data, var, is_mv, delim, .type_convert = TRUE)
+        expanded[[var]]
+      } else {
+        data[[var]]
+      }
+    }
+  )
+
+  # Add the pre-extracted column data to metadata
+  var_metadata <- var_metadata %>%
+    mutate(column_data = column_data_list)
+
+  # Split processing by variable type for performance
+  # 1. Variables with no data
+  no_data_vars <- var_metadata %>%
+    filter(!has_values) %>%
     mutate(
-      # handle multi-valued data columns
-      column_data = expand_multivalued_data_column(
-        data,
-        variable,
-        is_multi_valued,
-        multi_value_delimiter,
-        data_type
-      ) %>% pull(variable) %>% list(),
-      vocabulary = if_else(
-        has_values & data_shape != 'continuous',
-        list(column_data %>% as.factor() %>% levels()),
-        NA
-      ),
+      vocabulary = list(NA),
+      precision = NA_integer_,
+      distinct_values_count = NA_integer_,
+      mean = NA_character_,
+      bin_width_computed = NA_character_,
+      range_min = NA_character_,
+      lower_quartile = NA_character_,
+      median = NA_character_,
+      upper_quartile = NA_character_,
+      range_max = NA_character_,
+      column_data = NULL
+    )
+
+  # 2. Continuous variables - compute stats in bulk (vectorized with map)
+  continuous_vars <- var_metadata %>%
+    filter(has_values, data_shape == 'continuous') %>%
+    mutate(
+      is_date = data_type == "date",
+      vocabulary = map(seq_len(n()), ~ NA),
       precision = case_when(
-        !has_values ~ NA,
         data_type == 'integer' ~ 0L,
-        data_type == 'number' ~ column_data %>% max_decimals(),
-        TRUE ~ NA
+        data_type == 'number' ~ map_int(column_data, max_decimals),
+        TRUE ~ NA_integer_
       ),
-      # do this for all actual variables
-      distinct_values_count = if_else(
-        has_values,
-        column_data %>% n_distinct(),
-        NA
+      distinct_values_count = map_int(column_data, n_distinct),
+      mean = map_chr(column_data, ~ as.character(mean(.x, na.rm = TRUE))),
+      bin_width_computed = map_chr(column_data, ~ as.character(findBinWidth(.x, na.rm = TRUE))),
+      summary_stats = map2(column_data, is_date, ~ safe_fivenum(.x, is_date = .y)),
+      range_min = map_chr(summary_stats, ~ as.character(.x[[1]])),
+      lower_quartile = map_chr(summary_stats, ~ as.character(.x[[2]])),
+      median = map_chr(summary_stats, ~ as.character(.x[[3]])),
+      upper_quartile = map_chr(summary_stats, ~ as.character(.x[[4]])),
+      range_max = map_chr(summary_stats, ~ as.character(.x[[5]])),
+      is_date = NULL,
+      column_data = NULL,
+      summary_stats = NULL
+    )
+
+  # 3. Categorical variables - just vocabulary and distinct count (vectorized with map)
+  categorical_vars <- var_metadata %>%
+    filter(has_values, data_shape != 'continuous') %>%
+    mutate(
+      vocabulary = map(column_data, ~ as.factor(.x) %>% levels()),
+      precision = case_when(
+        data_type == 'integer' ~ 0L,
+        data_type == 'number' ~ map_int(column_data, max_decimals),
+        TRUE ~ NA_integer_
       ),
-      mean = if_else(
-        has_values & data_shape == 'continuous',
-        column_data %>% safe_fn(mean) %>% as.character(),
-        NA_character_
-      ),
-      bin_width_computed = if_else(
-        has_values & data_shape == 'continuous',
-        column_data %>% safe_fn(findBinWidth) %>% as.character(),
-        NA_character_
-      ),
-      # Use fivenum() for continuous data to get summary statistics
-      summary_stats = if_else(
-        has_values & data_shape == 'continuous',
-        list(safe_fivenum(column_data, is_date = data_type == "date")),
-        list(rep(NA_real_, 5))
-      ),
-      range_min = if_else(has_values & data_shape == 'continuous', as.character(summary_stats[[1]]), NA_character_),
-      lower_quartile = if_else(has_values & data_shape == 'continuous', as.character(summary_stats[[2]]), NA_character_),
-      median = if_else(has_values & data_shape == 'continuous', as.character(summary_stats[[3]]), NA_character_),
-      upper_quartile = if_else(has_values & data_shape == 'continuous', as.character(summary_stats[[4]]), NA_character_),
-      range_max = if_else(has_values & data_shape == 'continuous', as.character(summary_stats[[5]]), NA_character_),
-      column_data = NULL, # don't need this any more
-      summary_stats = NULL  # nor this
-    ) %>% 
-    ungroup()
+      distinct_values_count = map_int(column_data, n_distinct),
+      mean = NA_character_,
+      bin_width_computed = NA_character_,
+      range_min = NA_character_,
+      lower_quartile = NA_character_,
+      median = NA_character_,
+      upper_quartile = NA_character_,
+      range_max = NA_character_,
+      column_data = NULL
+    )
+
+  # Combine all back together
+  metadata <- bind_rows(no_data_vars, continuous_vars, categorical_vars)
   
   # append category metadata and add fallback stable_id if needed
   metadata <- metadata %>%
