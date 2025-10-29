@@ -1,7 +1,7 @@
 test_that("STF-Lite study without geo coordinates validates with EDA profile", {
   stf_lite_dir <- system.file("extdata", "stf-lite", package = 'study.wrangler')
   study <- study_from_stf(stf_lite_dir) %>%
-    set_study_name('STF-Lite EDA Test') %>%
+    quiet() %>% set_study_name('STF-Lite EDA Test') %>% verbose() %>%
     map_entities(~ .x %>% quiet() %>% set_variable_display_names_from_provider_labels())
 
   # Should validate with baseline and EDA profiles (no geo coordinates to worry about)
@@ -11,7 +11,7 @@ test_that("STF-Lite study without geo coordinates validates with EDA profile", {
 test_that("STF-Lite with geo coordinates fails EDA validation without infer_geo_variables", {
   stf_lite_geo_dir <- system.file("extdata", "stf-lite-geo", package = 'study.wrangler')
   study <- study_from_stf(stf_lite_geo_dir) %>%
-    set_study_name('STF-Lite Geo Test') %>%
+    quiet() %>% set_study_name('STF-Lite Geo Test') %>% verbose() %>%
     map_entities(~ .x %>% quiet() %>% set_variable_display_names_from_provider_labels())
 
   # Should fail EDA validation because geo metadata is not set correctly
@@ -28,7 +28,7 @@ test_that("STF-Lite with geo coordinates fails EDA validation without infer_geo_
 test_that("STF-Lite with geo coordinates passes EDA validation after infer_geo_variables", {
   stf_lite_geo_dir <- system.file("extdata", "stf-lite-geo", package = 'study.wrangler')
   study <- study_from_stf(stf_lite_geo_dir) %>%
-    set_study_name('STF-Lite Geo Test') %>%
+    quiet() %>% set_study_name('STF-Lite Geo Test') %>% verbose() %>%
     map_entities(~ {
       .x %>% quiet() %>%
         set_variable_display_names_from_provider_labels() %>%
@@ -49,7 +49,7 @@ test_that("infer_geo_variables sets correct metadata for latitude", {
   lat_metadata <- site %>% get_variable_metadata() %>% filter(variable == "latitude")
 
   expect_equal(as.character(lat_metadata$data_type), "number")
-  expect_equal(lat_metadata$stable_id, "OBI_0001620")
+  expect_equal(lat_metadata$stable_id, get_config()$export$eda$stable_ids$latitude)
 })
 
 test_that("infer_geo_variables sets correct metadata for longitude", {
@@ -62,7 +62,7 @@ test_that("infer_geo_variables sets correct metadata for longitude", {
   lng_metadata <- site %>% get_variable_metadata() %>% filter(variable == "longitude")
 
   expect_equal(as.character(lng_metadata$data_type), "longitude")
-  expect_equal(lng_metadata$stable_id, "OBI_0001621")
+  expect_equal(lng_metadata$stable_id, get_config()$export$eda$stable_ids$longitude)
 })
 
 test_that("infer_geo_variables detects multiple naming patterns", {
@@ -124,9 +124,9 @@ test_that("infer_geo_variables works on entities not from STF-Lite", {
   lng_metadata <- households %>% get_variable_metadata() %>% filter(variable == "longitude")
 
   expect_equal(as.character(lat_metadata$data_type), "number")
-  expect_equal(lat_metadata$stable_id, "OBI_0001620")
+  expect_equal(lat_metadata$stable_id, get_config()$export$eda$stable_ids$latitude)
   expect_equal(as.character(lng_metadata$data_type), "longitude")
-  expect_equal(lng_metadata$stable_id, "OBI_0001621")
+  expect_equal(lng_metadata$stable_id, get_config()$export$eda$stable_ids$longitude)
 
   # Should pass baseline and EDA validation
   expect_true(households %>% validate(profiles = c("baseline", "eda")))

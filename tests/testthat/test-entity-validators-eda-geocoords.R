@@ -70,11 +70,12 @@ test_that("geocoordinate validator detects variables by provider_label", {
     set_variable_metadata('coord_y', provider_label = list(c("latitude"))) %>%
     set_variable_display_names_from_provider_labels() %>%
     verbose()
-  
+
   # Should give validation warning since metadata is not yet set correctly
+  expected_lng_stable_id <- get_config()$export$eda$stable_ids$longitude
   expect_warning(
     validate(households, profiles = "eda"),
-    "Validation issues found.*Longitude variable 'coord_x' must have stable_id = 'OBI_0001621'"
+    glue::glue("Validation issues found.*Longitude variable 'coord_x' must have stable_id = '{expected_lng_stable_id}'")
   )
 })
 
@@ -134,24 +135,27 @@ test_that("geocoordinate validator fails when latitude variable has wrong stable
     ))
   }
   
+  expected_lat_stable_id <- get_config()$export$eda$stable_ids$latitude
+  expected_lng_stable_id <- get_config()$export$eda$stable_ids$longitude
+
   households <- entity_from_file(file_path, name = 'household', preprocess_fn = add_geo_coords) %>%
     quiet() %>%
     set_variable_metadata('latitude', stable_id = 'WRONG_ID', data_type = 'number') %>%
-    set_variable_metadata('longitude', stable_id = 'OBI_0001621', data_type = 'longitude') %>%
+    set_variable_metadata('longitude', stable_id = expected_lng_stable_id, data_type = 'longitude') %>%
     set_variable_display_names_from_provider_labels() %>%
     verbose()
-  
+
   # Should fail validation
   expect_warning(
     is_valid <- validate(households, profiles = "eda"),
-    "Validation issues found.*Latitude variable 'latitude' must have stable_id = 'OBI_0001620'"
+    glue::glue("Validation issues found.*Latitude variable 'latitude' must have stable_id = '{expected_lat_stable_id}'")
   )
   expect_false(is_valid)
 })
 
 test_that("geocoordinate validator fails when latitude variable has wrong data_type", {
   file_path <- system.file("extdata", "toy_example/households.tsv", package = 'study.wrangler')
-  
+
   # Add proper lat/lng columns (as character since preprocess_fn gets character data)
   add_geo_coords <- function(data) {
     return(data %>% mutate(
@@ -159,14 +163,17 @@ test_that("geocoordinate validator fails when latitude variable has wrong data_t
       longitude = c("-74.0", "-73.0", "-72.0")
     ))
   }
-  
+
+  expected_lat_stable_id <- get_config()$export$eda$stable_ids$latitude
+  expected_lng_stable_id <- get_config()$export$eda$stable_ids$longitude
+
   households <- entity_from_file(file_path, name = 'household', preprocess_fn = add_geo_coords) %>%
     quiet() %>%
-    set_variable_metadata('latitude', stable_id = 'OBI_0001620', data_type = 'string') %>%
-    set_variable_metadata('longitude', stable_id = 'OBI_0001621', data_type = 'longitude') %>%
+    set_variable_metadata('latitude', stable_id = expected_lat_stable_id, data_type = 'string') %>%
+    set_variable_metadata('longitude', stable_id = expected_lng_stable_id, data_type = 'longitude') %>%
     set_variable_display_names_from_provider_labels() %>%
     verbose()
-  
+
   # Should fail validation
   expect_warning(
     is_valid <- validate(households, profiles = "eda"),
@@ -177,7 +184,7 @@ test_that("geocoordinate validator fails when latitude variable has wrong data_t
 
 test_that("geocoordinate validator fails when longitude variable has wrong stable_id", {
   file_path <- system.file("extdata", "toy_example/households.tsv", package = 'study.wrangler')
-  
+
   # Add proper lat/lng columns (as character since preprocess_fn gets character data)
   add_geo_coords <- function(data) {
     return(data %>% mutate(
@@ -185,25 +192,28 @@ test_that("geocoordinate validator fails when longitude variable has wrong stabl
       longitude = c("-74.0", "-73.0", "-72.0")
     ))
   }
-  
+
+  expected_lat_stable_id <- get_config()$export$eda$stable_ids$latitude
+  expected_lng_stable_id <- get_config()$export$eda$stable_ids$longitude
+
   households <- entity_from_file(file_path, name = 'household', preprocess_fn = add_geo_coords) %>%
     quiet() %>%
-    set_variable_metadata('latitude', stable_id = 'OBI_0001620', data_type = 'number') %>%
+    set_variable_metadata('latitude', stable_id = expected_lat_stable_id, data_type = 'number') %>%
     set_variable_metadata('longitude', stable_id = 'WRONG_ID', data_type = 'longitude') %>%
     set_variable_display_names_from_provider_labels() %>%
     verbose()
-  
+
   # Should fail validation
   expect_warning(
     is_valid <- validate(households, profiles = "eda"),
-    "Validation issues found.*Longitude variable 'longitude' must have stable_id = 'OBI_0001621'"
+    glue::glue("Validation issues found.*Longitude variable 'longitude' must have stable_id = '{expected_lng_stable_id}'")
   )
   expect_false(is_valid)
 })
 
 test_that("geocoordinate validator fails when longitude variable has wrong data_type", {
   file_path <- system.file("extdata", "toy_example/households.tsv", package = 'study.wrangler')
-  
+
   # Add proper lat/lng columns (as character since preprocess_fn gets character data)
   add_geo_coords <- function(data) {
     return(data %>% mutate(
@@ -211,14 +221,17 @@ test_that("geocoordinate validator fails when longitude variable has wrong data_
       longitude = c("-74.0", "-73.0", "-72.0")
     ))
   }
-  
+
+  expected_lat_stable_id <- get_config()$export$eda$stable_ids$latitude
+  expected_lng_stable_id <- get_config()$export$eda$stable_ids$longitude
+
   households <- entity_from_file(file_path, name = 'household', preprocess_fn = add_geo_coords) %>%
     quiet() %>%
-    set_variable_metadata('latitude', stable_id = 'OBI_0001620', data_type = 'number') %>%
-    set_variable_metadata('longitude', stable_id = 'OBI_0001621', data_type = 'number') %>%
+    set_variable_metadata('latitude', stable_id = expected_lat_stable_id, data_type = 'number') %>%
+    set_variable_metadata('longitude', stable_id = expected_lng_stable_id, data_type = 'number') %>%
     set_variable_display_names_from_provider_labels() %>%
     verbose()
-  
+
   # Should fail validation
   expect_warning(
     is_valid <- validate(households, profiles = "eda"),
@@ -229,7 +242,7 @@ test_that("geocoordinate validator fails when longitude variable has wrong data_
 
 test_that("geocoordinate validator passes when both variables have correct metadata", {
   file_path <- system.file("extdata", "toy_example/households.tsv", package = 'study.wrangler')
-  
+
   # Add proper lat/lng columns (as character since preprocess_fn gets character data)
   add_geo_coords <- function(data) {
     return(data %>% mutate(
@@ -237,14 +250,17 @@ test_that("geocoordinate validator passes when both variables have correct metad
       longitude = c("-74.0", "-73.0", "-72.0")
     ))
   }
-  
+
+  expected_lat_stable_id <- get_config()$export$eda$stable_ids$latitude
+  expected_lng_stable_id <- get_config()$export$eda$stable_ids$longitude
+
   households <- entity_from_file(file_path, name = 'household', preprocess_fn = add_geo_coords) %>%
     quiet() %>%
-    set_variable_metadata('latitude', stable_id = 'OBI_0001620', data_type = 'number') %>%
-    set_variable_metadata('longitude', stable_id = 'OBI_0001621', data_type = 'longitude') %>%
+    set_variable_metadata('latitude', stable_id = expected_lat_stable_id, data_type = 'number') %>%
+    set_variable_metadata('longitude', stable_id = expected_lng_stable_id, data_type = 'longitude') %>%
     set_variable_display_names_from_provider_labels() %>%
     verbose()
-  
+
   # Should pass validation, include baseline checks too
   expect_true(households %>% quiet() %>% validate(profiles = c("baseline", "eda")))
 })
@@ -260,10 +276,13 @@ test_that("geocoordinate validator detects partial matches in variable names", {
     ))
   }
   
+  expected_lat_stable_id <- get_config()$export$eda$stable_ids$latitude
+  expected_lng_stable_id <- get_config()$export$eda$stable_ids$longitude
+  
   households <- entity_from_file(file_path, name = 'household', preprocess_fn = add_partial_names) %>%
     quiet() %>%
-    set_variable_metadata('original_lat', stable_id = 'OBI_0001620', data_type = 'number') %>%
-    set_variable_metadata('original_long', stable_id = 'OBI_0001621', data_type = 'longitude') %>%
+    set_variable_metadata('original_lat', stable_id = expected_lat_stable_id, data_type = 'number') %>%
+    set_variable_metadata('original_long', stable_id = expected_lng_stable_id, data_type = 'longitude') %>%
     set_variable_display_names_from_provider_labels() %>%
     verbose()
   
@@ -313,10 +332,13 @@ test_that("geocoordinate validator combines multiple validation errors", {
     set_variable_display_names_from_provider_labels() %>%
     verbose()
   
+  expected_lat_stable_id <- get_config()$export$eda$stable_ids$latitude
+  expected_lng_stable_id <- get_config()$export$eda$stable_ids$longitude
+  
   # Should fail with multiple error messages
   expect_warning(
     is_valid <- validate(households, profiles = "eda"),
-    "Validation issues found.*Latitude variable 'latitude' must have stable_id = 'OBI_0001620'.*Latitude variable 'latitude' must have data_type = 'number'.*Longitude variable 'longitude' must have stable_id = 'OBI_0001621'.*Longitude variable 'longitude' must have data_type = 'longitude'"
+    glue("Validation issues found.*Latitude variable 'latitude' must have stable_id = '{expected_lat_stable_id}'.*Latitude variable 'latitude' must have data_type = 'number'.*Longitude variable 'longitude' must have stable_id = '{expected_lng_stable_id}'.*Longitude variable 'longitude' must have data_type = 'longitude'")
   )
   expect_false(is_valid)
 })
