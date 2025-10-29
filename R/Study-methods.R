@@ -247,7 +247,7 @@ setMethod("get_entity_abbreviation", "Study", function(study, entity_name) {
 #'   map_entities(~ {
 #'     .x %>% quiet() %>%
 #'       set_variable_display_names_from_provider_labels() %>%
-#'       infer_geo_variables()
+#'       infer_geo_variables_for_eda()
 #'   })
 setMethod("map_entities", "Study", function(study, fn) {
   # Get all entities from the study

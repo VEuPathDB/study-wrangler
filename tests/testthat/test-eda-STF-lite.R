@@ -8,7 +8,7 @@ test_that("STF-Lite study without geo coordinates validates with EDA profile", {
   expect_true(study %>% quiet() %>% validate(profiles = c("baseline", "eda")))
 })
 
-test_that("STF-Lite with geo coordinates fails EDA validation without infer_geo_variables", {
+test_that("STF-Lite with geo coordinates fails EDA validation without infer_geo_variables_for_eda", {
   stf_lite_geo_dir <- system.file("extdata", "stf-lite-geo", package = 'study.wrangler')
   study <- study_from_stf(stf_lite_geo_dir) %>%
     quiet() %>% set_study_name('STF-Lite Geo Test') %>% verbose() %>%
@@ -25,25 +25,25 @@ test_that("STF-Lite with geo coordinates fails EDA validation without infer_geo_
   expect_false(is_valid)
 })
 
-test_that("STF-Lite with geo coordinates passes EDA validation after infer_geo_variables", {
+test_that("STF-Lite with geo coordinates passes EDA validation after infer_geo_variables_for_eda", {
   stf_lite_geo_dir <- system.file("extdata", "stf-lite-geo", package = 'study.wrangler')
   study <- study_from_stf(stf_lite_geo_dir) %>%
     quiet() %>% set_study_name('STF-Lite Geo Test') %>% verbose() %>%
     map_entities(~ {
       .x %>% quiet() %>%
         set_variable_display_names_from_provider_labels() %>%
-        infer_geo_variables()
+        infer_geo_variables_for_eda()
     })
 
   # Should now pass baseline and EDA validation
   expect_true(study %>% quiet() %>% validate(profiles = c("baseline", "eda")))
 })
 
-test_that("infer_geo_variables sets correct metadata for latitude", {
+test_that("infer_geo_variables_for_eda sets correct metadata for latitude", {
   stf_lite_geo_dir <- system.file("extdata", "stf-lite-geo", package = 'study.wrangler')
   study <- study_from_stf(stf_lite_geo_dir)
 
-  site <- study %>% get_entity('site') %>% quiet() %>% infer_geo_variables()
+  site <- study %>% get_entity('site') %>% quiet() %>% infer_geo_variables_for_eda()
 
   # Check latitude metadata
   lat_metadata <- site %>% get_variable_metadata() %>% filter(variable == "latitude")
@@ -52,11 +52,11 @@ test_that("infer_geo_variables sets correct metadata for latitude", {
   expect_equal(lat_metadata$stable_id, get_config()$export$eda$stable_ids$latitude)
 })
 
-test_that("infer_geo_variables sets correct metadata for longitude", {
+test_that("infer_geo_variables_for_eda sets correct metadata for longitude", {
   stf_lite_geo_dir <- system.file("extdata", "stf-lite-geo", package = 'study.wrangler')
   study <- study_from_stf(stf_lite_geo_dir)
 
-  site <- study %>% get_entity('site') %>% quiet() %>% infer_geo_variables()
+  site <- study %>% get_entity('site') %>% quiet() %>% infer_geo_variables_for_eda()
 
   # Check longitude metadata
   lng_metadata <- site %>% get_variable_metadata() %>% filter(variable == "longitude")
@@ -65,14 +65,14 @@ test_that("infer_geo_variables sets correct metadata for longitude", {
   expect_equal(lng_metadata$stable_id, get_config()$export$eda$stable_ids$longitude)
 })
 
-test_that("infer_geo_variables detects multiple naming patterns", {
+test_that("infer_geo_variables_for_eda detects multiple naming patterns", {
   stf_lite_geo_dir <- system.file("extdata", "stf-lite-geo", package = 'study.wrangler')
   study <- study_from_stf(stf_lite_geo_dir)
 
   site <- study %>% get_entity('site')
 
   # The fixture uses "latitude" and "longitude" - should detect them
-  site_with_geo <- site %>% quiet() %>% infer_geo_variables()
+  site_with_geo <- site %>% quiet() %>% infer_geo_variables_for_eda()
 
   lat_metadata <- site_with_geo %>% get_variable_metadata() %>% filter(variable == "latitude")
   lng_metadata <- site_with_geo %>% get_variable_metadata() %>% filter(variable == "longitude")
@@ -83,14 +83,14 @@ test_that("infer_geo_variables detects multiple naming patterns", {
   expect_equal(as.character(lng_metadata$data_type), "longitude")
 })
 
-test_that("infer_geo_variables returns modified entity", {
+test_that("infer_geo_variables_for_eda returns modified entity", {
   stf_lite_geo_dir <- system.file("extdata", "stf-lite-geo", package = 'study.wrangler')
   study <- study_from_stf(stf_lite_geo_dir)
 
   site <- study %>% get_entity('site') %>% quiet()
 
   # Should return an entity object
-  site_with_geo <- site %>% infer_geo_variables()
+  site_with_geo <- site %>% infer_geo_variables_for_eda()
 
   expect_s4_class(site_with_geo, "Entity")
 
@@ -103,7 +103,7 @@ test_that("infer_geo_variables returns modified entity", {
   expect_true(nrow(lng_row) == 1)
 })
 
-test_that("infer_geo_variables works on entities not from STF-Lite", {
+test_that("infer_geo_variables_for_eda works on entities not from STF-Lite", {
   # Create an entity from scratch with lat/long columns
   file_path <- system.file("extdata", "toy_example/households.tsv", package = 'study.wrangler')
 
@@ -117,7 +117,7 @@ test_that("infer_geo_variables works on entities not from STF-Lite", {
   households <- entity_from_file(file_path, name = 'household', preprocess_fn = add_geo_coords) %>%
     quiet() %>%
     set_variable_display_names_from_provider_labels() %>%
-    infer_geo_variables()
+    infer_geo_variables_for_eda()
 
   # Check that metadata was set correctly
   lat_metadata <- households %>% get_variable_metadata() %>% filter(variable == "latitude")
