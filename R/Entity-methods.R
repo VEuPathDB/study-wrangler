@@ -1696,8 +1696,8 @@ function(entity) {
   lng_var <- lng_vars[1]
 
   entity <- entity %>%
-    set_variable_metadata(lat_var, stable_id = 'OBI_0001620', data_type = factor('number')) %>%
-    set_variable_metadata(lng_var, stable_id = 'OBI_0001621', data_type = factor('longitude'))
+    set_variable_metadata(lat_var, stable_id = get_config()$export$eda$stable_ids$latitude, data_type = factor('number')) %>%
+    set_variable_metadata(lng_var, stable_id = get_config()$export$eda$stable_ids$longitude, data_type = factor('longitude'))
 
   if (!entity@quiet) {
     message(glue("Set geographic metadata for latitude variable '{lat_var}' and longitude variable '{lng_var}'"))

@@ -1,16 +1,8 @@
 test_that("STF-Lite study without geo coordinates validates with EDA profile", {
   stf_lite_dir <- system.file("extdata", "stf-lite", package = 'study.wrangler')
-  study <- study_from_stf(stf_lite_dir)
-
-  # STF-Lite sets provider_label, so we can use it to populate display_name
-  site <- study %>% get_entity('site') %>% quiet() %>%
-    set_variable_display_names_from_provider_labels()
-
-  sample <- study %>% get_entity('sample') %>% quiet() %>%
-    set_variable_display_names_from_provider_labels()
-
-  # Recreate study with updated entities
-  study <- study_from_entities(list(site, sample), name = 'STF-Lite EDA Test')
+  study <- study_from_stf(stf_lite_dir) %>%
+    set_study_name('STF-Lite EDA Test') %>%
+    map_entities(~ .x %>% quiet() %>% set_variable_display_names_from_provider_labels())
 
   # Should validate with baseline and EDA profiles (no geo coordinates to worry about)
   expect_true(study %>% quiet() %>% validate(profiles = c("baseline", "eda")))
@@ -18,16 +10,9 @@ test_that("STF-Lite study without geo coordinates validates with EDA profile", {
 
 test_that("STF-Lite with geo coordinates fails EDA validation without infer_geo_variables", {
   stf_lite_geo_dir <- system.file("extdata", "stf-lite-geo", package = 'study.wrangler')
-  study <- study_from_stf(stf_lite_geo_dir)
-
-  # Set display names from provider_label
-  site <- study %>% get_entity('site') %>% quiet() %>%
-    set_variable_display_names_from_provider_labels()
-
-  sample <- study %>% get_entity('sample') %>% quiet() %>%
-    set_variable_display_names_from_provider_labels()
-
-  study <- study_from_entities(list(site, sample), name = 'STF-Lite Geo Test')
+  study <- study_from_stf(stf_lite_geo_dir) %>%
+    set_study_name('STF-Lite Geo Test') %>%
+    map_entities(~ .x %>% quiet() %>% set_variable_display_names_from_provider_labels())
 
   # Should fail EDA validation because geo metadata is not set correctly
   expect_warning(
@@ -42,18 +27,13 @@ test_that("STF-Lite with geo coordinates fails EDA validation without infer_geo_
 
 test_that("STF-Lite with geo coordinates passes EDA validation after infer_geo_variables", {
   stf_lite_geo_dir <- system.file("extdata", "stf-lite-geo", package = 'study.wrangler')
-  study <- study_from_stf(stf_lite_geo_dir)
-
-  # Set display names and apply infer_geo_variables
-  site <- study %>% get_entity('site') %>% quiet() %>%
-    set_variable_display_names_from_provider_labels() %>%
-    infer_geo_variables()
-
-  sample <- study %>% get_entity('sample') %>% quiet() %>%
-    set_variable_display_names_from_provider_labels()
-
-  # Recreate study with updated entities
-  study <- study_from_entities(list(site, sample), name = 'STF-Lite Geo Test')
+  study <- study_from_stf(stf_lite_geo_dir) %>%
+    set_study_name('STF-Lite Geo Test') %>%
+    map_entities(~ {
+      .x %>% quiet() %>%
+        set_variable_display_names_from_provider_labels() %>%
+        infer_geo_variables()
+    })
 
   # Should now pass baseline and EDA validation
   expect_true(study %>% quiet() %>% validate(profiles = c("baseline", "eda")))
