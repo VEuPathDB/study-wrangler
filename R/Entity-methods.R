@@ -1623,7 +1623,6 @@ setMethod("sync_ordinal_data", "Entity", function(entity) {
       "Converted character columns to factors for ordinal variables: {paste(suitable_ordinal_columns, collapse = ', ')}"
     ))
   }
-  
+
   return(entity)
 })
-

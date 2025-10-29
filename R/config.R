@@ -15,6 +15,14 @@ NULL
 .default_config <- list(
   validation = list(
     profiles = "baseline"
+  ),
+  export = list(
+    eda = list(
+      stable_ids = list(
+        latitude = 'OBI_0001620',
+        longitude = 'OBI_0001621'
+      )
+    )
   )
 )
 

@@ -1,17 +1,34 @@
 #' study_from_entities
-#' 
+#'
 #' @description
 #' Creates a study object from the provided entities and study metadata
 #'
 #' @param entities a `list` of Entity objects
+#' @param metadata_source Optional Study object to copy metadata from (all slots except root_entity)
 #' @param ... Additional named parameters to set study metadata (see Study class),
-#'   e.g. `name="my beautiful study"`   
+#'   e.g. `name="my beautiful study"`. These override metadata from `metadata_source` if provided.
 #' @return A Study object
 #'
 #' @export
-study_from_entities <- function(entities, ...) {
+study_from_entities <- function(entities, metadata_source = NULL, ...) {
+  # Start with metadata from the metadata_source parameter if provided
+  if (!is.null(metadata_source)) {
+    if (!inherits(metadata_source, "Study")) {
+      stop("The 'metadata_source' parameter must be a Study object")
+    }
+    # Extract all slots except root_entity
+    slot_names <- slotNames(metadata_source)
+    metadata_slot_names <- slot_names[slot_names != "root_entity"]
+    metadata <- map(metadata_slot_names, ~ slot(metadata_source, .x)) %>% set_names(metadata_slot_names)
+  } else {
+    metadata <- list()
+  }
+
+  # Merge with explicit ... args (which take precedence)
+  explicit_metadata <- list(...)
+  metadata <- list_modify(metadata, !!!explicit_metadata)
+
   # check extra args are valid slots
-  metadata = list(...)
   validate_object_metadata_names('Entity', metadata)
 
   # Validate input

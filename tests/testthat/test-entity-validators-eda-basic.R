@@ -11,7 +11,7 @@ test_that("eda_display_name_not_null validator passes when all variables have di
     verbose()
 
   # Should pass EDA validation
-  expect_true(households %>% quiet() %>% validate(profiles = "eda"))
+  expect_true(households %>% quiet() %>% validate(profiles = c("baseline", "eda")))
 })
 
 test_that("eda_display_name_not_null validator fails when some variables missing display_name", {
@@ -26,7 +26,7 @@ test_that("eda_display_name_not_null validator fails when some variables missing
 
   # Should fail validation with specific error message
   expect_warning(
-    is_valid <- validate(households, profiles = "eda"),
+    is_valid <- validate(households, profiles = c("baseline", "eda")),
     "Fatal issue encountered.*EDA validation requires display_name for all variable columns. Missing display_name for: Enrollment.date, Construction.material.*To set display_name for these variables, use:.*set_variable_metadata"
   )
   expect_false(is_valid)
@@ -39,7 +39,7 @@ test_that("eda_display_name_not_null validator fails when all variables missing 
 
   # Should fail validation listing all variables
   expect_warning(
-    is_valid <- validate(households, profiles = "eda"),
+    is_valid <- validate(households, profiles = c("baseline", "eda")),
     "Fatal issue encountered.*EDA validation requires display_name for all variable columns. Missing display_name for: Number.of.animals, Owns.property, Enrollment.date, Construction.material.*To set display_name for these variables, use:.*set_variable_metadata"
   )
   expect_false(is_valid)
@@ -58,5 +58,5 @@ test_that("eda_display_name_not_null validator passes when display_name set via 
     verbose()
 
   # Should pass EDA validation after copying provider_label to display_name
-  expect_true(households %>% quiet() %>% validate(profiles = "eda"))
+  expect_true(households %>% quiet() %>% validate(profiles = c("baseline", "eda")))
 })
