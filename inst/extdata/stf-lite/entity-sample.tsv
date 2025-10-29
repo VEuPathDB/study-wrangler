@@ -1,0 +1,6 @@
+site	sample \\ Descriptors	sample_type	collection_date	temperature_c
+SITE001	SITE001-S01	water	2023-06-15	22.5
+SITE001	SITE001-S02	soil	2023-06-16	24.0
+SITE002	SITE002-S01	water	2023-07-10	18.5
+SITE003	SITE003-S01	water	2023-08-05	26.5
+SITE003	SITE003-S02	soil	2023-08-05	28.0
