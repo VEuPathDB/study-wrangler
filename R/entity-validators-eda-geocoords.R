@@ -118,12 +118,23 @@ validate_geocoordinate_variables <- function(entity) {
   
   # Combine all issues
   all_issues <- c(lat_issues, lng_issues)
-  
+
   if (length(all_issues) > 0) {
+    # Get global variable name for fix-it suggestions
+    global_varname <- find_global_varname(entity, 'entity')
+
+    message <- paste(
+      paste(all_issues, collapse = "\n"),
+      "",
+      "To automatically set the correct metadata for geocoordinate variables, use:",
+      paste0("    ", global_varname, " <- ", global_varname, " %>% infer_geo_variables_for_eda()"),
+      sep = "\n"
+    )
+
     return(list(
       valid = FALSE,
       fatal = FALSE,
-      message = paste(all_issues, collapse = "\n")
+      message = message
     ))
   }
   
