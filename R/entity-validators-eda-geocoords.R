@@ -93,22 +93,24 @@ validate_geocoordinate_variables <- function(entity) {
   # Validate the latitude variable
   lat_var <- lat_vars[1]
   lat_metadata <- variables %>% filter(variable == lat_var)
-  
+
+  expected_lat_stable_id <- get_config()$export$eda$stable_ids$latitude
   lat_issues <- c()
-  if (is.na(lat_metadata$stable_id) || lat_metadata$stable_id != 'OBI_0001620') {
-    lat_issues <- c(lat_issues, paste0("Latitude variable '", lat_var, "' must have stable_id = 'OBI_0001620'"))
+  if (is.na(lat_metadata$stable_id) || lat_metadata$stable_id != expected_lat_stable_id) {
+    lat_issues <- c(lat_issues, paste0("Latitude variable '", lat_var, "' must have stable_id = '", expected_lat_stable_id, "'"))
   }
   if (is.na(lat_metadata$data_type) || lat_metadata$data_type != 'number') {
     lat_issues <- c(lat_issues, paste0("Latitude variable '", lat_var, "' must have data_type = 'number'"))
   }
-  
+
   # Validate the longitude variable
   lng_var <- lng_vars[1]
   lng_metadata <- variables %>% filter(variable == lng_var)
-  
+
+  expected_lng_stable_id <- get_config()$export$eda$stable_ids$longitude
   lng_issues <- c()
-  if (is.na(lng_metadata$stable_id) || lng_metadata$stable_id != 'OBI_0001621') {
-    lng_issues <- c(lng_issues, paste0("Longitude variable '", lng_var, "' must have stable_id = 'OBI_0001621'"))
+  if (is.na(lng_metadata$stable_id) || lng_metadata$stable_id != expected_lng_stable_id) {
+    lng_issues <- c(lng_issues, paste0("Longitude variable '", lng_var, "' must have stable_id = '", expected_lng_stable_id, "'"))
   }
   if (is.na(lng_metadata$data_type) || lng_metadata$data_type != 'longitude') {
     lng_issues <- c(lng_issues, paste0("Longitude variable '", lng_var, "' must have data_type = 'longitude'"))
@@ -116,12 +118,23 @@ validate_geocoordinate_variables <- function(entity) {
   
   # Combine all issues
   all_issues <- c(lat_issues, lng_issues)
-  
+
   if (length(all_issues) > 0) {
+    # Get global variable name for fix-it suggestions
+    global_varname <- find_global_varname(entity, 'entity')
+
+    message <- paste(
+      paste(all_issues, collapse = "\n"),
+      "",
+      "To automatically set the correct metadata for geocoordinate variables, use:",
+      paste0("    ", global_varname, " <- ", global_varname, " %>% infer_geo_variables_for_eda()"),
+      sep = "\n"
+    )
+
     return(list(
       valid = FALSE,
       fatal = FALSE,
-      message = paste(all_issues, collapse = "\n")
+      message = message
     ))
   }
   

@@ -141,10 +141,10 @@ entity_from_stf <- function(tsv_path, yaml_path = NULL) {
     
     # Process regular variables (everything after the Descriptors column)**
     variable_column_names <- headers[(descriptor_col_index + 1):length(headers)]
-    
+
     variables_metadata <- map(
       variable_column_names,
-      ~ list(variable = .x, entity_name = this_entity_name, entity_level = 0L)
+      ~ list(variable = .x, entity_name = this_entity_name, entity_level = 0L, provider_label = list(.x))
     ) %>%
       process_metadata_list(variable_metadata_defaults)
     

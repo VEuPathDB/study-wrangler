@@ -18,6 +18,8 @@ setGeneric("get_study_id", function(study) standardGeneric("get_study_id"))
 setGeneric("get_study_abbreviation", function(study) standardGeneric("get_study_abbreviation"))
 #' @export
 setGeneric("get_entity_abbreviation", function(study, entity_name) standardGeneric("get_entity_abbreviation"))
+#' @export
+setGeneric("map_entities", function(study, fn) standardGeneric("map_entities"))
 
 
 
@@ -223,5 +225,38 @@ setMethod("get_entity_abbreviation", "Study", function(study, entity_name) {
     set_names(entity_names)
 
   abbr[entity_name]
+})
+
+#' map_entities
+#'
+#' Applies a function to each entity in the study and returns a new study with the transformed entities.
+#' All study metadata (name, quiet, etc.) is preserved from the original study.
+#'
+#' @param study A `Study` object.
+#' @param fn A function to apply to each entity. The function should take an entity as input and return a modified entity.
+#' @return A new `Study` object with transformed entities, preserving all study metadata.
+#' @export
+#'
+#' @examples
+#' # Set display names from provider labels for all entities
+#' study <- study_from_stf(dir) %>%
+#'   map_entities(~ .x %>% quiet() %>% set_variable_display_names_from_provider_labels())
+#'
+#' # Apply multiple transformations
+#' study <- study_from_stf(dir) %>%
+#'   map_entities(~ {
+#'     .x %>% quiet() %>%
+#'       set_variable_display_names_from_provider_labels() %>%
+#'       infer_geo_variables_for_eda()
+#'   })
+setMethod("map_entities", "Study", function(study, fn) {
+  # Get all entities from the study
+  entities <- study %>% get_entities()
+
+  # Apply the function to each entity
+  transformed_entities <- entities %>% map(fn)
+
+  # Recreate the study with transformed entities, preserving all study metadata
+  study_from_entities(transformed_entities, metadata_source = study)
 })
 
