@@ -284,7 +284,8 @@ will always read both tall and wide though.
 | **Data type enforcement**                | ✅ Enforced via metadata definitions           | ❌ No enforcement, at mercy of automatic type detection |
 | **Ordinal variable support**             | ✅ Metadata allows explicit ordinal definitions | ❌ Not supported |
 | **ID column flexibility**                | ✅ Custom ID column names allowed, column order not important   | ❌ ID column headers must match entity names exactly, ID columns must be in parent-to-child order |
-| **Validation**                           | ✅ Ensures entity relationships and data integrity | ⚠️ Limited to basic TSV parsing only |
+| **Validation**                           | ✅ Ensures entity relationships and data integrity | ⚠️ Entity relationships validated, but limited metadata-based type validation |
+| **Geo-coordinates**                      | ✅ Flexible variable naming via metadata definitions | ⚠️ Common patterns (Lat/Latitude/Long/Longitude/lng etc.) supported via post-processing inference |
 | **Tall or wide TSV files** | ✅ | ✅ |
 
 ## CSV compatibility
