@@ -292,8 +292,3 @@ will always read both tall and wide though.
 
 We may decide to offer read-compatibility for CSV data files, but the Study Wrangler will likely
 continue to write in TSV format only.
-
-
-## TO DO
-
-* metadata reference
