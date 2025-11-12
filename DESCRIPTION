@@ -1,6 +1,6 @@
 Package: study.wrangler
 Title: Wrangle (Tidy) Study Data
-Version: 1.0.13
+Version: 1.0.19
 Authors@R:
     c(person(given = "Bob",
            family = "MacCallum",
@@ -19,6 +19,7 @@ RoxygenNote: 7.3.2
 Imports:
     tidyverse (>= 2.0.0),
     skimr,
+    rlang,
     glue,
     knitr,
     plot.data,
