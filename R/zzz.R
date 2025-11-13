@@ -8,12 +8,9 @@ skim <- NULL  # Initialized in .onLoad
   .init_baseline_validators()
   .init_eda_validators()
 
-  # Explicitly ensure rlang is loaded
-  requireNamespace("rlang", quietly = TRUE)
-  
   # Create custom skimmer that doesn't shorten factor names and trims top counts to 5
-  skim <<- skimr::skim_with(
-    factor = skimr::sfl(
+  skim <<- skim_with(
+    factor = sfl(
       top_counts = function(x) {
         tab <- table(x)
         top <- sort(tab, decreasing = TRUE)
