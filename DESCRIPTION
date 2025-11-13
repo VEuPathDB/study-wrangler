@@ -1,6 +1,6 @@
 Package: study.wrangler
 Title: Wrangle (Tidy) Study Data
-Version: 1.0.23
+Version: 1.0.24
 Authors@R:
     c(person(given = "Bob",
            family = "MacCallum",

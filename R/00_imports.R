@@ -5,6 +5,7 @@
 #' @import readr
 #' @import forcats
 #' @import skimr
+#' @importFrom rlang %||%
 #' @importFrom lubridate is.Date
 #' @importFrom tibble tibble deframe
 #' @importFrom glue glue
