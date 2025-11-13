@@ -1031,10 +1031,10 @@ setMethod("set_variable_as_date", "Entity", function(entity, column_name) {
 })
 
 
-#'
-#' multi-slot cache for the hydrated metadata
-#'
-#'
+#
+# multi-slot cache for the hydrated metadata
+#
+#
 library(digest)
 .hvacm_cache <- new.env(parent = emptyenv())
 

@@ -4,6 +4,7 @@
 #' @import tidyr
 #' @import readr
 #' @import forcats
+#' @import rlang
 #' @importFrom lubridate is.Date
 #' @importFrom tibble tibble deframe
 #' @importFrom glue glue
