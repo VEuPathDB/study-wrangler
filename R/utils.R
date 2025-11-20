@@ -415,11 +415,12 @@ generate_alphanumeric_id <- function(seed_string, length = 11) {
 #' Wraps `generate_alphanumeric_id()` to add a prefix
 #'
 #' Ensures that the final ID never starts with a digit (even after the prefix).
-#' 
+#'
 #' @param prefix A character string to prepend to the generated ID. Defaults to an empty string.
 #' @param length The length of the variable part of the ID (excluding the prefix). Defaults to 11.
 #' @param seed_string Optional seed string for deterministic ID generation.
 #' @return A prefixed alphanumeric ID.
+#' @export
 #'
 prefixed_alphanumeric_id <- function(prefix = NULL, length = 11, seed_string = NULL) {
   # Ensure the prefix is non-empty and valid
