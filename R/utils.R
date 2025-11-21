@@ -20,6 +20,16 @@ skim <- local({
             # Format output
             paste0(names(top5), ": ", top5, collapse = ", ")
           }
+        ),
+        numeric = skimr::sfl(
+          hist = function(x) {
+            # Safe histogram computation that handles edge cases
+            # (very large values, constant values, etc.)
+            tryCatch(
+              skimr::inline_hist(x),
+              error = function(e) NA_character_
+            )
+          }
         )
       )
     }
