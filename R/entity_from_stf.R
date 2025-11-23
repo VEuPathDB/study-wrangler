@@ -69,9 +69,19 @@ entity_from_stf <- function(tsv_path, yaml_path = NULL) {
         # Merge defaults with the row's metadata
         merged <- list_modify(as.list(metadata_defaults), !!!row_object)
 
-        if (length(merged) != ncol(metadata_defaults) + 1)
-          stop("Error: unused fields in YAML are not allowed")
-        # TO DO: handle this more cleanly. Validate YAML and report issues before attempting to load?
+        if (length(merged) != ncol(metadata_defaults) + 1) {
+          # Find which fields are unrecognized
+          expected_fields <- c("variable", names(metadata_defaults))
+          provided_fields <- names(row_object)
+          unrecognized <- setdiff(provided_fields, expected_fields)
+          entry_name <- row_object$variable %||% row_object$category %||% row_object$id_column %||% "<unknown>"
+          stop(
+            "Unrecognized field(s) in YAML for entry '", entry_name, "': ",
+            paste0("'", unrecognized, "'", collapse = ", "), "\n",
+            "Allowed fields are: ", paste0(expected_fields, collapse = ", "),
+            call. = FALSE
+          )
+        }
         
         # Convert each element based on its default type
         merged <- map2(
@@ -197,7 +207,11 @@ entity_from_stf <- function(tsv_path, yaml_path = NULL) {
                 .x,
                 variable = .x$category,
                 category = zap(), # removes the field from the object
+                # Map parent_category to parent_variable for internal consistency
+                parent_variable = .x$parent_category %||% .x$parent_variable,
+                parent_category = zap(),
                 data_type = factor('category'),
+                has_values = FALSE, # categories don't have data columns
                 entity_name = entity_metadata$name
               )
             }
