@@ -83,7 +83,7 @@ test_that("create_variable_category() and delete_variable_category() and associa
         verbose() %>%
         validate()
     ),
-    "These variables or categories have 'parent_variable' values that do not exist.+Number.of.animals"
+    "Missing parent_variable references.+'nonexistent'.+is referenced by: Number.of.animals"
   )
   
   # make a circular graph and also pay the price

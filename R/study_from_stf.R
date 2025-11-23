@@ -29,8 +29,11 @@ study_from_stf <- function(directory) {
             tsv_path <- file.path(directory, glue("entity-{entity_name}.tsv"))
             yaml_path <- file.path(directory, glue("entity-{entity_name}.yaml"))
             entity <- entity_from_stf(tsv_path, yaml_path)
-            if (!validate(quiet(entity)))
+            # Run validation quietly first, then verbose if failed to show details
+            if (!validate(quiet(entity))) {
+              validate(verbose(entity))  # Show detailed error messages
               stop(glue("Can't create valid entity from STF file '{tsv_path}' with metadata '{yaml_path}'"))
+            }
             return(entity)
           }
         )
@@ -49,8 +52,11 @@ study_from_stf <- function(directory) {
     entities <- entity_tsv_files %>% map(
       function(file_path) {
         entity <- entity_from_stf(file_path)
-        if (!validate(quiet(entity)))
+        # Run validation quietly first, then verbose if failed to show details
+        if (!validate(quiet(entity))) {
+          validate(verbose(entity))  # Show detailed error messages
           stop(glue("Can't create valid entity from STF file '{file_path}'"))
+        }
         return(entity)
       }
     )
