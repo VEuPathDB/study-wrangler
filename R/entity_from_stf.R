@@ -183,7 +183,13 @@ entity_from_stf <- function(tsv_path, yaml_path = NULL) {
       process_metadata_list(
         metadata$variables %>%
           map(
-            ~ list_modify(.x, entity_name = entity_metadata$name)
+            ~ list_modify(
+              .x,
+              entity_name = entity_metadata$name,
+              # Map parent_category to parent_variable for internal consistency
+              parent_variable = .x$parent_category %||% .x$parent_variable,
+              parent_category = zap()
+            )
           ),
         variable_metadata_defaults
       ),
