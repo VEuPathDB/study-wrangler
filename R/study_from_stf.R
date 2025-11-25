@@ -1,14 +1,15 @@
 #'
 #' study_from_stf
-#' 
+#'
 #' @description
 #' Creates a study object from STF files in the given directory
 #'
 #' @param directory containing STF files for one study
+#' @param validate logical, whether to validate entities during import. Default is TRUE.
 #' @return A Study object
 #'
 #' @export
-study_from_stf <- function(directory) {
+study_from_stf <- function(directory, validate = TRUE) {
   
   filepaths <- list.files(directory, full.names = TRUE)
   if (length(filepaths) == 0) stop(glue("Can't find directory '{directory}' or it is empty"))
@@ -29,7 +30,7 @@ study_from_stf <- function(directory) {
             tsv_path <- file.path(directory, glue("entity-{entity_name}.tsv"))
             yaml_path <- file.path(directory, glue("entity-{entity_name}.yaml"))
             entity <- entity_from_stf(tsv_path, yaml_path)
-            if (!validate(quiet(entity)))
+            if (validate && !validate(quiet(entity)))
               stop(glue("Can't create valid entity from STF file '{tsv_path}' with metadata '{yaml_path}'"))
             return(entity)
           }
@@ -49,7 +50,7 @@ study_from_stf <- function(directory) {
     entities <- entity_tsv_files %>% map(
       function(file_path) {
         entity <- entity_from_stf(file_path)
-        if (!validate(quiet(entity)))
+        if (validate && !validate(quiet(entity)))
           stop(glue("Can't create valid entity from STF file '{file_path}'"))
         return(entity)
       }
