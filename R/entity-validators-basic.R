@@ -229,6 +229,7 @@ validate_entity_units_on_numeric_only <- function(entity) {
     get_variable_metadata() %>%
     filter(
       !data_type %in% c("integer", "number"),
+      data_shape != "ordinal",  # Allow units for ordinal variables
       !is.na(unit)
     ) %>%
     pull(variable)
