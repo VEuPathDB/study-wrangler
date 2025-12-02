@@ -1150,9 +1150,9 @@ setMethod("get_hydrated_variable_and_category_metadata", "Entity", function(enti
       summary_stats = NULL
     )
 
-  # 3. Categorical variables - just vocabulary and distinct count (vectorized with map)
+  # 3. Categorical/binary variables - vocabulary from data, distinct count (vectorized with map)
   categorical_vars <- var_metadata %>%
-    filter(has_values, data_shape != 'continuous') %>%
+    filter(has_values, data_shape != 'continuous', data_shape != 'ordinal') %>%
     mutate(
       vocabulary = map(column_data, ~ as.factor(.x) %>% levels()),
       precision = case_when(
@@ -1171,8 +1171,29 @@ setMethod("get_hydrated_variable_and_category_metadata", "Entity", function(enti
       column_data = NULL
     )
 
+  # 4. Ordinal variables - vocabulary from ordinal_levels metadata (canonical source)
+  ordinal_vars <- var_metadata %>%
+    filter(has_values, data_shape == 'ordinal') %>%
+    mutate(
+      vocabulary = map(ordinal_levels, ~ unlist(.x)),
+      precision = case_when(
+        data_type == 'integer' ~ 0L,
+        data_type == 'number' ~ map_int(column_data, max_decimals),
+        TRUE ~ NA_integer_
+      ),
+      distinct_values_count = map_int(column_data, n_distinct),
+      mean = NA_character_,
+      bin_width_computed = NA_character_,
+      range_min = NA_character_,
+      lower_quartile = NA_character_,
+      median = NA_character_,
+      upper_quartile = NA_character_,
+      range_max = NA_character_,
+      column_data = NULL
+    )
+
   # Combine all back together
-  metadata <- bind_rows(no_data_vars, continuous_vars, categorical_vars)
+  metadata <- bind_rows(no_data_vars, continuous_vars, categorical_vars, ordinal_vars)
   
   # append category metadata and add fallback stable_id if needed
   metadata <- metadata %>%
@@ -1252,13 +1273,31 @@ setMethod("set_variable_ordinal_levels", "Entity", function(entity, variable_nam
       nrow() != 1) {
     stop(glue("Only variables with data_type 'string' or 'integer' can be ordinals, sorry."))
   }
-  
-  # make sure the data column is a factor
-  data <- data %>% mutate("{variable_name}" := as.factor(!!sym(variable_name)))
+
+  # Get variable metadata for this variable
+  var_meta <- variables %>% filter(variable == variable_name)
+  is_multivalued <- var_meta$is_multi_valued
+
+  # Get observed levels - expand multi-valued data first if needed
+  if (is_multivalued) {
+    # For multi-valued variables, expand the delimited strings to get all observed values
+    delimiter <- var_meta$multi_value_delimiter
+    expanded_data <- expand_multivalued_data_column(
+      data,
+      variable_name,
+      is_multi_valued = TRUE,
+      multi_value_delimiter = delimiter,
+      .type_convert = FALSE
+    )
+    data_levels <- expanded_data %>% pull(variable_name) %>% unique() %>% na.omit() %>% as.character()
+  } else {
+    # For single-valued variables, convert to factor to get levels
+    data <- data %>% mutate("{variable_name}" := as.factor(!!sym(variable_name)))
+    data_levels <- data %>% pull(variable_name) %>% levels()
+  }
 
   # the data levels must be a subset of `levels`
   # (extra levels are OK)
-  data_levels <- data %>% pull(variable_name) %>% levels()
   missing_levels = setdiff(data_levels, levels)
   if (length(missing_levels) > 0) {
     stop(to_lines(c(
@@ -1266,10 +1305,13 @@ setMethod("set_variable_ordinal_levels", "Entity", function(entity, variable_nam
       glue("You must also include these levels: {paste0(missing_levels, collapse=', ')}")
     )))
   }
-  
-  # update the entity data column with the levels
-  entity@data <- entity@data %>%
-    mutate("{variable_name}" := factor(!!sym(variable_name), levels = levels))
+
+  # update the entity data column with the levels (only for single-valued ordinals)
+  # Multi-valued ordinals remain as character strings with delimiters
+  if (!is_multivalued) {
+    entity@data <- entity@data %>%
+      mutate("{variable_name}" := factor(!!sym(variable_name), levels = levels))
+  }
   
   # set the appropriate metadata and return
   former_quiet_state <- entity@quiet
@@ -1450,11 +1492,6 @@ setMethod("set_variables_multivalued", "Entity", function(entity, ...) {
   if (length(invalid_vars) > 0) {
     stop(glue("The following variables do not exist: {paste(invalid_vars, collapse = ', ')}"))
   }
-  
-  ordinal_vars <- variables %>% filter(variable %in% names(multivalued_vars) & data_shape == 'ordinal')
-  if (nrow(ordinal_vars) > 0) {
-    stop(glue("The following variables cannot be multi-valued because they are ordinal: {paste(ordinal_vars$variable, collapse = ', ')}"))
-  }
 
   # Update metadata
   variables <- variables %>%
@@ -1591,8 +1628,10 @@ setMethod("sync_ordinal_data", "Entity", function(entity) {
   data <- entity@data
   
   # Identify ordinal variables that are character columns in the data
+  # Exclude multi-valued ordinals (they must remain as character strings with delimiters)
   ordinal_vars <- variables %>%
     filter(data_shape == "ordinal") %>%
+    filter(!is_multi_valued) %>%
     pull(variable)
   
   # find the data columns that need to be converted to factors
