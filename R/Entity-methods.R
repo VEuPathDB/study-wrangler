@@ -1398,11 +1398,13 @@ setMethod("create_variable_category", "Entity", function(entity, category_name, 
   # update the entity with the modified variables
   entity@variables <- variables
   
-  message(to_lines(
-    glue("Successfully created category '{category_name}'. If you need to revert, use:"),
-    indented(glue("{global_varname} <- {global_varname} %>% delete_variable_category('{category_name}')"))
-  ))
-
+  if (!entity@quiet) {
+    message(to_lines(
+      glue("Successfully created category '{category_name}'. If you need to revert, use:"),
+      indented(glue("{global_varname} <- {global_varname} %>% delete_variable_category('{category_name}')"))
+    ))
+  }
+  
   if (missing(...))
     return(entity)
   else
