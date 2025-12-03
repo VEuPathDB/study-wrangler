@@ -42,9 +42,10 @@ test_that("VDI export expands multi-valued string variables", {
   )
 
   # Read the attributevalue cache file for households
+  household_abbrev <- get_entity_abbreviation(study, "household")
   attributevalue_file <- list.files(
     output_dir,
-    pattern = "^attributevalue_.*househld\\.cache$",
+    pattern = glue("^attributevalue_.*{household_abbrev}\\.cache$"),
     full.names = TRUE
   )
 
@@ -117,9 +118,10 @@ test_that("VDI export expands multi-valued number variables", {
   )
 
   # Read attributevalue file
+  household_abbrev <- get_entity_abbreviation(study, "household")
   attributevalue_file <- list.files(
     output_dir,
-    pattern = "^attributevalue_.*househld\\.cache$",
+    pattern = glue("^attributevalue_.*{household_abbrev}\\.cache$"),
     full.names = TRUE
   )
 
@@ -171,9 +173,10 @@ test_that("VDI export expands multi-valued date variables", {
   )
 
   # Read attributevalue file
+  household_abbrev <- get_entity_abbreviation(study, "household")
   attributevalue_file <- list.files(
     output_dir,
-    pattern = "^attributevalue_.*househld\\.cache$",
+    pattern = glue("^attributevalue_.*{household_abbrev}\\.cache$"),
     full.names = TRUE
   )
 
@@ -225,9 +228,10 @@ test_that("VDI export expands multi-valued integer variables", {
   )
 
   # Read attributevalue file
+  household_abbrev <- get_entity_abbreviation(study, "household")
   attributevalue_file <- list.files(
     output_dir,
-    pattern = "^attributevalue_.*househld\\.cache$",
+    pattern = glue("^attributevalue_.*{household_abbrev}\\.cache$"),
     full.names = TRUE
   )
 
@@ -285,9 +289,10 @@ test_that("VDI export expands multi-valued ordinal variables", {
   )
 
   # Read attributevalue file
+  household_abbrev <- get_entity_abbreviation(study, "household")
   attributevalue_file <- list.files(
     output_dir,
-    pattern = "^attributevalue_.*househld\\.cache$",
+    pattern = glue("^attributevalue_.*{household_abbrev}\\.cache$"),
     full.names = TRUE
   )
 
@@ -364,9 +369,10 @@ test_that("VDI export correctly expands mixed multi-valued variable types (strin
   )
 
   # Verify all variables are expanded independently
+  household_abbrev <- get_entity_abbreviation(study, "household")
   attributevalue_file <- list.files(
     output_dir,
-    pattern = "^attributevalue_.*househld\\.cache$",
+    pattern = glue("^attributevalue_.*{household_abbrev}\\.cache$"),
     full.names = TRUE
   )
 

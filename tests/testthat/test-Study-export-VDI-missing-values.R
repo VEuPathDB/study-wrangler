@@ -27,9 +27,10 @@ test_that("VDI export excludes rows with missing string values", {
   )
 
   # Read the attributevalue cache file for households
+  household_abbrev <- get_entity_abbreviation(study, "household")
   attributevalue_file <- list.files(
     output_dir,
-    pattern = "^attributevalue_.*househld\\.cache$",
+    pattern = glue("^attributevalue_.*{household_abbrev}\\.cache$"),
     full.names = TRUE
   )
 
@@ -91,9 +92,10 @@ test_that("VDI export excludes rows with missing number values", {
   )
 
   # Read attributevalue file
+  household_abbrev <- get_entity_abbreviation(study, "household")
   attributevalue_file <- list.files(
     output_dir,
-    pattern = "^attributevalue_.*househld\\.cache$",
+    pattern = glue("^attributevalue_.*{household_abbrev}\\.cache$"),
     full.names = TRUE
   )
 
@@ -151,9 +153,10 @@ test_that("VDI export excludes rows with missing integer values", {
   )
 
   # Read attributevalue file
+  household_abbrev <- get_entity_abbreviation(study, "household")
   attributevalue_file <- list.files(
     output_dir,
-    pattern = "^attributevalue_.*househld\\.cache$",
+    pattern = glue("^attributevalue_.*{household_abbrev}\\.cache$"),
     full.names = TRUE
   )
 
@@ -211,9 +214,10 @@ test_that("VDI export excludes rows with missing date values", {
   )
 
   # Read attributevalue file
+  household_abbrev <- get_entity_abbreviation(study, "household")
   attributevalue_file <- list.files(
     output_dir,
-    pattern = "^attributevalue_.*househld\\.cache$",
+    pattern = glue("^attributevalue_.*{household_abbrev}\\.cache$"),
     full.names = TRUE
   )
 
@@ -271,9 +275,10 @@ test_that("VDI export excludes rows with missing categorical values", {
   )
 
   # Read attributevalue file
+  household_abbrev <- get_entity_abbreviation(study, "household")
   attributevalue_file <- list.files(
     output_dir,
-    pattern = "^attributevalue_.*househld\\.cache$",
+    pattern = glue("^attributevalue_.*{household_abbrev}\\.cache$"),
     full.names = TRUE
   )
 
@@ -350,9 +355,10 @@ test_that("VDI export correctly handles mixed missing and present values", {
   )
 
   # Verify all variables are handled correctly
+  household_abbrev <- get_entity_abbreviation(study, "household")
   attributevalue_file <- list.files(
     output_dir,
-    pattern = "^attributevalue_.*househld\\.cache$",
+    pattern = glue("^attributevalue_.*{household_abbrev}\\.cache$"),
     full.names = TRUE
   )
 
@@ -430,9 +436,10 @@ test_that("VDI export handles entity with household H006 having multiple missing
     study %>% quiet() %>% export_to_vdi(output_directory = output_dir)
   )
 
+  household_abbrev <- get_entity_abbreviation(study, "household")
   attributevalue_file <- list.files(
     output_dir,
-    pattern = "^attributevalue_.*househld\\.cache$",
+    pattern = glue("^attributevalue_.*{household_abbrev}\\.cache$"),
     full.names = TRUE
   )
 
