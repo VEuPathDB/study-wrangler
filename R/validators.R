@@ -150,10 +150,16 @@ list_validators <- function() {
   # Data type validators
   register_validator("entity_integer_data_types", validate_entity_integer_data_types,
                     "entity", "baseline", "Check integer variables contain integers")
-  
+
   register_validator("entity_number_data_types", validate_entity_number_data_types,
                     "entity", "baseline", "Check number variables contain numeric values")
-  
+
+  register_validator("entity_string_data_types", validate_entity_string_data_types,
+                    "entity", "baseline", "Check string variables contain character values")
+
+  register_validator("entity_string_data_shapes", validate_entity_string_data_shapes,
+                    "entity", "baseline", "Check string variables have appropriate data_shape")
+
   register_validator("entity_date_data_types", validate_entity_date_data_types,
                     "entity", "baseline", "Check date variables are R date type")
   
