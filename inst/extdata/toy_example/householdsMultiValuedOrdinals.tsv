@@ -1,6 +1,6 @@
 Household Id	Number of animals	Owns property	Enrollment date	Construction materials	Distances to well	Birth dates	Ages of children	Satisfaction levels	Priority scores
 H001	4	Yes	2021-01-09	Concrete;Timber	10.1	2019-01-01	2	High;Medium	3;1
 H002	3	No	2021-02-28	Timber;Straw	5.0;14.2	2015-05-05;2017-02-22	6;4	Low;Medium;High	1;2;3
-H003	0	Yes	2021-03-13		4.4;5.5			Medium	2
+H003	0	Yes	2021-03-13		4.4;5.0			Medium	2
 H004	1	No	2021-04-23	Straw;Mud	9	2018-12-10;2019-08-24;2020-11-01	4;3;1	High	5;3;1
 H005	17	Yes	2021-05-08	Mud	1.6;20.9	2020-07-27	1	Low;High	4;5

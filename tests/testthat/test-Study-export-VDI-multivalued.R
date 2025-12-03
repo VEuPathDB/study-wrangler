@@ -1,14 +1,29 @@
+multivalue_specs = list(
+  'Construction.materials' = ';',
+  'Distances.to.well' = ';',
+  'Birth.dates' = ';',
+  'Ages.of.children' = ';',
+  'Satisfaction.levels' = ';',
+  'Priority.scores' = ';'
+)
+
+# convenience helper
+set_variables_multivalued_from_list <- function(entity, specs) {
+  rlang::exec(set_variables_multivalued, entity, !!!specs)
+}
+
 test_that("VDI export expands multi-valued string variables", {
   # Load test data with multi-valued variables
   file_path <- system.file("extdata", "toy_example/householdsMultiValuedOrdinals.tsv", package = 'study.wrangler')
   households <- entity_from_file(file_path, name='household') %>%
     quiet() %>%
-    set_variables_multivalued('Construction.materials' = ';') %>%
-    redetect_columns_as_variables('Distances.to.well')  # Fix ID detection issue
-
+    set_variables_multivalued_from_list(multivalue_specs)
+  
+  expect_silent(expect_true(households %>% quiet() %>% validate()))
+  
   # Get stable_id for Construction.materials before export
   construction_stable_id <- households %>%
-    get_variable_metadata() %>%
+    get_hydrated_variable_and_category_metadata() %>%
     filter(variable == "Construction.materials") %>%
     pull(stable_id)
 
@@ -29,7 +44,7 @@ test_that("VDI export expands multi-valued string variables", {
   # Read the attributevalue cache file for households
   attributevalue_file <- list.files(
     output_dir,
-    pattern = "^attributevalue_.*household\\.cache$",
+    pattern = "^attributevalue_.*househld\\.cache$",
     full.names = TRUE
   )
 
@@ -84,11 +99,10 @@ test_that("VDI export expands multi-valued number variables", {
   file_path <- system.file("extdata", "toy_example/householdsMultiValuedOrdinals.tsv", package = 'study.wrangler')
   households <- entity_from_file(file_path, name='household') %>%
     quiet() %>%
-    set_variables_multivalued('Distances.to.well' = ';') %>%
-    redetect_columns_as_variables('Distances.to.well')  # Fix ID detection issue
+    set_variables_multivalued_from_list(multivalue_specs)
 
   distance_stable_id <- households %>%
-    get_variable_metadata() %>%
+    get_hydrated_variable_and_category_metadata() %>%
     filter(variable == "Distances.to.well") %>%
     pull(stable_id)
 
@@ -105,7 +119,7 @@ test_that("VDI export expands multi-valued number variables", {
   # Read attributevalue file
   attributevalue_file <- list.files(
     output_dir,
-    pattern = "^attributevalue_.*household\\.cache$",
+    pattern = "^attributevalue_.*househld\\.cache$",
     full.names = TRUE
   )
 
@@ -160,7 +174,7 @@ test_that("VDI export expands multi-valued date variables", {
   # Read attributevalue file
   attributevalue_file <- list.files(
     output_dir,
-    pattern = "^attributevalue_.*household\\.cache$",
+    pattern = "^attributevalue_.*househld\\.cache$",
     full.names = TRUE
   )
 
@@ -215,7 +229,7 @@ test_that("VDI export expands multi-valued integer variables", {
   # Read attributevalue file
   attributevalue_file <- list.files(
     output_dir,
-    pattern = "^attributevalue_.*household\\.cache$",
+    pattern = "^attributevalue_.*househld\\.cache$",
     full.names = TRUE
   )
 
@@ -282,7 +296,7 @@ test_that("VDI export expands multi-valued ordinal variables", {
   # Read attributevalue file
   attributevalue_file <- list.files(
     output_dir,
-    pattern = "^attributevalue_.*household\\.cache$",
+    pattern = "^attributevalue_.*househld\\.cache$",
     full.names = TRUE
   )
 
@@ -333,25 +347,18 @@ test_that("VDI export correctly expands mixed multi-valued variable types (strin
   file_path <- system.file("extdata", "toy_example/householdsMultiValuedOrdinals.tsv", package = 'study.wrangler')
   households <- entity_from_file(file_path, name='household') %>%
     quiet() %>%
-    set_variables_multivalued(
-      'Construction.materials' = ';',
-      'Distances.to.well' = ';',
-      'Birth.dates' = ';'
-    ) %>%
-    redetect_columns_as_variables('Distances.to.well')  # Fix ID detection issue
+    set_variables_multivalued_from_list(multivalue_specs)
 
-  construction_stable_id <- households %>%
-    get_variable_metadata() %>%
+  hydr_metadata <- households %>% get_hydrated_variable_and_category_metadata()
+  construction_stable_id <- hydr_metadata %>%
     filter(variable == "Construction.materials") %>%
     pull(stable_id)
 
-  distance_stable_id <- households %>%
-    get_variable_metadata() %>%
+  distance_stable_id <- hydr_metadata %>%
     filter(variable == "Distances.to.well") %>%
     pull(stable_id)
 
-  birthdate_stable_id <- households %>%
-    get_variable_metadata() %>%
+  birthdate_stable_id <- hydr_metadata %>%
     filter(variable == "Birth.dates") %>%
     pull(stable_id)
 
@@ -368,7 +375,7 @@ test_that("VDI export correctly expands mixed multi-valued variable types (strin
   # Verify all variables are expanded independently
   attributevalue_file <- list.files(
     output_dir,
-    pattern = "^attributevalue_.*household\\.cache$",
+    pattern = "^attributevalue_.*househld\\.cache$",
     full.names = TRUE
   )
 

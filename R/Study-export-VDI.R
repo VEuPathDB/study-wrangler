@@ -364,7 +364,7 @@ export_attributes_to_vdi <- function(entities, output_directory, install_json, s
 
   # Process multi-valued string variables individually using pmap
   mv_string_data <- if (length(mv_string_vars) > 0) {
-    mv_string_meta <- string_meta %>% filter(is_multi_valued)
+    mv_string_meta <- string_meta %>% filter(is_multi_valued == 1)
 
     pmap(
       list(mv_string_meta$variable, mv_string_meta$multi_value_delimiter),
@@ -427,7 +427,7 @@ export_attributes_to_vdi <- function(entities, output_directory, install_json, s
 
   # Process multi-valued number variables individually using pmap
   mv_number_data <- if (length(mv_number_vars) > 0) {
-    mv_number_meta <- number_meta %>% filter(is_multi_valued)
+    mv_number_meta <- number_meta %>% filter(is_multi_valued == 1)
 
     pmap(
       list(mv_number_meta$variable, mv_number_meta$multi_value_delimiter),
@@ -490,7 +490,7 @@ export_attributes_to_vdi <- function(entities, output_directory, install_json, s
 
   # Process multi-valued date variables individually using pmap
   mv_date_data <- if (length(mv_date_vars) > 0) {
-    mv_date_meta <- date_meta %>% filter(is_multi_valued)
+    mv_date_meta <- date_meta %>% filter(is_multi_valued == 1)
 
     pmap(
       list(mv_date_meta$variable, mv_date_meta$multi_value_delimiter),
