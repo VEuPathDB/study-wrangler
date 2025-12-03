@@ -357,7 +357,8 @@ export_attributes_to_vdi <- function(entities, output_directory, install_json, s
         names_transform = function(name) stable_ids[name],
         names_to = "attribute_stable_id",
         values_to = "string_value"
-      )
+      ) %>%
+      filter(!is.na(string_value) & string_value != "")
   } else {
     tibble("{id_col_vdi}" := character(), attribute_stable_id = character(), string_value = character())
   }
@@ -385,6 +386,7 @@ export_attributes_to_vdi <- function(entities, output_directory, install_json, s
           ) %>%
           ungroup() %>%
           tidyr::unnest(values) %>%
+          filter(!is.na(values) & values != "") %>%
           mutate(
             "{id_col_vdi}" := id,
             attribute_stable_id = stable_ids[var],
@@ -420,7 +422,8 @@ export_attributes_to_vdi <- function(entities, output_directory, install_json, s
         names_transform = function(name) stable_ids[name],
         names_to = "attribute_stable_id",
         values_to = "number_value"
-      )
+      ) %>%
+      filter(!is.na(number_value))
   } else {
     tibble("{id_col_vdi}" := character(), attribute_stable_id = character(), number_value = numeric())
   }
@@ -448,6 +451,7 @@ export_attributes_to_vdi <- function(entities, output_directory, install_json, s
           ) %>%
           ungroup() %>%
           tidyr::unnest(values) %>%
+          filter(!is.na(values)) %>%
           mutate(
             "{id_col_vdi}" := id,
             attribute_stable_id = stable_ids[var],
@@ -483,7 +487,8 @@ export_attributes_to_vdi <- function(entities, output_directory, install_json, s
         names_transform = function(name) stable_ids[name],
         names_to = "attribute_stable_id",
         values_to = "date_value"
-      )
+      ) %>%
+      filter(!is.na(date_value))
   } else {
     tibble("{id_col_vdi}" := character(), attribute_stable_id = character(), date_value = as.Date(character()))
   }
@@ -511,6 +516,7 @@ export_attributes_to_vdi <- function(entities, output_directory, install_json, s
           ) %>%
           ungroup() %>%
           tidyr::unnest(values) %>%
+          filter(!is.na(values)) %>%
           mutate(
             "{id_col_vdi}" := id,
             attribute_stable_id = stable_ids[var],

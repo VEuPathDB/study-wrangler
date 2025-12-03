@@ -20,10 +20,10 @@ test_that("VDI export expands multi-valued string variables", {
     set_variables_multivalued_from_list(multivalue_specs)
   
   expect_silent(expect_true(households %>% quiet() %>% validate()))
-  
+
   # Get stable_id for Construction.materials before export
-  construction_stable_id <- households %>%
-    get_hydrated_variable_and_category_metadata() %>%
+  hydr_metadata <- households %>% get_hydrated_variable_and_category_metadata()
+  construction_stable_id <- hydr_metadata %>%
     filter(variable == "Construction.materials") %>%
     pull(stable_id)
 
@@ -101,8 +101,8 @@ test_that("VDI export expands multi-valued number variables", {
     quiet() %>%
     set_variables_multivalued_from_list(multivalue_specs)
 
-  distance_stable_id <- households %>%
-    get_hydrated_variable_and_category_metadata() %>%
+  hydr_metadata <- households %>% get_hydrated_variable_and_category_metadata()
+  distance_stable_id <- hydr_metadata %>%
     filter(variable == "Distances.to.well") %>%
     pull(stable_id)
 
@@ -153,11 +153,10 @@ test_that("VDI export expands multi-valued date variables", {
   file_path <- system.file("extdata", "toy_example/householdsMultiValuedOrdinals.tsv", package = 'study.wrangler')
   households <- entity_from_file(file_path, name='household') %>%
     quiet() %>%
-    set_variables_multivalued('Birth.dates' = ';')
-    redetect_columns_as_variables('Distances.to.well') # Fix ID detection issue
+    set_variables_multivalued_from_list(multivalue_specs)
 
-  birthdate_stable_id <- households %>%
-    get_variable_metadata() %>%
+  hydr_metadata <- households %>% get_hydrated_variable_and_category_metadata()
+  birthdate_stable_id <- hydr_metadata %>%
     filter(variable == "Birth.dates") %>%
     pull(stable_id)
 
@@ -208,11 +207,10 @@ test_that("VDI export expands multi-valued integer variables", {
   file_path <- system.file("extdata", "toy_example/householdsMultiValuedOrdinals.tsv", package = 'study.wrangler')
   households <- entity_from_file(file_path, name='household') %>%
     quiet() %>%
-    set_variables_multivalued('Ages.of.children' = ';')
-    redetect_columns_as_variables('Distances.to.well') # Fix ID detection issue
+    set_variables_multivalued_from_list(multivalue_specs)
 
-  ages_stable_id <- households %>%
-    get_variable_metadata() %>%
+  hydr_metadata <- households %>% get_hydrated_variable_and_category_metadata()
+  ages_stable_id <- hydr_metadata %>%
     filter(variable == "Ages.of.children") %>%
     pull(stable_id)
 
@@ -263,21 +261,14 @@ test_that("VDI export expands multi-valued ordinal variables", {
   file_path <- system.file("extdata", "toy_example/householdsMultiValuedOrdinals.tsv", package = 'study.wrangler')
   households <- entity_from_file(file_path, name='household') %>%
     quiet() %>%
-    set_variables_multivalued(
-      'Satisfaction.levels' = ';',
-      'Priority.scores' = ';'
-    ) %>%
-    set_variable_ordinal_levels('Satisfaction.levels', levels = c("Low", "Medium", "High")) %>%
-    set_variable_ordinal_levels('Priority.scores', levels = 1:5)
-    redetect_columns_as_variables('Distances.to.well') # Fix ID detection issue
+    set_variables_multivalued_from_list(multivalue_specs)
 
-  satisfaction_stable_id <- households %>%
-    get_variable_metadata() %>%
+  hydr_metadata <- households %>% get_hydrated_variable_and_category_metadata()
+  satisfaction_stable_id <- hydr_metadata %>%
     filter(variable == "Satisfaction.levels") %>%
     pull(stable_id)
 
-  priority_stable_id <- households %>%
-    get_variable_metadata() %>%
+  priority_stable_id <- hydr_metadata %>%
     filter(variable == "Priority.scores") %>%
     pull(stable_id)
 

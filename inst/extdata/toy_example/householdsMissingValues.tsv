@@ -1,0 +1,7 @@
+Household Id	Location	Distance to water	Number of rooms	Construction date	Building type
+H001	Boston	1.5	3	2015-06-10	House
+H002		2.3	4	2016-08-15	Apartment
+H003	Seattle		5	2017-03-22	House
+H004	Portland	0.8		2018-11-30	Townhouse
+H005	Austin	3.2	2		Apartment
+H006			3		
