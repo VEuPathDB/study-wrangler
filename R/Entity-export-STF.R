@@ -106,6 +106,6 @@ write_stf_data <- function(entity, output_directory) {
     data <- data %>% t() %>% as_tibble()
   }
   
-  data %>% write_tsv(data.path, col_names = FALSE, progress = FALSE)
+  data %>% write_tsv(data.path, col_names = FALSE, progress = FALSE, na = "")
 }
 

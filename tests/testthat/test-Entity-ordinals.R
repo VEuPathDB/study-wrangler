@@ -49,8 +49,6 @@ test_that("set_variable_ordinal_levels", {
   )
 
   # check this also works for number vars
-  # but note that factor levels are always character vectors, so we need
-  # the `as.character()` fudge at the end.
   num_levels <- 1:5
   expect_equal(
     households %>%
@@ -60,7 +58,7 @@ test_that("set_variable_ordinal_levels", {
       filter(variable == 'Number.of.animals') %>%
       pull(vocabulary) %>%
       unlist(),
-    as.character(num_levels)
+    num_levels
   )
   
   # a half-baked ordinal should not validate

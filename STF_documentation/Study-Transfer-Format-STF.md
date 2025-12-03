@@ -248,6 +248,56 @@ you like. When manipulating columns in the Study Wrangler, they will
 be converted into R-friendly column names, mainly by replacing
 non-standard characters with periods (`.`).
 
+## Missing values
+
+Missing values should be represented as **empty cells** (blank/empty strings) in TSV files:
+- In TSV format: consecutive tabs with no content between them (i.e., `<tab><tab>`)
+- In CSV format: consecutive commas with no content between them (i.e., `,,`)
+
+The literal string `NA` is also accepted for R compatibility, but **empty cells are preferred** for broader tool compatibility with Excel, pandas, and other data analysis platforms.
+
+When Study Wrangler exports to STF format, missing values are written as empty cells. When importing, both empty cells and the literal string `NA` are interpreted as missing values.
+
+### Trailing missing values
+
+**Important**: When missing values occur at the end of a row, you **must include the trailing tabs** (or commas in CSV) to maintain proper column alignment. Without trailing delimiters, parsers cannot determine which columns are missing.
+
+**Correct** (with trailing tabs for missing values at end of row):
+```
+Household.Id<tab>Location<tab>Temperature<tab>Humidity
+H001<tab>Boston<tab>72.5<tab>65
+H002<tab><tab>68.3<tab>
+H003<tab>Seattle<tab><tab>
+```
+
+**Incorrect** (missing trailing tabs):
+```
+Household.Id<tab>Location<tab>Temperature<tab>Humidity
+H001<tab>Boston<tab>72.5<tab>65
+H002<tab><tab>68.3
+H003<tab>Seattle
+```
+
+### Examples
+
+**Example showing missing values as empty cells:**
+```
+Household.Id<tab>Location<tab>Temperature
+H001<tab>Boston<tab>72.5
+H002<tab><tab>68.3
+H003<tab>Seattle<tab>
+```
+
+**Example showing missing values as "NA" (also supported):**
+```
+Household.Id	Location	Temperature
+H001	Boston	72.5
+H002	NA	68.3
+H003	Seattle	NA
+```
+
+Both formats will be correctly interpreted on import, with missing values preserved through STF export-import roundtrips.
+
 ## Tall-or-wide format
 
 The examples above show TSV files in "wide" format. That is, each row

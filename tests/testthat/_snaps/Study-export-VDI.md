@@ -1474,7 +1474,6 @@
       H001-P1-Obs1	VAR_74213e92		1	
       H001-P1-Obs1	VAR_7d2a26d7		145	
       H001-P2-Obs1	VAR_0789e56a		47	
-      H001-P2-Obs1	VAR_156a6e1b			
       H001-P2-Obs1	VAR_5c3c88eb			2023-05-04
       H001-P2-Obs1	VAR_74213e92		1	
       H001-P2-Obs1	VAR_7d2a26d7		135	
@@ -1484,14 +1483,12 @@
       H001-P2-Obs2	VAR_74213e92		0	
       H001-P2-Obs2	VAR_7d2a26d7		129	
       H001-P3-Obs1	VAR_0789e56a		51	
-      H001-P3-Obs1	VAR_156a6e1b			
       H001-P3-Obs1	VAR_5c3c88eb			2023-04-21
       H001-P3-Obs1	VAR_74213e92		1	
       H001-P3-Obs1	VAR_7d2a26d7		133	
       H002-P1-Obs1	VAR_0789e56a		32	
       H002-P1-Obs1	VAR_156a6e1b		26.68	
       H002-P1-Obs1	VAR_5c3c88eb			2023-08-08
-      H002-P1-Obs1	VAR_74213e92			
       H002-P1-Obs1	VAR_7d2a26d7		175	
       H002-P1-Obs2	VAR_0789e56a		34	
       H002-P1-Obs2	VAR_156a6e1b		12.59	
@@ -1514,12 +1511,9 @@
       H003-P2-Obs1	VAR_74213e92		0	
       H003-P2-Obs1	VAR_7d2a26d7		140	
       H003-P3-Obs1	VAR_0789e56a		45	
-      H003-P3-Obs1	VAR_156a6e1b			
       H003-P3-Obs1	VAR_5c3c88eb			2023-01-05
-      H003-P3-Obs1	VAR_74213e92			
       H003-P3-Obs1	VAR_7d2a26d7		130	
       H003-P3-Obs2	VAR_0789e56a		91	
-      H003-P3-Obs2	VAR_156a6e1b			
       H003-P3-Obs2	VAR_5c3c88eb			2023-08-07
       H003-P3-Obs2	VAR_74213e92		1	
       H003-P3-Obs2	VAR_7d2a26d7		127	
@@ -1535,7 +1529,6 @@
       H001-P2	VAR_e301dd60	Male		
       H001-P3	VAR_709a2322	Diana		
       H001-P3	VAR_c4dab5fd	Parent		
-      H001-P3	VAR_ce2bd99c			
       H001-P3	VAR_e301dd60	Female		
       H002-P1	VAR_709a2322	Charlie		
       H002-P1	VAR_c4dab5fd	Child		
@@ -1543,7 +1536,6 @@
       H002-P1	VAR_e301dd60	Male		
       H002-P2	VAR_709a2322	Anna		
       H002-P2	VAR_c4dab5fd	Relative		
-      H002-P2	VAR_ce2bd99c			
       H002-P2	VAR_e301dd60	Female		
       H003-P1	VAR_709a2322	Helen		
       H003-P1	VAR_c4dab5fd	Parent		
@@ -1551,7 +1543,6 @@
       H003-P1	VAR_e301dd60	Female		
       H003-P2	VAR_709a2322	Eve		
       H003-P2	VAR_c4dab5fd	Child		
-      H003-P2	VAR_ce2bd99c			
       H003-P2	VAR_e301dd60	Female		
       H003-P3	VAR_709a2322	Michael		
       H003-P3	VAR_c4dab5fd	Child		

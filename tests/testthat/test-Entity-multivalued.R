@@ -15,13 +15,12 @@ test_that("set_variables_multivalued() and set_variables_univalued() work", {
     "Successfully marked the following variables as multi-valued: Construction.material"
   )  
   
-  # not allowed to make ordinal variables multi-valued
-  expect_error(
+  # we are now allowed to make ordinal variables multi-valued
+  expect_silent(
     households %>%
       quiet() %>%
       set_variable_ordinal_levels("Owns.property", levels=c("Yes","No")) %>%
-      set_variables_multivalued("Owns.property" = ';'),
-    "The following variables cannot be multi-valued because they are ordinal: Owns.property"
+      set_variables_multivalued("Owns.property" = ';')
   )
   
   expect_message(
@@ -102,6 +101,8 @@ test_that("Actual multi-valued files can be processed", {
     "Successfully marked the following variables as multi-valued: Ages.of.children.+Ages.of.children.+integer/continuous"
   )
   
+  households <- households %>% quiet()
+  
   # does it have a proper inspect_variable data summary?
   expect_output(
     households %>% inspect('Ages.of.children'),
@@ -110,19 +111,25 @@ test_that("Actual multi-valued files can be processed", {
   
   # let's do the other variables:
   expect_message(
-    households <- households %>%
+    households <- households %>% verbose() %>%
       set_variables_multivalued("Distances.to.well" = ";"),
     "Successfully marked the following variables as multi-valued: Distances.to.well.+number/continuous"
   )
+  
+  households <- households %>% quiet()
+  
   expect_output(
     households %>% inspect('Distances.to.well'),
     "data_type\\s+number.+This is a multi-valued variable.+numeric.mean.+numeric.hist"
   )
   expect_message(
-    households <- households %>%
+    households <- households %>% verbose() %>%
       set_variables_multivalued("Birth.dates" = ";"),
     "Successfully marked the following variables as multi-valued: Birth.dates.+date/continuous"
   )
+  
+  households <- households %>% quiet()
+  
   expect_output(
     households %>% inspect('Birth.dates'),
     "data_type\\s+date.+This is a multi-valued variable.+Date.min.+Date.median"
