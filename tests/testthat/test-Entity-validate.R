@@ -436,33 +436,124 @@ test_that("validate() provides remedial advice for missing parent variables", {
   # Create entity with invalid parent_variable reference
   file_path <- system.file("extdata", "toy_example/households.tsv", package = 'study.wrangler')
   households <- entity_from_file(file_path, name="household")
-  
+
   # Set an invalid parent_variable reference
   households <- households %>% quiet() %>% set_variable_metadata('Household.Id', parent_variable = 'nonexistent_parent') %>% verbose()
-  
+
   # Validate should provide remedial advice
+  # Note: The warning message shows create_variable_category before set_variable_metadata
   expect_warning(
     validate(households),
-    "parent_variable.+values that do not exist.+set_variable_metadata.+parent_variable = NA.+create_variable_category"
+    "(?s)parent_variable.+values that do not exist.+create_variable_category.+set_variable_metadata.+parent_variable = NA",
+    perl = TRUE
   )
 })
 
 
 test_that("validate() provides remedial advice for circular variable relationships", {
-  # Create entity with circular parent_variable references  
+  # Create entity with circular parent_variable references
   file_path <- system.file("extdata", "toy_example/households.tsv", package = 'study.wrangler')
   households <- entity_from_file(file_path, name="household")
-  
+
   # Create circular reference: A -> B -> A
   households <- households %>% quiet() %>%
     set_variable_metadata('Household.Id', parent_variable = 'Number.of.animals') %>%
     set_variable_metadata('Number.of.animals', parent_variable = 'Household.Id') %>%
     verbose()
-  
+
   # Validate should provide remedial advice
   expect_warning(
     validate(households),
     "Illegal circular path detected.+set_variable_metadata.+parent_variable = NA"
   )
+})
+
+test_that("validate() complains about string columns with non-character data", {
+  file_path <- system.file("extdata", "toy_example/households.tsv", package = 'study.wrangler')
+  households <- entity_from_file(file_path, name='household')
+
+  # Artificially set metadata to 'string' for an integer column
+  households <- households %>%
+    quiet() %>%
+    set_variable_metadata('Number.of.animals', data_type = 'string') %>%
+    verbose()
+
+  expect_warning(
+    expect_false(
+      validate(households)
+    ),
+    "Number.of.animals.+declared as 'string' but contains.+values.+modify_data.+as.character.+redetect_columns_as_variables"
+  )
+
+  # Fix it by converting to character and setting appropriate data_shape
+  expect_silent(
+    households <- households %>%
+      quiet() %>%
+      modify_data(mutate(Number.of.animals = as.character(Number.of.animals))) %>%
+      set_variable_metadata('Number.of.animals', data_shape = 'categorical')
+  )
+  expect_true(households %>% validate())
+})
+
+test_that("validate() complains about string variables with continuous data_shape", {
+  file_path <- system.file("extdata", "toy_example/households.tsv", package = 'study.wrangler')
+  households <- entity_from_file(file_path, name='household')
+
+  # Artificially set a string variable to have data_shape = continuous
+  # This mimics the PMID RFLP scenario where integer->continuous gets set to string without fixing data_shape
+  households <- households %>%
+    quiet() %>%
+    set_variable_metadata('Construction.material', data_shape = 'continuous') %>%
+    verbose()
+
+  expect_warning(
+    expect_false(
+      validate(households)
+    ),
+    "Construction.material.+data_type 'string' but data_shape 'continuous'.+String variables should have data_shape 'categorical', 'ordinal', or 'binary'"
+  )
+
+  # Fix it by setting appropriate data_shape
+  households <- households %>%
+    quiet() %>%
+    set_variable_metadata('Construction.material', data_shape = 'categorical') %>%
+    verbose()
+
+  expect_true(households %>% validate())
+})
+
+test_that("validate() catches string/integer mismatch that causes VDI export failure", {
+  # Recreate the RFLP PMID scenario: integer data with string metadata
+  # Use existing test data
+  file_path <- system.file("extdata", "toy_example/households.tsv", package = 'study.wrangler')
+  households <- entity_from_file(file_path, name='household')
+
+  # Number.of.animals should be detected as integer
+  expect_equal(as.character(households@variables %>% filter(variable == 'Number.of.animals') %>% pull(data_type)), 'integer')
+  expect_true(is.integer(households@data$Number.of.animals))
+
+  # Now artificially set Number.of.animals metadata to string (but data is still integer)
+  # This mimics the RFLP PMID scenario where metadata says 'string' but data is integer
+  households <- households %>%
+    quiet() %>%
+    set_variable_metadata('Number.of.animals', data_type = 'string') %>%
+    verbose()
+
+  # Validation should catch this mismatch
+  expect_warning(
+    expect_false(
+      validate(households)
+    ),
+    "Number.of.animals.+declared as 'string' but contains integer values"
+  )
+
+  # Fix it by converting the data to character and setting appropriate data_shape
+  households <- households %>%
+    quiet() %>%
+    modify_data(mutate(Number.of.animals = as.character(Number.of.animals))) %>%
+    set_variable_metadata('Number.of.animals', data_shape = 'categorical')
+
+  # Now validation should pass
+  expect_true(households %>% validate())
 })
 

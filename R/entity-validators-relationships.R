@@ -26,28 +26,67 @@ validate_entity_parent_variable_exists <- function(entity) {
   if (length(variables_with_bad_parents) > 0) {
     # Get global variable name for fix-it suggestions
     global_varname <- find_global_varname(entity, 'entity')
-    
+
+    # Get the missing parent_variable values
+    missing_parents <- variable_relationships %>%
+      filter(variable %in% variables_with_bad_parents) %>%
+      pull(parent_variable) %>%
+      unique()
+
+    # Build detailed mapping of which variables reference which missing parents
+    parent_to_children <- variable_relationships %>%
+      filter(variable %in% variables_with_bad_parents) %>%
+      group_by(parent_variable) %>%
+      summarise(children = list(variable), .groups = "drop")
+
+    # Create detailed listing
+    detail_lines <- purrr::map_chr(seq_len(nrow(parent_to_children)), function(i) {
+      parent <- parent_to_children$parent_variable[i]
+      children <- parent_to_children$children[[i]]
+      paste0("  '", parent, "' is referenced by: ", paste0(children, collapse = ", "))
+    })
+
+    # Create YAML fix suggestion for each missing parent
+    yaml_suggestions <- purrr::map_chr(seq_len(nrow(parent_to_children)), function(i) {
+      parent <- parent_to_children$parent_variable[i]
+      paste0(
+        "  - category: ", parent, "\n",
+        "    display_name: \"<display name for ", parent, ">\"\n",
+        "    definition: \"<definition for ", parent, ">\""
+      )
+    })
+
     # Create commands to remove invalid parent_variable references
-    remove_commands <- paste0("    ", global_varname, " <- ", global_varname, " %>% set_variable_metadata('", 
+    remove_commands <- paste0("    ", global_varname, " <- ", global_varname, " %>% set_variable_metadata('",
                              variables_with_bad_parents, "', parent_variable = NA)")
-    
-    # Create command to create a new category with all these variables as children
-    create_command <- paste0("    ", global_varname, " <- ", global_varname, " %>% create_variable_category('new_category_name', children = c('", 
-                            paste(variables_with_bad_parents, collapse = "', '"), "'))")
-    
+
+    # Create R command to create a new category with all these variables as children
+    create_commands <- purrr::map_chr(seq_len(nrow(parent_to_children)), function(i) {
+      parent <- parent_to_children$parent_variable[i]
+      children <- parent_to_children$children[[i]]
+      paste0("    ", global_varname, " <- ", global_varname, " %>% create_variable_category('",
+             parent, "', children = c('", paste(children, collapse = "', '"), "'))")
+    })
+
     message <- paste(
-      paste0("These variables or categories have 'parent_variable' values that do not exist: ",
-             paste0(variables_with_bad_parents, collapse=", ")),
-      "The values for 'parent_variable' should be variable names that exist in the entity.",
+      paste0("Missing parent_variable references: ", paste0("'", missing_parents, "'", collapse = ", ")),
       "",
-      "To fix this, you can remove the invalid parent_variable references:",
+      "The following variables reference parent_variable values that do not exist:",
+      paste(detail_lines, collapse = "\n"),
+      "",
+      "YAML FIX: Add the missing categories to the 'categories' section of your entity YAML file:",
+      "",
+      "categories:",
+      paste(yaml_suggestions, collapse = "\n"),
+      "",
+      "R FIX OPTION 1: Create the missing categories programmatically:",
+      paste(create_commands, collapse = "\n"),
+      "",
+      "R FIX OPTION 2: Remove the invalid parent_variable references:",
       paste(remove_commands, collapse = "\n"),
-      "",
-      "Or create a new variable category/grouping with these variables as children:",
-      create_command,
       sep = "\n"
     )
-    
+
     return(list(
       valid = FALSE,
       fatal = FALSE,

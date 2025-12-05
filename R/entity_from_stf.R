@@ -69,9 +69,19 @@ entity_from_stf <- function(tsv_path, yaml_path = NULL) {
         # Merge defaults with the row's metadata
         merged <- list_modify(as.list(metadata_defaults), !!!row_object)
 
-        if (length(merged) != ncol(metadata_defaults) + 1)
-          stop("Error: unused fields in YAML are not allowed")
-        # TO DO: handle this more cleanly. Validate YAML and report issues before attempting to load?
+        if (length(merged) != ncol(metadata_defaults) + 1) {
+          # Find which fields are unrecognized
+          expected_fields <- c("variable", names(metadata_defaults))
+          provided_fields <- names(row_object)
+          unrecognized <- setdiff(provided_fields, expected_fields)
+          entry_name <- row_object$variable %||% row_object$category %||% row_object$id_column %||% "<unknown>"
+          stop(
+            "Unrecognized field(s) in YAML for entry '", entry_name, "': ",
+            paste0("'", unrecognized, "'", collapse = ", "), "\n",
+            "Allowed fields are: ", paste0(expected_fields, collapse = ", "),
+            call. = FALSE
+          )
+        }
         
         # Convert each element based on its default type
         merged <- map2(
@@ -173,20 +183,44 @@ entity_from_stf <- function(tsv_path, yaml_path = NULL) {
       process_metadata_list(
         metadata$variables %>%
           map(
-            ~ list_modify(.x, entity_name = entity_metadata$name)
+            ~ list_modify(
+              .x,
+              entity_name = entity_metadata$name,
+              # Map parent_category to parent_variable for internal consistency
+              parent_variable = .x$parent_category %||% .x$parent_variable,
+              parent_category = zap()
+            )
           ),
         variable_metadata_defaults
       ),
       process_metadata_list(
         metadata$categories %>%
           map(
-            ~ list_modify(
-              .x,
-              variable = .x$category,
-              category = zap(), # removes the field from the object
-              data_type = factor('category'),
-              entity_name = entity_metadata$name
-            )
+            function(.x) {
+              # Check for common format error: using 'variable' instead of 'category'
+              if (is.null(.x$category) && !is.null(.x$variable)) {
+                stop(
+                  "Invalid format in 'categories' section of YAML file '", basename(yaml_path), "'.\n",
+                  "Categories must use 'category:' as the key, not 'variable:'.\n\n",
+                  "Found:\n",
+                  "  - variable: ", .x$variable, "\n\n",
+                  "Should be:\n",
+                  "  - category: ", .x$variable, "\n",
+                  call. = FALSE
+                )
+              }
+              list_modify(
+                .x,
+                variable = .x$category,
+                category = zap(), # removes the field from the object
+                # Map parent_category to parent_variable for internal consistency
+                parent_variable = .x$parent_category %||% .x$parent_variable,
+                parent_category = zap(),
+                data_type = factor('category'),
+                has_values = FALSE, # categories don't have data columns
+                entity_name = entity_metadata$name
+              )
+            }
           ),
         variable_metadata_defaults
       )
@@ -214,6 +248,53 @@ entity_from_stf <- function(tsv_path, yaml_path = NULL) {
         bind_rows() %>%
         # and then rename it back again
         rename(category = variable)
+    }
+  }
+
+  # Check for missing parent_variable references early and warn
+  if ("parent_variable" %in% names(variables)) {
+    vars_with_parents <- variables %>%
+      filter(!is.na(parent_variable)) %>%
+      select(variable, parent_variable)
+
+    if (nrow(vars_with_parents) > 0) {
+      all_variable_names <- variables$variable
+      missing_parents <- vars_with_parents %>%
+        filter(!parent_variable %in% all_variable_names)
+
+      if (nrow(missing_parents) > 0) {
+        # Group by missing parent to show which variables reference each
+        parent_to_children <- missing_parents %>%
+          group_by(parent_variable) %>%
+          summarise(children = list(variable), .groups = "drop")
+
+        detail_lines <- purrr::map_chr(seq_len(nrow(parent_to_children)), function(i) {
+          parent <- parent_to_children$parent_variable[i]
+          children <- parent_to_children$children[[i]]
+          paste0("  '", parent, "' referenced by: ", paste0(children, collapse = ", "))
+        })
+
+        # Generate YAML suggestion
+        yaml_suggestions <- purrr::map_chr(seq_len(nrow(parent_to_children)), function(i) {
+          parent <- parent_to_children$parent_variable[i]
+          paste0(
+            "  - category: ", parent, "\n",
+            "    display_name: \"<display name>\""
+          )
+        })
+
+        warning(
+          "STF YAML contains parent_variable references to undefined categories.\n",
+          "Missing parent_variable values:\n",
+          paste(detail_lines, collapse = "\n"), "\n\n",
+          "To fix, add missing categories to the 'categories' section in '",
+          basename(yaml_path), "':\n\n",
+          "categories:\n",
+          paste(yaml_suggestions, collapse = "\n"), "\n\n",
+          "The entity will be loaded, but validate() will fail until this is fixed.",
+          call. = FALSE
+        )
+      }
     }
   }
 

@@ -15,10 +15,24 @@ create_feedback_tools <- function(quiet = FALSE, success_message = "Validation s
   
   give_feedback <- function(fatal_message = NULL) {
     if (!quiet && length(feedback) > 0) {
-      warning("Validation issues found:\n", paste(feedback, collapse = "\n"))
+      n <- length(feedback)
+      header <- if (n == 1) {
+        "Validation issues found (1 issue):"
+      } else {
+        paste0("Validation issues found (", n, " issues):")
+      }
+      numbered_feedback <- paste0("[", seq_along(feedback), "] ", feedback)
+      warning(header, "\n\n", paste(numbered_feedback, collapse = "\n\n"))
     }
     if (!quiet && length(advisory_feedback) > 0) {
-      message("Advisory messages:\n", paste(advisory_feedback, collapse = "\n"))
+      n_adv <- length(advisory_feedback)
+      header <- if (n_adv == 1) {
+        "Advisory messages (1 message):"
+      } else {
+        paste0("Advisory messages (", n_adv, " messages):")
+      }
+      numbered_advisory <- paste0("[", seq_along(advisory_feedback), "] ", advisory_feedback)
+      message(header, "\n\n", paste(numbered_advisory, collapse = "\n\n"))
     }
     if (is.character(fatal_message)) {
       warning("Fatal issue encountered:\n", fatal_message, call. = FALSE)
