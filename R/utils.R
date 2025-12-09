@@ -113,6 +113,11 @@ convert_to_type <- function(x, data_type) {
 #' @export
 type_convert_quietly <- function(data, guess_integer = TRUE, global_varname = 'entity') {
   convert_column <- function(column, column_name) {
+    # If column is not character type, return it as-is (already converted)
+    if (!is.character(column)) {
+      return(column)
+    }
+
     tryCatch(
       {
         suppressMessages(readr::type_convert(tibble(value = column), guess_integer = guess_integer)$value)
@@ -136,7 +141,7 @@ type_convert_quietly <- function(data, guess_integer = TRUE, global_varname = 'e
       }
     )
   }
-  
+
   data %>%
     mutate(across(everything(), ~ convert_column(.x, cur_column())))
 }
