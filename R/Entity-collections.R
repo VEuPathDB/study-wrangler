@@ -211,16 +211,21 @@ setMethod("get_hydrated_collection_metadata", "Entity", function(entity) {
     rename(
       display_name = display_name.x,
       stable_id = stable_id.x,
-      impute_zero = impute_zero.y
+      impute_zero = impute_zero.y  # inferred from child variables (right side of join)
     ) %>%
     group_by(category) %>%
     summarise(
-      # For fields guaranteed to be uniform within each category (by `validate(entity)`),
-      # just take the first
+      # Collection-level fields: inherently one-per-category (from left side of join)
       across(
         c(stable_id, member, member_plural, display_name,
-          is_proportion, is_compositional, normalization_method,
-          unit, impute_zero, data_type, data_shape),
+          is_proportion, is_compositional, normalization_method),
+        first
+      ),
+
+      # Child variable fields: guaranteed homogeneous within each category
+      # by validate_entity_collections_homogeneous()
+      across(
+        c(unit, impute_zero, data_type, data_shape),
         first
       ),
       
