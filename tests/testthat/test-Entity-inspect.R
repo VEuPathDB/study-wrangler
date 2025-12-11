@@ -59,17 +59,68 @@ test_that("inspect(entity) counts annotations properly", {
 
 test_that("Collections are shown in inspect() properly", {
   study <- make_study_with_collections(name = "collections study")
-  
+
   observations <- study %>% get_entity('observation')
-  
+
   message_without_dupes$reset()
-  
+
   expect_message(
     output <- capture.output(inspect(observations)),
     "Generating temporary stable_id for entity"
   )
-  
+
   expect_true(any(grepl('stable_id\\s*COL_', output, perl=TRUE)))
   expect_true(any(grepl('category\\s*integer.measures', output, perl=TRUE)))
-  
+
+})
+
+test_that("inspect() handles entities with problematic continuous variables for bin width computation", {
+  # Create an entity with continuous variables that might cause findBinWidth() to fail
+  # Test cases: all identical values, very small range, etc.
+  test_data <- tibble(
+    id = 1:10,
+    constant_value = rep(5.0, 10),  # All identical - may cause bin width issues
+    near_constant = c(1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.00001),  # Nearly identical
+    normal_var = seq(1, 10, length.out = 10),  # Normal variable for comparison
+    all_na = rep(NA_real_, 10)  # All missing values
+  )
+
+  # Create a temporary file with this data
+  temp_file <- tempfile(fileext = ".tsv")
+  write.table(test_data, temp_file, sep = "\t", row.names = FALSE, quote = FALSE)
+
+  # Create entity from file
+  entity <- entity_from_file(temp_file, name = "test")
+
+  # Clean up temp file
+  unlink(temp_file)
+
+  # The inspect function should not throw an error even with problematic variables
+  # This is the key test - previously this would fail with:
+  # "Error in if (x == 0) ...: missing value where TRUE/FALSE needed"
+  expect_no_error({
+    output <- capture.output(inspect(entity))
+  })
+
+  # Verify the output contains expected sections
+  expect_true(any(grepl("Summary of variable values", output)))
+  expect_true(length(output) > 0)
+})
+
+test_that("inspect() handles entities with very large numeric values", {
+  # Test with very large numeric values (hundreds of billions)
+  # These values caused: "Error in if (dx == 0) ...: missing value where TRUE/FALSE needed"
+  file_path <- system.file("extdata", "test_large_values.tsv", package = 'study.wrangler')
+
+  # Create entity from file
+  entity <- entity_from_file(file_path, name = "test_large_values")
+
+  # This should not throw an error
+  expect_no_error({
+    output <- capture.output(inspect(entity))
+  })
+
+  # Verify the output contains expected sections
+  expect_true(any(grepl("Summary of variable values", output)))
+  expect_true(length(output) > 0)
 })

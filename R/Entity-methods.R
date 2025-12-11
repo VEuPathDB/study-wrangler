@@ -1138,7 +1138,13 @@ setMethod("get_hydrated_variable_and_category_metadata", "Entity", function(enti
       ),
       distinct_values_count = map_int(column_data, n_distinct),
       mean = map_chr(column_data, ~ as.character(mean(.x, na.rm = TRUE))),
-      bin_width_computed = map_chr(column_data, ~ as.character(findBinWidth(.x, na.rm = TRUE))),
+      bin_width_computed = map_chr(column_data, ~ {
+        result <- tryCatch(
+          findBinWidth(.x, na.rm = TRUE),
+          error = function(e) NA_real_
+        )
+        as.character(result)
+      }),
       summary_stats = map2(column_data, is_date, ~ safe_fivenum(.x, is_date = .y)),
       range_min = map_chr(summary_stats, ~ as.character(.x[[1]])),
       lower_quartile = map_chr(summary_stats, ~ as.character(.x[[2]])),
