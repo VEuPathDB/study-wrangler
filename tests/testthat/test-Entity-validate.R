@@ -516,8 +516,7 @@ test_that("validate() complains about string variables with continuous data_shap
   # Fix it by setting appropriate data_shape
   households <- households %>%
     quiet() %>%
-    set_variable_metadata('Construction.material', data_shape = 'categorical') %>%
-    verbose()
+    set_variable_metadata('Construction.material', data_shape = 'categorical')
 
   expect_true(households %>% validate())
 })
