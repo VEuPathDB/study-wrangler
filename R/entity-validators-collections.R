@@ -80,7 +80,8 @@ validate_entity_collections_homogeneous <- function(entity) {
   
   required_homogeneous_fields <- c('data_type', 'data_shape', 'unit', 'impute_zero')
   bad_category_child_fields <- collections %>%
-    left_join(variables, join_by(category == parent_variable)) %>%
+    left_join(variables, join_by(category == parent_variable), 
+              suffix = c(".ignore", "")) %>%
     select(category, all_of(required_homogeneous_fields)) %>%
     pivot_longer(
       cols      = -category,

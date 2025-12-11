@@ -8,6 +8,7 @@ collection_metadata_defaults = tibble(
   display_name = NA_character_,
   is_proportion = FALSE,
   is_compositional = FALSE,
+  impute_zero = FALSE,
   normalization_method = NA_character_,
   # Note that the GUS plugin here https://github.com/VEuPathDB/ApiCommonData/blob/50f31d647a91e282df298b3894617bd6dcbe09ca/Load/plugin/perl/LoadDatasetSpecificEntityGraph.pm#L861
   # formerly used to require the human-annotated display_range_min and max
@@ -205,11 +206,12 @@ setMethod("get_hydrated_collection_metadata", "Entity", function(entity) {
       display_range_min.x, display_range_min.y,
       display_range_max.x, display_range_max.y,
       range_min, range_max,
-      impute_zero, data_type, data_shape, unit, precision
+      impute_zero.y, data_type, data_shape, unit, precision
     ) %>%
     rename(
       display_name = display_name.x,
-      stable_id = stable_id.x
+      stable_id = stable_id.x,
+      impute_zero = impute_zero.y
     ) %>%
     group_by(category) %>%
     summarise(
