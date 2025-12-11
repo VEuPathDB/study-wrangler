@@ -254,6 +254,106 @@ validate_entity_ordinal_factors <- function(entity) {
   list(valid = TRUE)
 }
 
+#' Validator: Check string variables contain character values
+#' @keywords internal
+validate_entity_string_data_types <- function(entity) {
+  data <- entity@data
+  variables <- entity@variables
+
+  # For string type variables, allow factors ONLY if they're ordinal
+  # Otherwise they must be character
+  string_columns <- variables %>%
+    filter(data_type == "string" & !is_multi_valued & data_shape != "ordinal") %>% pull(variable)
+
+  if (length(string_columns) == 0) {
+    return(list(valid = TRUE))
+  }
+
+  not_strings <- data %>%
+    select(all_of(string_columns)) %>%
+    summarise(across(everything(), ~ !is.character(.))) %>%
+    unlist() %>% as.logical()
+
+  if (any(not_strings)) {
+    problem_columns <- string_columns[not_strings]
+    # Get global variable name for fix-it suggestions
+    global_varname <- find_global_varname(entity, 'entity')
+
+    # Create individual messages for each problematic column
+    messages <- sapply(problem_columns, function(col_name) {
+      actual_type <- class(data[[col_name]])[1]
+      paste0("The column '", col_name, "' is declared as 'string' but contains ", actual_type, " values.")
+    })
+
+    # Create individual fix commands for each column
+    fix_commands <- sapply(problem_columns, function(col_name) {
+      paste0("    ", global_varname, " <- ", global_varname, " %>% modify_data(mutate(",
+             col_name, " = as.character(", col_name, ")))")
+    })
+
+    message <- paste(
+      paste(messages, collapse = "\n"),
+      "To convert these columns to character type, use:",
+      paste(fix_commands, collapse = "\n"),
+      "Or to re-detect data types for these columns (may change to 'integer' or 'number'), use:",
+      paste0("    ", global_varname, " <- ", global_varname, " %>% redetect_columns_as_variables(c('",
+             paste(problem_columns, collapse = "', '"), "'))"),
+      sep = "\n"
+    )
+
+    return(list(
+      valid = FALSE,
+      fatal = FALSE,
+      message = message
+    ))
+  }
+
+  list(valid = TRUE)
+}
+
+#' Validator: Check string variables have appropriate data_shape
+#' @keywords internal
+validate_entity_string_data_shapes <- function(entity) {
+  variables <- entity@variables
+
+  # String variables should only have data_shape: categorical, ordinal, or binary
+  # NOT continuous (which is only for number, integer, date)
+  invalid_string_shapes <- variables %>%
+    filter(data_type == "string" & data_shape == "continuous") %>%
+    pull(variable)
+
+  if (length(invalid_string_shapes) > 0) {
+    # Get global variable name for fix-it suggestions
+    global_varname <- find_global_varname(entity, 'entity')
+
+    # Create individual messages for each problematic column
+    messages <- sapply(invalid_string_shapes, function(col_name) {
+      paste0("Variable '", col_name, "' has data_type 'string' but data_shape 'continuous'. String variables should have data_shape 'categorical', 'ordinal', or 'binary'.")
+    })
+
+    # Create individual fix commands for each column
+    fix_commands <- sapply(invalid_string_shapes, function(col_name) {
+      paste0("    ", global_varname, " <- ", global_varname, " %>% set_variable_metadata('",
+             col_name, "', data_shape = 'categorical')")
+    })
+
+    message <- paste(
+      paste(messages, collapse = "\n"),
+      "To fix these variables, set an appropriate data_shape:",
+      paste(fix_commands, collapse = "\n"),
+      sep = "\n"
+    )
+
+    return(list(
+      valid = FALSE,
+      fatal = FALSE,
+      message = message
+    ))
+  }
+
+  list(valid = TRUE)
+}
+
 #' Validator: Check ordinal levels consistency
 #' @keywords internal
 validate_entity_ordinal_levels <- function(entity) {
