@@ -340,55 +340,198 @@ export_attributes_to_vdi <- function(entities, output_directory, install_json, s
   
   # Handle string variables
   string_variables <- metadata %>% filter(data_type == 'string') %>% pull(variable)
-  string_data <- if (length(string_variables) > 0) {
+
+  # Separate single-valued and multi-valued string variables
+  # Note: is_multi_valued has been converted to 0/1 integer at line 275
+  string_meta <- metadata %>% filter(data_type == 'string')
+  sv_string_vars <- string_meta %>% filter(is_multi_valued == 0 | is.na(is_multi_valued)) %>% pull(variable)
+  mv_string_vars <- string_meta %>% filter(is_multi_valued == 1) %>% pull(variable)
+
+  # Process single-valued string variables efficiently in batch
+  sv_string_data <- if (length(sv_string_vars) > 0) {
     data %>%
-      # rename the ID column to `id_col_vdi`
-      select("{id_col_vdi}" := {{id_col}}, all_of(string_variables)) %>%
-      # convert to character in case it was a numeric ID column
+      select("{id_col_vdi}" := {{id_col}}, all_of(sv_string_vars)) %>%
       mutate("{id_col_vdi}" := as.character(!!sym(id_col_vdi))) %>%
       pivot_longer(
-        all_of(string_variables),
+        all_of(sv_string_vars),
         names_transform = function(name) stable_ids[name],
         names_to = "attribute_stable_id",
         values_to = "string_value"
-      )
+      ) %>%
+      filter(!is.na(string_value) & string_value != "")
   } else {
     tibble("{id_col_vdi}" := character(), attribute_stable_id = character(), string_value = character())
   }
+
+  # Process multi-valued string variables individually using pmap
+  mv_string_data <- if (length(mv_string_vars) > 0) {
+    mv_string_meta <- string_meta %>% filter(is_multi_valued == 1)
+
+    pmap(
+      list(mv_string_meta$variable, mv_string_meta$multi_value_delimiter),
+      function(var, delim) {
+        # For each row, split the delimited values and replicate the ID
+        data %>%
+          select(id = {{id_col}}, value = all_of(var)) %>%
+          mutate(id = as.character(id)) %>%
+          rowwise() %>%
+          mutate(
+            values = list(
+              if (is.na(value) || value == "") {
+                NA_character_
+              } else {
+                strsplit(as.character(value), split = delim, fixed = TRUE)[[1]]
+              }
+            )
+          ) %>%
+          ungroup() %>%
+          tidyr::unnest(values) %>%
+          filter(!is.na(values) & values != "") %>%
+          mutate(
+            "{id_col_vdi}" := id,
+            attribute_stable_id = stable_ids[var],
+            string_value = values,
+            .keep = "none"
+          )
+      }
+    ) %>%
+      bind_rows()
+  } else {
+    tibble("{id_col_vdi}" := character(), attribute_stable_id = character(), string_value = character())
+  }
+
+  # Combine single-valued and multi-valued string data
+  string_data <- bind_rows(sv_string_data, mv_string_data)
   
   # Handle number variables
   number_variables <- metadata %>% filter(data_type %in% c("integer", "number", "longitude")) %>% pull(variable)
-  number_data <- if (length(number_variables) > 0) {
+
+  # Separate single-valued and multi-valued number variables
+  # Note: is_multi_valued has been converted to 0/1 integer at line 275
+  number_meta <- metadata %>% filter(data_type %in% c("integer", "number", "longitude"))
+  sv_number_vars <- number_meta %>% filter(is_multi_valued == 0 | is.na(is_multi_valued)) %>% pull(variable)
+  mv_number_vars <- number_meta %>% filter(is_multi_valued == 1) %>% pull(variable)
+
+  # Process single-valued number variables efficiently in batch
+  sv_number_data <- if (length(sv_number_vars) > 0) {
     data %>%
-      select("{id_col_vdi}" := {{id_col}}, all_of(number_variables)) %>%
-      # convert to character in case it was a numeric ID column
+      select("{id_col_vdi}" := {{id_col}}, all_of(sv_number_vars)) %>%
       mutate("{id_col_vdi}" := as.character(!!sym(id_col_vdi))) %>%
       pivot_longer(
-        all_of(number_variables),
+        all_of(sv_number_vars),
         names_transform = function(name) stable_ids[name],
         names_to = "attribute_stable_id",
         values_to = "number_value"
-      )
+      ) %>%
+      filter(!is.na(number_value))
   } else {
     tibble("{id_col_vdi}" := character(), attribute_stable_id = character(), number_value = numeric())
   }
 
+  # Process multi-valued number variables individually using pmap
+  mv_number_data <- if (length(mv_number_vars) > 0) {
+    mv_number_meta <- number_meta %>% filter(is_multi_valued == 1)
+
+    pmap(
+      list(mv_number_meta$variable, mv_number_meta$multi_value_delimiter),
+      function(var, delim) {
+        # For each row, split the delimited values and replicate the ID
+        data %>%
+          select(id = {{id_col}}, value = all_of(var)) %>%
+          mutate(id = as.character(id)) %>%
+          rowwise() %>%
+          mutate(
+            values = list(
+              if (is.na(value) || value == "") {
+                NA_real_
+              } else {
+                as.numeric(strsplit(as.character(value), split = delim, fixed = TRUE)[[1]])
+              }
+            )
+          ) %>%
+          ungroup() %>%
+          tidyr::unnest(values) %>%
+          filter(!is.na(values)) %>%
+          mutate(
+            "{id_col_vdi}" := id,
+            attribute_stable_id = stable_ids[var],
+            number_value = values,
+            .keep = "none"
+          )
+      }
+    ) %>%
+      bind_rows()
+  } else {
+    tibble("{id_col_vdi}" := character(), attribute_stable_id = character(), number_value = numeric())
+  }
+
+  # Combine single-valued and multi-valued number data
+  number_data <- bind_rows(sv_number_data, mv_number_data)
+
   # Handle date variables
   date_variables <- metadata %>% filter(data_type == "date") %>% pull(variable)
-  date_data <- if (length(date_variables) > 0) {
+
+  # Separate single-valued and multi-valued date variables
+  # Note: is_multi_valued has been converted to 0/1 integer at line 275
+  date_meta <- metadata %>% filter(data_type == "date")
+  sv_date_vars <- date_meta %>% filter(is_multi_valued == 0 | is.na(is_multi_valued)) %>% pull(variable)
+  mv_date_vars <- date_meta %>% filter(is_multi_valued == 1) %>% pull(variable)
+
+  # Process single-valued date variables efficiently in batch
+  sv_date_data <- if (length(sv_date_vars) > 0) {
     data %>%
-      select("{id_col_vdi}" := {{id_col}}, all_of(date_variables)) %>%
-      # convert to character in case it was a numeric ID column
+      select("{id_col_vdi}" := {{id_col}}, all_of(sv_date_vars)) %>%
       mutate("{id_col_vdi}" := as.character(!!sym(id_col_vdi))) %>%
       pivot_longer(
-        all_of(date_variables),
+        all_of(sv_date_vars),
         names_transform = function(name) stable_ids[name],
         names_to = "attribute_stable_id",
         values_to = "date_value"
-      )
+      ) %>%
+      filter(!is.na(date_value))
   } else {
     tibble("{id_col_vdi}" := character(), attribute_stable_id = character(), date_value = as.Date(character()))
   }
+
+  # Process multi-valued date variables individually using pmap
+  mv_date_data <- if (length(mv_date_vars) > 0) {
+    mv_date_meta <- date_meta %>% filter(is_multi_valued == 1)
+
+    pmap(
+      list(mv_date_meta$variable, mv_date_meta$multi_value_delimiter),
+      function(var, delim) {
+        # For each row, split the delimited values and replicate the ID
+        data %>%
+          select(id = {{id_col}}, value = all_of(var)) %>%
+          mutate(id = as.character(id)) %>%
+          rowwise() %>%
+          mutate(
+            values = list(
+              if (is.na(value) || value == "") {
+                as.Date(NA_character_)
+              } else {
+                as.Date(strsplit(as.character(value), split = delim, fixed = TRUE)[[1]])
+              }
+            )
+          ) %>%
+          ungroup() %>%
+          tidyr::unnest(values) %>%
+          filter(!is.na(values)) %>%
+          mutate(
+            "{id_col_vdi}" := id,
+            attribute_stable_id = stable_ids[var],
+            date_value = values,
+            .keep = "none"
+          )
+      }
+    ) %>%
+      bind_rows()
+  } else {
+    tibble("{id_col_vdi}" := character(), attribute_stable_id = character(), date_value = as.Date(character()))
+  }
+
+  # Combine single-valued and multi-valued date data
+  date_data <- bind_rows(sv_date_data, mv_date_data)
 
   # Combine all data types
   attribute_values_data <- bind_rows(string_data, number_data, date_data)

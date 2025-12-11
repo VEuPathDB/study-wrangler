@@ -211,9 +211,13 @@ validate_entity_multi_valued_character <- function(entity) {
 validate_entity_ordinal_factors <- function(entity) {
   data <- entity@data
   variables <- entity@variables
-  
+
+  # Only single-valued ordinals should be factors
+  # Multi-valued ordinals must remain as character strings with delimiters
   factor_columns <- variables %>%
-    filter(data_shape == "ordinal") %>% pull(variable)
+    filter(data_shape == "ordinal") %>%
+    filter(!is_multi_valued) %>%
+    pull(variable)
   
   if (length(factor_columns) == 0) {
     return(list(valid = TRUE))
@@ -358,27 +362,27 @@ validate_entity_string_data_shapes <- function(entity) {
 #' @keywords internal
 validate_entity_ordinal_levels <- function(entity) {
   variables <- entity@variables
-  
+
   ordinal_issues <- variables %>%
     mutate(
       num_levels = map_int(ordinal_levels, length),
       issue = case_when(
-        data_shape == 'ordinal' & !data_type %in% c("integer", "string") ~ 
-          paste0("Variable '", variable, "' data_shape 'ordinal' is not compatible with data_type '", data_type, "'"), 
-        data_shape == 'ordinal' & num_levels == 0 ~ 
+        data_shape == 'ordinal' & !data_type %in% c("integer", "string") ~
+          paste0("Variable '", variable, "' data_shape 'ordinal' is not compatible with data_type '", data_type, "'"),
+        data_shape == 'ordinal' & num_levels == 0 ~
           paste0("Ordinal variable '", variable, "' has no ordinal_levels defined but requires them."),
-        data_shape != 'ordinal' & num_levels > 0 ~ 
+        data_shape != 'ordinal' & num_levels > 0 ~
           paste0("Non-ordinal variable '", variable, "' has ", num_levels, " ordinal_levels but should have none."),
         TRUE ~ "OK"
       )
     ) %>%
     filter(issue != 'OK') %>%
     pull(issue)
-  
+
   if (length(ordinal_issues) > 0) {
     # Get global variable name for fix-it suggestions
     global_varname <- find_global_varname(entity, 'entity')
-    
+
     message <- paste(
       paste(ordinal_issues, collapse = "\n"),
       "To create an ordinal variable without these issues, use:",
@@ -387,13 +391,81 @@ validate_entity_ordinal_levels <- function(entity) {
       paste0("    ", global_varname, " <- ", global_varname, " %>% set_variable_metadata('variable_name', ordinal_levels = list()) %>% redetect_columns_as_variables('variable_name')"),
       sep = "\n"
     )
-    
+
     return(list(
       valid = FALSE,
       fatal = FALSE,
       message = message
     ))
   }
-  
+
+  list(valid = TRUE)
+}
+
+#' Validator: Check multi-valued ordinal expanded values are in ordinal_levels
+#' @keywords internal
+validate_entity_multivalued_ordinal_levels <- function(entity) {
+  data <- entity@data
+  variables <- entity@variables
+
+  # Get multi-valued ordinal variables
+  mv_ordinal_vars <- variables %>%
+    filter(data_shape == "ordinal" & is_multi_valued)
+
+  if (nrow(mv_ordinal_vars) == 0) {
+    return(list(valid = TRUE))
+  }
+
+  issues <- c()
+
+  for (i in 1:nrow(mv_ordinal_vars)) {
+    var_name <- mv_ordinal_vars$variable[i]
+    delimiter <- mv_ordinal_vars$multi_value_delimiter[i]
+    expected_levels <- unlist(mv_ordinal_vars$ordinal_levels[i])
+
+    # Expand the multi-valued column
+    expanded_data <- expand_multivalued_data_column(
+      data,
+      var_name,
+      is_multi_valued = TRUE,
+      multi_value_delimiter = delimiter,
+      .type_convert = FALSE
+    )
+
+    # Get unique observed values
+    observed_values <- expanded_data %>%
+      pull(var_name) %>%
+      unique() %>%
+      na.omit() %>%
+      as.character()
+
+    # Check if all observed values are in ordinal_levels
+    invalid_values <- setdiff(observed_values, expected_levels)
+
+    if (length(invalid_values) > 0) {
+      issues <- c(issues, paste0(
+        "Multi-valued ordinal variable '", var_name, "' has expanded values not in ordinal_levels: ",
+        paste(invalid_values, collapse = ", ")
+      ))
+    }
+  }
+
+  if (length(issues) > 0) {
+    global_varname <- find_global_varname(entity, 'entity')
+
+    message <- paste(
+      paste(issues, collapse = "\n"),
+      "To fix this, update the ordinal levels to include all observed values:",
+      paste0("    ", global_varname, " <- ", global_varname, " %>% set_variable_ordinal_levels('variable_name', c('level1', 'level2', ...))"),
+      sep = "\n"
+    )
+
+    return(list(
+      valid = FALSE,
+      fatal = FALSE,
+      message = message
+    ))
+  }
+
   list(valid = TRUE)
 }

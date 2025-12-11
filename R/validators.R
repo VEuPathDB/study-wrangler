@@ -171,7 +171,10 @@ list_validators <- function() {
   
   register_validator("entity_ordinal_levels", validate_entity_ordinal_levels,
                     "entity", "baseline", "Check ordinal levels consistency")
-  
+
+  register_validator("entity_multivalued_ordinal_levels", validate_entity_multivalued_ordinal_levels,
+                    "entity", "baseline", "Check multi-valued ordinal expanded values are in ordinal_levels")
+
   # Relationship validators
   register_validator("entity_parent_variable_exists", validate_entity_parent_variable_exists,
                     "entity", "baseline", "Check parent_variable references exist")
