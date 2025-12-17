@@ -12,19 +12,8 @@ WORKDIR /study.wrangler
 RUN ln -s /study.wrangler /home/rstudio/study.wrangler
 
 ### CRAN
-RUN R -e "install.packages('skimr')"
-
-### github
-
-# plot.data dependencies not automatically installed:
+RUN R -e "install.packages('remotes')"
 RUN R -e "install.packages('BiocManager')"
-RUN R -e "BiocManager::install('SummarizedExperiment')"
-RUN R -e "BiocManager::install('DESeq2')"
-RUN R -e "remotes::install_github('VEuPathDB/veupathUtils', 'v2.7.0', upgrade_dependencies=F)"
 
-# plot.data for binwidth function
-RUN R -e "remotes::install_github('VEuPathDB/plot.data', 'v5.4.2', upgrade_dependencies=F)"
-
-
-### local
-RUN R -e "install.packages('/study.wrangler', repos=NULL , type='source')"
+### local (installs github and BioConductor dependencies automatically)
+RUN R -e "remotes::install_local('/study.wrangler', dependencies=TRUE)"
