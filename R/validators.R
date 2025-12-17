@@ -130,7 +130,10 @@ list_validators <- function() {
   
   register_validator("entity_units_on_numeric_only", validate_entity_units_on_numeric_only,
                     "entity", "baseline", "Check units only on numeric variables")
-  
+
+  register_validator("entity_unique_stable_ids", validate_entity_unique_stable_ids,
+                    "entity", "baseline", "Check for unique generated stable_ids")
+
   # ID validators
   register_validator("entity_id_no_na", validate_entity_id_columns_no_na,
                     "entity", "baseline", "Check for NA values in ID columns")
