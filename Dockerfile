@@ -11,9 +11,5 @@ WORKDIR /study.wrangler
 ## Make a symlink in the rstudio homedir
 RUN ln -s /study.wrangler /home/rstudio/study.wrangler
 
-### CRAN
-RUN R -e "install.packages('remotes')"
-RUN R -e "install.packages('BiocManager')"
-
 ### local (installs github and BioConductor dependencies automatically)
 RUN R -e "remotes::install_local('/study.wrangler', dependencies=TRUE)"
