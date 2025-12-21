@@ -1197,16 +1197,21 @@ setMethod("get_hydrated_variable_and_category_metadata", "Entity", function(enti
   
   # append category metadata and add fallback stable_id if needed
   metadata <- metadata %>%
-    bind_rows(entity %>% get_category_metadata()) %>%
-    rowwise() %>%
-    mutate(
-      stable_id = if_else(
-        is.na(stable_id),
-        prefixed_alphanumeric_id(prefix = "VAR_", length = 8, seed_string = variable),
-        stable_id
-      )
-    ) %>%
-    ungroup()
+    bind_rows(entity %>% get_category_metadata())
+
+  # Optimization: skip expensive rowwise operation if all stable_ids are already set
+  if (any(is.na(metadata$stable_id))) {
+    metadata <- metadata %>%
+      rowwise() %>%
+      mutate(
+        stable_id = if_else(
+          is.na(stable_id),
+          prefixed_alphanumeric_id(prefix = "VAR_", length = 8, seed_string = variable),
+          stable_id
+        )
+      ) %>%
+      ungroup()
+  }
     
   # now that the stable_ids are available for each variable (or category)
   # we can do a self-join to set the parent_stable_id

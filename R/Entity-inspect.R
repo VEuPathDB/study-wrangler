@@ -57,7 +57,9 @@ setMethod("inspect", "Entity", function(object, variable_name = NULL) {
           ),
           Count = c(
             nrow(data),
-            data %>% filter(if_all(everything(), ~ !is.na(.))) %>% nrow()
+            # Use complete.cases() instead of filter(if_all(...)) to avoid
+            # expression stack overflow on wide entities
+            sum(complete.cases(data))
           )
         )
       ),
