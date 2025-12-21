@@ -1,7 +1,7 @@
 #' A generic for inspecting objects
 #'
 #' @param object The object to inspect
-#' @param ... Additional arguments
+#' @param ... Additional arguments. For Entity: variable_name, max_variables (default 100)
 #' @export
 setGeneric("inspect", function(object, ...) standardGeneric("inspect"))
 

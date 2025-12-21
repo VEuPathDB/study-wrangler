@@ -5,8 +5,9 @@
 #'
 #' @param entity An Entity object to inspect.
 #' @param variable_name An optional character string specifying a variable to inspect.
+#' @param max_variables Maximum number of variables to display. Use Inf for unlimited. Defaults to 100.
 #' @export
-setMethod("inspect", "Entity", function(object, variable_name = NULL) {
+setMethod("inspect", "Entity", function(object, variable_name = NULL, max_variables = 100) {
   entity <- object
 
   global_varname <- find_global_varname(object, 'entity')
@@ -29,8 +30,39 @@ setMethod("inspect", "Entity", function(object, variable_name = NULL) {
   variables_metadata <- get_hydrated_variable_and_category_metadata(entity)
   category_metadata <- get_category_metadata(entity)
   collections_metadata <- get_hydrated_collection_metadata(entity)
-  
-  # entity level metadata  
+
+  # Store total count before limiting
+  total_variables <- variables_metadata %>% filter(data_type != 'id', data_type != 'category')
+  total_variables_count <- nrow(total_variables)
+
+  # Apply simple limiting: keep all categories, limit variables to first max_variables
+  should_limit <- is.finite(max_variables) && total_variables_count > max_variables
+
+  if (should_limit) {
+    # Separate categories from variables
+    categories <- variables_metadata %>% filter(data_type == 'category')
+    ids <- variables_metadata %>% filter(data_type == 'id')
+    actual_variables <- variables_metadata %>%
+      filter(data_type != 'category', data_type != 'id') %>%
+      head(max_variables)
+
+    # Overwrite variables_metadata with limited set
+    variables_metadata <- bind_rows(ids, categories, actual_variables)
+    displayed_variables_count <- nrow(actual_variables)
+  }
+
+  # Big warning if limiting
+  if (should_limit) {
+    cat(to_lines(
+      "################################################################################",
+      glue("WARNING: Displaying only {displayed_variables_count} of {total_variables_count} variables"),
+      glue("Use `{global_varname} %>% inspect(max_variables = Inf)` to see all variables"),
+      "################################################################################",
+      ""
+    ))
+  }
+
+  # entity level metadata
   slots_list <- as_list(entity)
   character_slots <- slots_list[lapply(slots_list, class) == "character"]
   cat(
@@ -79,8 +111,9 @@ then you can redo the automatic column type detection with:
 If there are ID columns missing above, you may need to use:
   {global_varname} <- {global_varname} %>% set_parents(names=c('parent_name', 'grandparent_name'), id_columns=c('parent.id', 'grandparent.id'))
 "),
-      
+
       heading("Summary of important metadata for all variables and categories"),
+      if (should_limit) glue("NOTE: Showing {displayed_variables_count} of {total_variables_count} variables\n\n") else "",
       kable(variables_metadata %>%
         select(variable, provider_label, data_type, data_shape, display_name, stable_id, is_multi_valued) %>%
         rename(`var. or cat. name` = variable)
@@ -133,6 +166,7 @@ If there are ID columns missing above, you may need to use:
     cat(
       to_lines(
         heading("Summary of variable values and distributions"),
+        if (should_limit) glue("NOTE: Showing {displayed_variables_count} of {total_variables_count} variables\n\n") else "",
         "Note: the following summaries are are made directly from the data table of this entity",
         "with the skimr package.",
         if (nrow(multivalued_metadata) > 0)
@@ -151,6 +185,7 @@ If there are ID columns missing above, you may need to use:
     cat(
       to_lines(
         heading("Multi-valued variables summary"),
+        if (should_limit) glue("NOTE: Showing only variables from the {displayed_variables_count} displayed set\n\n") else "",
         kable(
           multivalued_metadata %>%
             rowwise() %>%
@@ -184,7 +219,13 @@ If there are ID columns missing above, you may need to use:
   cat(
     to_lines(
       heading("Summary of units for numeric variables"),
-      units_summary(entity)
+      units_summary(
+        entity,
+        variables_metadata = variables_metadata,
+        should_limit = should_limit,
+        displayed_variables_count = if (should_limit) displayed_variables_count else NULL,
+        total_variables_count = if (should_limit) total_variables_count else NULL
+      )
     )
   )
   
@@ -193,7 +234,12 @@ If there are ID columns missing above, you may need to use:
   cat(
     to_lines(
       heading("Variable categories/organisation"),
-      variable_ascii_tree(entity)
+      variable_ascii_tree(
+        entity,
+        should_limit = should_limit,
+        displayed_variables_count = if (should_limit) displayed_variables_count else NULL,
+        total_variables_count = if (should_limit) total_variables_count else NULL
+      )
     )
   )
   
@@ -241,12 +287,17 @@ If there are ID columns missing above, you may need to use:
 #' If there are no non-NA values for parent_variable this will return
 #' a message saying there's no variable tree/hierarchy
 #' @param entity an Entity object
+#' @param should_limit whether variable limiting is active
+#' @param displayed_variables_count number of variables being displayed (when limited)
+#' @param total_variables_count total number of variables (when limited)
 #' @return printable string
 #'
-variable_ascii_tree <- function(entity) {
+variable_ascii_tree <- function(entity, should_limit = FALSE,
+                                displayed_variables_count = NULL,
+                                total_variables_count = NULL) {
   metadata <- entity %>% get_variable_and_category_metadata()
   global_varname <- find_global_varname(entity, 'entity')
-  
+
   if (metadata %>% pull(parent_variable) %>% is.na() %>% all()) {
     return(to_lines(
       "This entity currently has no variable categorization.",
@@ -327,9 +378,17 @@ variable_ascii_tree <- function(entity) {
   }
   
   root <- create_row_ptr(metadata, root_name)
-  
+
+  # Prepend NOTE if limiting is in effect
+  note_message <- if (should_limit) {
+    glue("NOTE: Tree shows all categories but only {displayed_variables_count} of {total_variables_count} variables\n\n")
+  } else {
+    ""
+  }
+
   return(
     c(
+      note_message,
       recursive_ascii_tree(
         root,
         prefix = "",
@@ -345,16 +404,24 @@ variable_ascii_tree <- function(entity) {
 }
 
 
-units_summary <- function(entity) {
+units_summary <- function(entity, variables_metadata = NULL, should_limit = FALSE,
+                          displayed_variables_count = NULL, total_variables_count = NULL) {
   global_varname <- find_global_varname(entity, 'entity')
-  
-  numeric_vars_metadata <- entity %>%
-    get_variable_metadata() %>%
-    filter(data_type %in% c("integer", "number"))
-  
+
+  # If variables_metadata is provided, filter to only those variables
+  # Otherwise get all variable metadata
+  if (!is.null(variables_metadata)) {
+    numeric_vars_metadata <- variables_metadata %>%
+      filter(data_type %in% c("integer", "number"))
+  } else {
+    numeric_vars_metadata <- entity %>%
+      get_variable_metadata() %>%
+      filter(data_type %in% c("integer", "number"))
+  }
+
   if (nrow(numeric_vars_metadata) == 0)
     return("This entity has no numeric variables, so no units to summarise.")
- 
+
   advice <- if (numeric_vars_metadata %>% pull(unit) %>% is.na() %>% all()) {
     list(
       "~~~~",
@@ -364,8 +431,16 @@ units_summary <- function(entity) {
   } else {
     ""
   }
-  
+
+  # Prepend NOTE if limiting is in effect
+  note_message <- if (should_limit) {
+    glue("NOTE: Showing only variables from the {displayed_variables_count} displayed set\n\n")
+  } else {
+    ""
+  }
+
   return(c(
+    note_message,
     kable(
       numeric_vars_metadata %>% select(
         variable,
@@ -375,6 +450,6 @@ units_summary <- function(entity) {
     ),
     advice
   ))
-   
+
 }
 

@@ -71,5 +71,25 @@ test_that("Collections are shown in inspect() properly", {
   
   expect_true(any(grepl('stable_id\\s*COL_', output, perl=TRUE)))
   expect_true(any(grepl('category\\s*integer.measures', output, perl=TRUE)))
-  
+
+})
+
+test_that("inspect() respects max_variables parameter", {
+  # Create entity with 150 variables
+  data <- tibble(id = 1:10)
+  for (i in 1:150) {
+    data[[paste0("var_", sprintf("%03d", i))]] <- rnorm(10)
+  }
+
+  entity <- entity_from_tibble(data, name = "test_wide", skip_type_convert = TRUE) %>%
+    quiet() %>%
+    redetect_column_as_id("id")
+
+  # Test with default limit (100)
+  output_default <- capture.output(inspect(entity))
+  expect_true(any(grepl("WARNING.*100 of 150", output_default)))
+
+  # Test with Inf (no limit)
+  output_unlimited <- capture.output(inspect(entity, max_variables = Inf))
+  expect_false(any(grepl("WARNING", output_unlimited)))
 })
