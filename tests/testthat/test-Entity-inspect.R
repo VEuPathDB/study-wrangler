@@ -4,15 +4,14 @@ test_that("inspect(entity) outputs categorical values in full", {
   # Example file path
   file_path <- system.file("extdata", "toy_example/households.tsv", package = 'study.wrangler')
   # Create an Entity object
-  households <- entity_from_file(file_path)
+  households <- entity_from_file(file_path, name = 'household')
   # inspect it and grab the output
   message_without_dupes$reset()
   
-  # the new hydrated metadata cache voids this:
-  # expect_message(
-  output <- capture.output(inspect(households))
-  #   "Warning: because this entity has no `name` .required., a placeholder entity ID has been generated."
-  # )
+  expect_message(
+    output <- capture.output(inspect(households)),
+    "Generating temporary stable_id for entity"
+  )
 
   # Make sure it contains a factor value longer than three characters
   expect_true(any(grepl("Concrete", output)))
@@ -27,11 +26,8 @@ test_that("inspect(entity) counts annotations properly", {
   # Create an Entity object
   households <- entity_from_file(file_path, name='household')
   
-  expect_message(
-    output <- capture.output(inspect(households)),
-    "Generating temporary stable_id for entity"
-  )
-  
+  output <- capture.output(inspect(households))
+
   # expect 4 variables with no annotations
   expect_true(any(grepl('Total number of variables\\s*\\b4\\b', output, perl=TRUE)))
   expect_true(any(grepl('display_name provided\\*\\s*\\b0\\b', output, perl=TRUE)))

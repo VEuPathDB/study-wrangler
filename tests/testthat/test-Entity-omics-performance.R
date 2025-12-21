@@ -8,7 +8,7 @@
 #' How to run:
 #'
 #' From R console/RStudio:
-  Sys.setenv(RUN_BENCHMARKS = "true")
+#'   Sys.setenv(RUN_BENCHMARKS = "true")
 #'   devtools::test_file("tests/testthat/test-Entity-omics-performance.R")
 #'
 #' From terminal:
