@@ -64,20 +64,11 @@ test_that("Benchmark: stable_id optimization for wide omics entities", {
     redetect_column_as_id("Sample.Id")
 
   # Set stable_ids for all gene variables (use gene name as stable_id)
-  # Quick-and-nasty direct mutation for testing (not recommended for production code)
   gene_vars <- colnames(gene_data)
-  message(sprintf("Setting stable_ids for %d gene variables...", length(gene_vars)))
-  entity_with_stable_ids@variables <- entity_with_stable_ids@variables %>%
-    mutate(
-      stable_id = if_else(
-        variable %in% gene_vars,
-        variable,
-        stable_id  # Keep ID column and any other variables as-is
-      )
-    )
-  message("Done setting stable_ids")
+  entity_with_stable_ids <- entity_with_stable_ids %>%
+    set_variables_stable_ids(gene_vars)
 
-  # Validate that the hack didn't break anything
+  # Validate that stable_ids were set correctly
   expect_true(entity_with_stable_ids %>% validate())
 
   # Benchmark hydration WITHOUT stable_ids
