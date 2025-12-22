@@ -271,18 +271,9 @@ validate_entity_unique_stable_ids <- function(entity) {
     return(list(valid = TRUE))
   }
 
-  # Generate stable_ids using the same logic as get_hydrated_variable_and_category_metadata()
-  # but without computing expensive stats
-  generated_stable_ids <- metadata %>%
-    rowwise() %>%
-    mutate(
-      generated_stable_id = if_else(
-        is.na(stable_id),
-        prefixed_alphanumeric_id(prefix = "VAR_", length = 8, seed_string = variable),
-        stable_id
-      )
-    ) %>%
-    ungroup()
+  # Generate stable_ids using the shared helper function
+  generated_stable_ids <- generate_variable_stable_ids(metadata) %>%
+    rename(generated_stable_id = stable_id)
 
   # Check for duplicates in the generated stable_ids
   duplicate_ids <- generated_stable_ids %>%

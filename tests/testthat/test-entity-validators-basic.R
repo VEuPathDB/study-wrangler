@@ -84,8 +84,7 @@ test_that("unique stable_ids validator passes when duplicates are fixed", {
   households_fixed <- entity_from_file(file_path, name = 'household') %>%
     quiet() %>%
     set_variable_metadata('Number.of.animals', stable_id = 'VAR_unique1') %>%
-    set_variable_metadata('Owns.property', stable_id = 'VAR_unique2') %>%
-    verbose()
+    set_variable_metadata('Owns.property', stable_id = 'VAR_unique2')
 
   expect_true(validate(households_fixed, profiles = "baseline"))
 })
