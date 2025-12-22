@@ -4,15 +4,14 @@ test_that("inspect(entity) outputs categorical values in full", {
   # Example file path
   file_path <- system.file("extdata", "toy_example/households.tsv", package = 'study.wrangler')
   # Create an Entity object
-  households <- entity_from_file(file_path)
+  households <- entity_from_file(file_path, name = 'household')
   # inspect it and grab the output
   message_without_dupes$reset()
   
-  # the new hydrated metadata cache voids this:
-  # expect_message(
-  output <- capture.output(inspect(households))
-  #   "Warning: because this entity has no `name` .required., a placeholder entity ID has been generated."
-  # )
+  expect_message(
+    output <- capture.output(inspect(households)),
+    "Generating temporary stable_id for entity"
+  )
 
   # Make sure it contains a factor value longer than three characters
   expect_true(any(grepl("Concrete", output)))
@@ -27,11 +26,8 @@ test_that("inspect(entity) counts annotations properly", {
   # Create an Entity object
   households <- entity_from_file(file_path, name='household')
   
-  expect_message(
-    output <- capture.output(inspect(households)),
-    "Generating temporary stable_id for entity"
-  )
-  
+  output <- capture.output(inspect(households))
+
   # expect 4 variables with no annotations
   expect_true(any(grepl('Total number of variables\\s*\\b4\\b', output, perl=TRUE)))
   expect_true(any(grepl('display_name provided\\*\\s*\\b0\\b', output, perl=TRUE)))
@@ -71,5 +67,25 @@ test_that("Collections are shown in inspect() properly", {
   
   expect_true(any(grepl('stable_id\\s*COL_', output, perl=TRUE)))
   expect_true(any(grepl('category\\s*integer.measures', output, perl=TRUE)))
-  
+
+})
+
+test_that("inspect() respects max_variables parameter", {
+  # Create entity with 150 variables
+  data <- tibble(id = 1:10)
+  for (i in 1:150) {
+    data[[paste0("var_", sprintf("%03d", i))]] <- rnorm(10)
+  }
+
+  entity <- entity_from_tibble(data, name = "test_wide", skip_type_convert = TRUE) %>%
+    quiet() %>%
+    redetect_column_as_id("id")
+
+  # Test with default limit (100)
+  output_default <- capture.output(inspect(entity))
+  expect_true(any(grepl("WARNING.*100 of 150", output_default)))
+
+  # Test with Inf (no limit)
+  output_unlimited <- capture.output(inspect(entity, max_variables = Inf))
+  expect_false(any(grepl("WARNING", output_unlimited)))
 })
