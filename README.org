@@ -6,10 +6,6 @@ study.wranger R package for tidying data in a way compatible with VEuPathDB work
 * Install in existing R environment or RStudio
 
 #+BEGIN_SRC R
-# Install Bioconductor packages
-install.packages("BiocManager") # if not already installed
-BiocManager::install(c("SummarizedExperiment", "DESeq2"))
-
 # Install the remotes package
 install.packages("remotes") # if you don't already have 'remotes'
 
