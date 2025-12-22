@@ -79,6 +79,8 @@ setGeneric("set_variables_multivalued", function(entity, ...) standardGeneric("s
 #' @export
 setGeneric("set_variables_univalued", function(entity, variable_names) standardGeneric("set_variables_univalued"))
 #' @export
+setGeneric("set_variables_stable_ids", function(entity, variable_names, stable_ids = variable_names) standardGeneric("set_variables_stable_ids"))
+#' @export
 setGeneric("sync_ordinal_data", function(entity) standardGeneric("sync_ordinal_data"))
 
 
@@ -1199,19 +1201,8 @@ setMethod("get_hydrated_variable_and_category_metadata", "Entity", function(enti
   metadata <- metadata %>%
     bind_rows(entity %>% get_category_metadata())
 
-  # Optimization: skip expensive rowwise operation if all stable_ids are already set
-  if (any(is.na(metadata$stable_id))) {
-    metadata <- metadata %>%
-      rowwise() %>%
-      mutate(
-        stable_id = if_else(
-          is.na(stable_id),
-          prefixed_alphanumeric_id(prefix = "VAR_", length = 8, seed_string = variable),
-          stable_id
-        )
-      ) %>%
-      ungroup()
-  }
+  # Generate stable_ids for any variables/categories that don't have them
+  metadata <- generate_variable_stable_ids(metadata)
     
   # now that the stable_ids are available for each variable (or category)
   # we can do a self-join to set the parent_stable_id
@@ -1616,6 +1607,76 @@ setMethod("set_variables_univalued", "Entity", function(entity, variable_names) 
       glue("Successfully marked the following variables as uni-valued: {paste(variable_names, collapse = ', ')}"),
       glue("Their data_type/data_shape was detected as: {paste0(variable_names, ': ', data_types, '/', data_shapes, collapse=', ')}")
     ))
+  }
+
+  return(entity)
+})
+
+#' set_variables_stable_ids
+#'
+#' Efficiently sets stable_ids for multiple variables at once.
+#' This is particularly useful for wide entities (e.g., omics data with thousands of variables)
+#' where setting stable_ids one-by-one would be inefficient.
+#'
+#' By default, uses the variable name as the stable_id, which is appropriate for
+#' entities where variable names are already unique and stable identifiers (e.g., gene IDs).
+#'
+#' @param entity An Entity object
+#' @param variable_names A character vector of variable names to set stable_ids for
+#' @param stable_ids A character vector of stable_ids (same length as variable_names).
+#'        Defaults to variable_names (i.e., use variable name as stable_id).
+#'
+#' @returns Modified entity
+#' @export
+#'
+#' @examples
+#' # For omics data with gene IDs as column names, use variable names as stable_ids:
+#' entity <- entity %>%
+#'   set_variables_stable_ids(c("GENE_00001_expression", "GENE_00002_expression"))
+#'
+#' # Or provide custom stable_ids:
+#' entity <- entity %>%
+#'   set_variables_stable_ids(
+#'     variable_names = c("var1", "var2"),
+#'     stable_ids = c("VAR_custom1", "VAR_custom2")
+#'   )
+setMethod("set_variables_stable_ids", "Entity", function(entity, variable_names, stable_ids = variable_names) {
+  variables <- entity@variables
+
+  # Validate inputs
+  if (length(variable_names) == 0) {
+    if (!entity@quiet) message("No variable names provided. No changes made.")
+    return(entity)
+  }
+
+  if (length(variable_names) != length(stable_ids)) {
+    stop(glue("Error: variable_names and stable_ids must have the same length. Got {length(variable_names)} and {length(stable_ids)}."))
+  }
+
+  # Check that all variables exist
+  invalid_vars <- setdiff(variable_names, variables$variable)
+  if (length(invalid_vars) > 0) {
+    stop(glue("The following variables do not exist: {paste(invalid_vars, collapse = ', ')}"))
+  }
+
+  # Create a lookup map
+  stable_id_map <- setNames(stable_ids, variable_names)
+
+  # Update metadata efficiently with vectorized operation
+  variables <- variables %>%
+    mutate(
+      stable_id = if_else(
+        variable %in% variable_names,
+        unname(stable_id_map[variable]),
+        stable_id
+      )
+    )
+
+  # Update the entity
+  entity@variables <- variables
+
+  if (!entity@quiet) {
+    message(glue("Successfully set stable_ids for {length(variable_names)} variable(s)"))
   }
 
   return(entity)
