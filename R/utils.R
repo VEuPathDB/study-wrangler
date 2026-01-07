@@ -447,6 +447,39 @@ prefixed_alphanumeric_id <- function(prefix = NULL, length = 11, seed_string = N
   return(full_id)
 }
 
+#' Generate stable_ids for variables metadata tibble
+#'
+#' Generates stable_ids for variables/categories that don't already have them set.
+#' Uses deterministic hashing based on variable names.
+#'
+#' @param variables_metadata A tibble with columns: variable, stable_id
+#' @param prefix Character prefix for generated IDs (default: "VAR_")
+#' @param length Integer length of the hash portion (default: 8)
+#' @return The tibble with stable_id column populated (NAs replaced with generated IDs)
+#' @keywords internal
+generate_variable_stable_ids <- function(variables_metadata,
+                                          prefix = "VAR_",
+                                          length = 8) {
+  if (!all(c("variable", "stable_id") %in% names(variables_metadata))) {
+    stop("variables_metadata must contain 'variable' and 'stable_id' columns")
+  }
+
+  # Optimization: skip moderately expensive rowwise operation if all stable_ids are already set
+  if (any(is.na(variables_metadata$stable_id))) {
+    variables_metadata <- variables_metadata %>%
+      rowwise() %>%
+      mutate(
+        stable_id = if_else(
+          is.na(stable_id),
+          prefixed_alphanumeric_id(prefix = prefix, length = length, seed_string = variable),
+          stable_id
+        )
+      ) %>%
+      ungroup()
+  }
+
+  return(variables_metadata)
+}
 
 #'
 #' convenience function for JavaScript people!

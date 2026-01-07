@@ -148,5 +148,77 @@ test_that("max_decimals() works as intended", {
       max_decimals(as.numeric(c("1.23", "4.567", "0.12345"))),
       5
     )
-  )  
+  )
+})
+
+test_that("generate_variable_stable_ids works correctly", {
+  # Test with all NA stable_ids
+  metadata <- tibble(
+    variable = c("var1", "var2", "var3"),
+    stable_id = c(NA_character_, NA_character_, NA_character_)
+  )
+
+  result <- generate_variable_stable_ids(metadata)
+
+  # All stable_ids should be populated
+  expect_true(all(!is.na(result$stable_id)))
+
+  # All should start with VAR_
+  expect_true(all(startsWith(result$stable_id, "VAR_")))
+
+  # All should be unique
+  expect_equal(length(unique(result$stable_id)), 3)
+})
+
+test_that("generate_variable_stable_ids preserves existing stable_ids", {
+  metadata <- tibble(
+    variable = c("var1", "var2", "var3"),
+    stable_id = c("VAR_custom", NA_character_, "VAR_another")
+  )
+
+  result <- generate_variable_stable_ids(metadata)
+
+  # Custom IDs should be preserved
+  expect_equal(result$stable_id[1], "VAR_custom")
+  expect_equal(result$stable_id[3], "VAR_another")
+
+  # NA should be replaced
+  expect_true(!is.na(result$stable_id[2]))
+})
+
+test_that("generate_variable_stable_ids is deterministic", {
+  metadata <- tibble(
+    variable = c("var1", "var2"),
+    stable_id = c(NA_character_, NA_character_)
+  )
+
+  result1 <- generate_variable_stable_ids(metadata)
+  result2 <- generate_variable_stable_ids(metadata)
+
+  expect_equal(result1$stable_id, result2$stable_id)
+})
+
+test_that("generate_variable_stable_ids validates inputs", {
+  # Missing variable column
+  bad_metadata <- tibble(
+    name = c("var1", "var2"),
+    stable_id = c(NA_character_, NA_character_)
+  )
+
+  expect_error(
+    generate_variable_stable_ids(bad_metadata),
+    "must contain 'variable' and 'stable_id' columns"
+  )
+})
+
+test_that("generate_variable_stable_ids handles empty tibbles", {
+  metadata <- tibble(
+    variable = character(0),
+    stable_id = character(0)
+  )
+
+  result <- generate_variable_stable_ids(metadata)
+
+  expect_equal(nrow(result), 0)
+  expect_true(all(c("variable", "stable_id") %in% names(result)))
 })

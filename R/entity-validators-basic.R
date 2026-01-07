@@ -271,18 +271,9 @@ validate_entity_unique_stable_ids <- function(entity) {
     return(list(valid = TRUE))
   }
 
-  # Generate stable_ids using the same logic as get_hydrated_variable_and_category_metadata()
-  # but without computing expensive stats
-  generated_stable_ids <- metadata %>%
-    rowwise() %>%
-    mutate(
-      generated_stable_id = if_else(
-        is.na(stable_id),
-        prefixed_alphanumeric_id(prefix = "VAR_", length = 8, seed_string = variable),
-        stable_id
-      )
-    ) %>%
-    ungroup()
+  # Generate stable_ids using the shared helper function
+  generated_stable_ids <- generate_variable_stable_ids(metadata) %>%
+    rename(generated_stable_id = stable_id)
 
   # Check for duplicates in the generated stable_ids
   duplicate_ids <- generated_stable_ids %>%
@@ -311,8 +302,16 @@ validate_entity_unique_stable_ids <- function(entity) {
       "Affected variables:",
       paste(capture.output(kable(duplicate_summary)), collapse = "\n"),
       "",
-      "To resolve this, you must manually set unique stable_ids for affected variables:",
-      paste0("    ", global_varname, " <- ", global_varname, " %>% set_variable_metadata('variable_name', stable_id = 'VAR_unique_id')"),
+      "To resolve this, you must manually set unique stable_ids for affected variables.",
+      "",
+      "For a single variable:",
+      glue("    {global_varname} <- {global_varname} %>% set_variable_metadata('variable_name', stable_id = 'VAR_unique_id')"),
+      "",
+      "For multiple variables (e.g., wide omics entities with many variables):",
+      glue("    {global_varname} <- {global_varname} %>% set_variables_stable_ids(c('var1', 'var2', ...), c('VAR_id1', 'VAR_id2', ...))"),
+      "",
+      "Or to use variable names as stable_ids (common for gene IDs):",
+      glue("    {global_varname} <- {global_varname} %>% set_variables_stable_ids(c('var1', 'var2', ...))"),
       sep = "\n"
     )
 

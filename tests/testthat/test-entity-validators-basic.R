@@ -84,8 +84,52 @@ test_that("unique stable_ids validator passes when duplicates are fixed", {
   households_fixed <- entity_from_file(file_path, name = 'household') %>%
     quiet() %>%
     set_variable_metadata('Number.of.animals', stable_id = 'VAR_unique1') %>%
-    set_variable_metadata('Owns.property', stable_id = 'VAR_unique2') %>%
-    verbose()
+    set_variable_metadata('Owns.property', stable_id = 'VAR_unique2')
 
   expect_true(validate(households_fixed, profiles = "baseline"))
+})
+
+test_that("unique stable_ids validator recommends set_variables_stable_ids for remediation", {
+  file_path <- system.file("extdata", "toy_example/households.tsv", package = 'study.wrangler')
+
+  # Create entity with duplicate stable_ids
+  households <- entity_from_file(file_path, name = 'household') %>%
+    quiet() %>%
+    set_variable_metadata('Number.of.animals', stable_id = 'VAR_dup') %>%
+    set_variable_metadata('Owns.property', stable_id = 'VAR_dup') %>%
+    set_variable_metadata('Construction.material', stable_id = 'VAR_dup') %>%
+    verbose()
+
+  # Should fail validation and mention set_variables_stable_ids
+  expect_warning(
+    is_valid <- validate(households, profiles = "baseline"),
+    "set_variables_stable_ids"
+  )
+  expect_false(is_valid)
+
+  # Apply remediation using set_variables_stable_ids
+  households_fixed <- households %>%
+    quiet() %>%
+    set_variables_stable_ids(
+      variable_names = c('Number.of.animals', 'Owns.property', 'Construction.material'),
+      stable_ids = c('VAR_animals', 'VAR_property', 'VAR_construction')
+    )
+
+  # Should now pass validation
+  expect_true(validate(households_fixed, profiles = "baseline"))
+
+  # Verify the stable_ids were set correctly
+  metadata <- households_fixed %>% get_variable_metadata()
+  expect_equal(
+    metadata %>% filter(variable == 'Number.of.animals') %>% pull(stable_id),
+    'VAR_animals'
+  )
+  expect_equal(
+    metadata %>% filter(variable == 'Owns.property') %>% pull(stable_id),
+    'VAR_property'
+  )
+  expect_equal(
+    metadata %>% filter(variable == 'Construction.material') %>% pull(stable_id),
+    'VAR_construction'
+  )
 })
