@@ -1550,7 +1550,7 @@
       H003-P3	VAR_e301dd60	Male		
       
       ##  collection_sde41bbea90_observtn.cache 
-      COL_60b0b28d	integer-based anatomical measures	2			32	175		integer	continuous		0	0	0		measurement	measurements
+      COL_60b0b28d	integer-based anatomical measures	2			32	175	0	integer	continuous		0	0	0		measurement	measurements
       
       ##  collectionattribute_sde41bbea90_observtn.cache 
       COL_60b0b28d	VAR_0789e56a
