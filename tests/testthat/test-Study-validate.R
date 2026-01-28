@@ -126,5 +126,85 @@ test_that("validate(study) checks parent ID relationships row-wise", {
 })
 
 
+# Tests for study-level entity stable_id uniqueness validator (EDA profile)
+test_that("study entity stable_ids validator only runs in eda profile", {
+  study <- make_study(name = 'test study')
+  entities <- get_entities(study)
+
+  # Create duplicates
+  entities[[1]] <- entities[[1]] %>% quiet() %>% set_stable_id('ENT_dup')
+  entities[[2]] <- entities[[2]] %>% quiet() %>% set_stable_id('ENT_dup')
+  study <- study_from_entities(entities = entities, name = 'test', quiet = TRUE)
+
+  # Should pass baseline (validator not registered there)
+  expect_true(study %>% quiet() %>% validate(profiles = "baseline"))
+
+  # Note: Can't test eda profile here because the eda_variable_display_name_not_null
+  # validator is fatal and runs before the entity stable_id validator
+})
+
+test_that("study entity stable_ids validator with duplicates shows in list_validators", {
+  # Check that the validator is registered to eda profile
+  validators <- list_validators()
+
+  eda_study_validators <- validators %>%
+    filter(grepl("eda", profiles), grepl("study", object_type))
+
+  expect_true("study_unique_entity_stable_ids" %in% eda_study_validators$name)
+})
+
+test_that("study entity stable_ids validator logic works correctly", {
+  # Test the validator function directly to avoid EDA display_name issues
+  study <- make_study(name = 'test study')
+  entities <- get_entities(study)
+
+  # Set two entities to have the same stable_id
+  entities[[1]] <- entities[[1]] %>% quiet() %>% set_stable_id('ENT_duplicate')
+  entities[[2]] <- entities[[2]] %>% quiet() %>% set_stable_id('ENT_duplicate')
+
+  # Recreate study with modified entities
+  study <- study_from_entities(entities = entities, name = 'test study', quiet = TRUE)
+
+  # Call the validator function directly
+  result <- validate_study_unique_entity_stable_ids(study)
+
+  expect_false(result$valid)
+  expect_false(result$fatal %||% FALSE)
+  expect_match(result$message, "Duplicate stable_ids detected")
+  expect_match(result$message, "ENT_duplicate")
+})
+
+test_that("study entity stable_ids validator passes with unique IDs", {
+  study <- make_study(name = 'test study')
+
+  # Call the validator function directly
+  result <- validate_study_unique_entity_stable_ids(study)
+
+  expect_true(result$valid)
+})
+
+test_that("study entity stable_ids validator remediation works with helper", {
+  study <- make_study(name = 'test study')
+  entities <- get_entities(study)
+
+  # Create duplicates
+  entities[[1]] <- entities[[1]] %>% quiet() %>% set_stable_id('ENT_dup')
+  entities[[2]] <- entities[[2]] %>% quiet() %>% set_stable_id('ENT_dup')
+  study <- study_from_entities(entities = entities, name = 'test', quiet = TRUE)
+
+  # Should fail
+  result <- validate_study_unique_entity_stable_ids(study)
+  expect_false(result$valid)
+
+  # Fix using helper
+  entity_names <- get_entity_names(study)[1:2]
+  study <- study %>%
+    quiet() %>%
+    set_entity_stable_ids(entity_names, c('ENT_unique1', 'ENT_unique2'))
+
+  # Should now pass
+  result <- validate_study_unique_entity_stable_ids(study)
+  expect_true(result$valid)
+})
 
 
