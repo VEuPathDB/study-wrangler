@@ -297,6 +297,11 @@ setMethod("get_hydrated_collection_metadata", "Entity", function(entity) {
         is.na(stable_id),
         prefixed_alphanumeric_id(prefix = "COL_", length = 8, seed_string = category),
         stable_id
+      ),
+      impute_zero = if_else(
+        is.na(impute_zero),
+        collection_metadata_defaults$impute_zero,
+        impute_zero
       )
     ) %>%
     ungroup()

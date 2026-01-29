@@ -525,5 +525,84 @@ test_that("collections of date variables work", {
     hydrated_dates %>% pull("display_range_max"),
     "2002-12-31"
   )
-  
+
+})
+
+test_that("impute_zero defaults to FALSE when child variables have NA", {
+  study_name <- 'impute_zero defaults test'
+  expect_no_error(
+    study <- make_study(name = study_name)
+  )
+
+  observations <- study %>% get_entity('observation') %>% verbose()
+
+  # Create a category with variables that have impute_zero = NA (the default)
+  # Height..cm. and Weight..kg. should both have impute_zero = NA initially
+  expect_message(
+    expect_message(
+      observations <- observations %>%
+        create_variable_category(
+          category_name = "measures_with_na_impute",
+          children = c("Height..cm.", "Weight..kg."),
+          display_name = "Measures with NA impute_zero",
+          definition = "Test category for impute_zero defaulting"
+        ),
+      "Successfully created category 'measures_with_na_impute'"
+    )
+  )
+
+  # Verify that the child variables have impute_zero = NA
+  child_impute_values <- observations %>%
+    get_variable_metadata() %>%
+    filter(variable %in% c("Height..cm.", "Weight..kg.")) %>%
+    pull(impute_zero)
+
+  expect_true(all(is.na(child_impute_values)))
+
+  # Create a collection for this category
+  observations <- observations %>%
+    create_variable_collection(
+      'measures_with_na_impute',
+      member = 'measurement',
+      member_plural = 'measurements'
+    )
+
+  # Validation should pass
+  expect_true(
+    observations %>% quiet() %>% validate()
+  )
+
+  # Get hydrated collection metadata
+  suppressMessages(
+    hydrated_collections <- observations %>% get_hydrated_collection_metadata()
+  )
+
+  # The collection's impute_zero should be FALSE (the collection default)
+  # not NA (which would come from first() on the child variables)
+  collection_impute_zero <- hydrated_collections %>%
+    filter(category == "measures_with_na_impute") %>%
+    pull(impute_zero)
+
+  expect_equal(collection_impute_zero, FALSE)
+  expect_false(is.na(collection_impute_zero))
+
+  # Also test that if we explicitly set impute_zero on a child variable,
+  # that value is preserved (since they must be homogeneous)
+  expect_silent(
+    observations <- observations %>%
+      quiet %>%
+      set_variable_metadata('Height..cm.', impute_zero = TRUE) %>%
+      set_variable_metadata('Weight..kg.', impute_zero = TRUE)
+  )
+
+  # Now the collection should have impute_zero = TRUE
+  suppressMessages(
+    hydrated_collections <- observations %>% get_hydrated_collection_metadata()
+  )
+
+  collection_impute_zero_true <- hydrated_collections %>%
+    filter(category == "measures_with_na_impute") %>%
+    pull(impute_zero)
+
+  expect_equal(collection_impute_zero_true, TRUE)
 })
