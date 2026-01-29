@@ -213,4 +213,8 @@ list_validators <- function() {
   # EDA display_name validators
    register_validator("eda_variable_display_name_not_null", validate_eda_variable_display_name_not_null,
                      "entity", "eda", "Validate display_name is not null for any variable")
+
+  # Study-level EDA validators
+  register_validator("study_unique_entity_stable_ids", validate_study_unique_entity_stable_ids,
+                    "study", "eda", "Check that all entity stable_ids are unique across the study")
 }

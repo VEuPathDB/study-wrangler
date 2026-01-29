@@ -20,6 +20,8 @@ setGeneric("get_study_abbreviation", function(study) standardGeneric("get_study_
 setGeneric("get_entity_abbreviation", function(study, entity_name) standardGeneric("get_entity_abbreviation"))
 #' @export
 setGeneric("map_entities", function(study, fn) standardGeneric("map_entities"))
+#' @export
+setGeneric("set_entity_stable_ids", function(study, entity_names, stable_ids = entity_names) standardGeneric("set_entity_stable_ids"))
 
 
 
@@ -260,3 +262,51 @@ setMethod("map_entities", "Study", function(study, fn) {
   study_from_entities(transformed_entities, metadata_source = study)
 })
 
+#' set_entity_stable_ids
+#'
+#' Sets stable_ids for multiple entities in the study efficiently.
+#'
+#' @param study A `Study` object.
+#' @param entity_names Character vector of entity names to update.
+#' @param stable_ids Character vector of stable_ids to set (defaults to entity_names).
+#' @return Updated `Study` object.
+#' @export
+setMethod("set_entity_stable_ids", "Study", function(study, entity_names, stable_ids = entity_names) {
+  # Validate inputs
+  if (length(entity_names) != length(stable_ids)) {
+    stop("Error: entity_names and stable_ids must have the same length.")
+  }
+
+  if (length(entity_names) == 0) {
+    if (!study@quiet) {
+      message("No entities specified.")
+    }
+    return(study)
+  }
+
+  # Check all entities exist
+  existing_entities <- get_entity_names(study)
+  missing <- setdiff(entity_names, existing_entities)
+  if (length(missing) > 0) {
+    stop(glue("Error: The following entities do not exist in the study: {paste(missing, collapse = ', ')}"))
+  }
+
+  # Create lookup map
+  stable_id_map <- setNames(stable_ids, entity_names)
+
+  # Use map_entities to update matching entities
+  study <- study %>% map_entities(function(entity) {
+    entity_name <- get_entity_name(entity)
+    if (entity_name %in% entity_names) {
+      entity %>% set_stable_id(stable_id_map[[entity_name]])
+    } else {
+      entity
+    }
+  })
+
+  if (!study@quiet) {
+    message(glue("Successfully set stable_ids for {length(entity_names)} entit{ifelse(length(entity_names) == 1, 'y', 'ies')}"))
+  }
+
+  return(study)
+})
