@@ -30,7 +30,7 @@ Suggests:
     roxygen2,
     rmarkdown
 Remotes:
-    VEuPathDB/plot.data@v5.6.1
+    VEuPathDB/plot.data@v5.6.5
 URL: https://github.com/VEuPathDB/study-wrangler
 Config/testthat/edition: 3
 VignetteBuilder: knitr
