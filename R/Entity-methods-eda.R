@@ -12,13 +12,51 @@ setGeneric("infer_geo_variables_for_eda", function(entity) standardGeneric("infe
 #' Infers and sets metadata for geographic coordinate variables (latitude and longitude).
 #'
 #' This method searches for variables with names matching common latitude and longitude
-#' patterns (e.g., "latitude", "lat", "longitude", "long", "lng") and sets the appropriate
-#' metadata required for EDA validation:
+#' patterns and sets the appropriate metadata required for EDA validation:
 #' - Latitude: stable_id = 'OBI_0001620', data_type = 'number'
 #' - Longitude: stable_id = 'OBI_0001621', data_type = 'longitude'
 #'
 #' Metadata is only set if exactly one latitude variable and one longitude variable are found.
 #' If multiple matches or mismatched pairs are detected, a warning is issued and no changes are made.
+#'
+#' ## Column name matching rules
+#'
+#' Matching is **case-insensitive**. A column name matches if it contains one of the
+#' recognised keyword tokens (`latitude`, `lat`, `longitude`, `long`, `lng`) where the
+#' token is bounded on **each side** by either a word boundary (`\b`, i.e. a transition
+#' from a letter/digit to a non-alphanumeric non-underscore character such as `.`, `-`,
+#' or the start/end of the string) **or** an underscore (`_`).
+#'
+#' Because underscores are word characters in regex, `\b` alone does not fire between
+#' `_` and a letter; the explicit underscore alternative ensures underscore-delimited
+#' tokens are recognised.
+#'
+#' ### Latitude — matched column names (examples)
+#' | Column name | Token matched |
+#' |---|---|
+#' | `lat`, `LAT`, `Lat` | `lat` |
+#' | `lat-dd`, `wgs84_lat`, `sample_lat_value` | `lat` |
+#' | `latitude`, `Latitude` | `latitude` |
+#' | `latitude-wgs84`, `sample_latitude` | `latitude` |
+#'
+#' ### Longitude — matched column names (examples)
+#' | Column name | Token matched |
+#' |---|---|
+#' | `lng`, `LNG` | `lng` |
+#' | `sample-lng`, `lng_dd` | `lng` |
+#' | `long`, `LONG` | `long` |
+#' | `long-dd`, `sample_long` | `long` |
+#' | `longitude`, `Longitude` | `longitude` |
+#' | `longitude_wgs84`, `sample-longitude` | `longitude` |
+#'
+#' ### Column names that do NOT match
+#' | Column name | Reason |
+#' |---|---|
+#' | `lat1`, `lng2` | digit immediately follows token — no word boundary or underscore |
+#' | `platform` | `lat` embedded mid-word, no boundary or underscore before it |
+#' | `flat`, `slat` | `lat` preceded by a letter — no boundary or underscore |
+#' | `belongs`, `elongated` | `long` embedded mid-word |
+#' | `latlong` | tokens are adjacent with no separator; neither `lat` nor `long` has the required trailing/leading boundary |
 #'
 #' @param entity an Entity object
 #' @returns Modified entity with geographic variable metadata set (if exactly one lat and one lng found)
@@ -30,7 +68,7 @@ function(entity) {
   # Helper function to check if a variable name matches a pattern
   is_variable_like <- function(var_name, patterns) {
     any(sapply(patterns, function(pattern) {
-      grepl(paste0("\\b", pattern, "\\b"), var_name, ignore.case = TRUE)
+      grepl(paste0("(\\b|_)", pattern, "(\\b|_)"), var_name, ignore.case = TRUE)
     }))
   }
 
