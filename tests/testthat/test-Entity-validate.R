@@ -492,7 +492,7 @@ test_that("validate() complains about string columns with non-character data", {
       modify_data(mutate(Number.of.animals = as.character(Number.of.animals))) %>%
       set_variable_metadata('Number.of.animals', data_shape = 'categorical')
   )
-  expect_true(households %>% validate())
+  expect_true(households %>% quiet() %>% validate())
 })
 
 test_that("validate() complains about string variables with continuous data_shape", {
@@ -518,7 +518,7 @@ test_that("validate() complains about string variables with continuous data_shap
     quiet() %>%
     set_variable_metadata('Construction.material', data_shape = 'categorical')
 
-  expect_true(households %>% validate())
+  expect_true(households %>% quiet() %>% validate())
 })
 
 test_that("validate() catches string/integer mismatch that causes VDI export failure", {
@@ -553,7 +553,7 @@ test_that("validate() catches string/integer mismatch that causes VDI export fai
     set_variable_metadata('Number.of.animals', data_shape = 'categorical')
 
   # Now validation should pass
-  expect_true(households %>% validate())
+  expect_true(households %>% quiet() %>% validate())
 })
 
 test_that("validate() complains about binary variables with more than 2 unique values", {
@@ -564,7 +564,7 @@ test_that("validate() complains about binary variables with more than 2 unique v
     verbose()
 
   # Should validate cleanly
-  expect_true(participants %>% validate())
+  expect_true(participants %>% quiet() %>% validate())
 
   # Force Family.Role (3 values: Relative, Child, Parent) to binary
   participants <- participants %>%
@@ -583,7 +583,7 @@ test_that("validate() complains about binary variables with more than 2 unique v
     quiet() %>%
     set_variable_metadata('Family.Role', data_shape = 'categorical')
 
-  expect_true(participants %>% validate())
+  expect_true(participants %>% quiet() %>% validate())
 })
 
 test_that("validate() (EDA) complains about string values longer than 1000 characters", {
