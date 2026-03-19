@@ -1434,8 +1434,8 @@
       H003	H003-P3
       
       ##  attributegraph_sde41bbea90_househld.cache 
+      		binary	string						default	2		1			0	0	0	0	0				ENT_6a7855ea		["Owns property"]				VAR_94999355				["No","Yes"]	
       		categorical	string						default	2		1			0	0	0	0	0				ENT_6a7855ea		["Construction material"]				VAR_3b2f7286				["Concrete","Timber"]	
-      		categorical	string						default	2		1			0	0	0	0	0				ENT_6a7855ea		["Owns property"]				VAR_94999355				["No","Yes"]	
       1		continuous	integer						default	2		1			0	0	0	0	0	3	3.33333333333333	3	ENT_6a7855ea	0	["Number of animals"]	4	3		VAR_1513b065		3.5			
       week		continuous	date						default	3		1			0	0	0	0	0	2021-02-03	2021-02-15	2021-02-28	ENT_6a7855ea		["Enrollment date"]	2021-03-13	2021-01-09		VAR_ec493713		2021-03-06			
       

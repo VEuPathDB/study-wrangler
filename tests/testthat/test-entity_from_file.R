@@ -55,7 +55,8 @@ test_that("entity_from_file detects column types correctly", {
   expect_equal(as.vector(result@variables$data_type), expected_types)
   
   # Check the data_shape has been inferred correctly
-  expected_shapes <- c(NA, "continuous", "categorical", "continuous", "categorical")
+  # "Owns property" (Yes/No) is detected as binary
+  expected_shapes <- c(NA, "continuous", "binary", "continuous", "categorical")
   expect_equal(as.vector(result@variables$data_shape), expected_shapes)
 })
 

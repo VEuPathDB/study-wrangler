@@ -135,22 +135,43 @@ function(
 #' @returns modified entity
 setMethod("infer_missing_data_shapes", "Entity", function(entity) {
   variables <- entity@variables
-  
+  data <- entity@data
+
   # only infer for data_shape == NA and non-ID cols
   cols_to_infer <- variables %>%
     filter(is.na(data_shape)) %>%
     filter(!is.na(data_type)) %>%
     filter(!data_type %in% c('id', 'category')) %>%
     pull(variable)
-  
-  # infer data_shape as continuous or categorical
+
+  # detect boolean-like string columns and mark as 'binary'
+  # two-step: (1) exactly 2 distinct non-NA values, (2) those values folded to
+  # lowercase form one of the recognised boolean pairs
+  boolean_pairs <- list(c('true', 'false'), c('t', 'f'), c('yes', 'no'), c('y', 'n'))
+
+  is_boolean_col <- function(col) {
+    non_na <- data[[col]][!is.na(data[[col]])]
+    unique_vals <- unique(non_na)
+    if (length(unique_vals) != 2) return(FALSE)
+    folded <- sort(tolower(unique_vals))
+    any(vapply(boolean_pairs, function(pair) identical(folded, sort(pair)), logical(1)))
+  }
+
+  string_cols_to_infer <- variables %>%
+    filter(variable %in% cols_to_infer, data_type == "string", !is_multi_valued) %>%
+    pull(variable)
+
+  binary_cols <- string_cols_to_infer[vapply(string_cols_to_infer, is_boolean_col, logical(1))]
+
+  # infer data_shape as continuous, binary, or categorical
   # (further refinement to 'ordinal' will require user-input)
   variables <- variables %>% mutate(
     data_shape = if_else(
       variable %in% cols_to_infer,
       case_when(
         data_type %in% c('number', 'integer', 'date') ~ fct_mutate(data_shape, 'continuous'),
-        TRUE ~ fct_mutate(data_shape, 'categorical')
+        variable %in% binary_cols                      ~ fct_mutate(data_shape, 'binary'),
+        TRUE                                           ~ fct_mutate(data_shape, 'categorical')
       ),
       data_shape
     )
