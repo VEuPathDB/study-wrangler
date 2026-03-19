@@ -358,6 +358,47 @@ validate_entity_string_data_shapes <- function(entity) {
   list(valid = TRUE)
 }
 
+#' Validator: Check binary variables have at most 2 unique values
+#' @keywords internal
+validate_entity_binary_value_count <- function(entity) {
+  data <- entity@data
+  variables <- entity@variables
+
+  binary_columns <- variables %>%
+    filter(data_shape == "binary", !is_multi_valued) %>%
+    pull(variable)
+
+  if (length(binary_columns) == 0) return(list(valid = TRUE))
+
+  too_many_values <- binary_columns[vapply(binary_columns, function(col) {
+    n_distinct(data[[col]], na.rm = TRUE) > 2
+  }, logical(1))]
+
+  if (length(too_many_values) == 0) return(list(valid = TRUE))
+
+  global_varname <- find_global_varname(entity, 'entity')
+
+  messages <- sapply(too_many_values, function(col_name) {
+    n <- n_distinct(data[[col_name]], na.rm = TRUE)
+    paste0("Variable '", col_name, "' is declared as 'binary' but has ", n,
+           " unique values (binary variables must have exactly 2).")
+  })
+
+  fix_commands <- sapply(too_many_values, function(col_name) {
+    paste0("    ", global_varname, " <- ", global_varname,
+           " %>% set_variable_metadata('", col_name, "', data_shape = 'categorical')")
+  })
+
+  message <- paste(
+    paste(messages, collapse = "\n"),
+    "To fix these variables, set an appropriate data_shape:",
+    paste(fix_commands, collapse = "\n"),
+    sep = "\n"
+  )
+
+  list(valid = FALSE, fatal = FALSE, message = message)
+}
+
 #' Validator: Check ordinal levels consistency
 #' @keywords internal
 validate_entity_ordinal_levels <- function(entity) {

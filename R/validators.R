@@ -163,6 +163,9 @@ list_validators <- function() {
   register_validator("entity_string_data_shapes", validate_entity_string_data_shapes,
                     "entity", "baseline", "Check string variables have appropriate data_shape")
 
+  register_validator("entity_binary_value_count", validate_entity_binary_value_count,
+                    "entity", "baseline", "Check binary variables have at most 2 unique values")
+
   register_validator("entity_date_data_types", validate_entity_date_data_types,
                     "entity", "baseline", "Check date variables are R date type")
   

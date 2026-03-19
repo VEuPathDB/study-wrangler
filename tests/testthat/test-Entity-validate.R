@@ -556,3 +556,33 @@ test_that("validate() catches string/integer mismatch that causes VDI export fai
   expect_true(households %>% validate())
 })
 
+test_that("validate() complains about binary variables with more than 2 unique values", {
+  file_path <- system.file("extdata", "toy_example/participants.tsv", package = 'study.wrangler')
+  participants <- entity_from_file(file_path, name = 'participant') %>%
+    quiet() %>%
+    redetect_columns_as_variables('Name') %>%
+    verbose()
+
+  # Should validate cleanly
+  expect_true(participants %>% validate())
+
+  # Force Family.Role (3 values: Relative, Child, Parent) to binary
+  participants <- participants %>%
+    quiet() %>%
+    set_variable_metadata('Family.Role', data_shape = 'binary') %>%
+    verbose()
+
+  # Validation should now fail with an informative message
+  expect_warning(
+    expect_false(validate(participants)),
+    "Family.Role.+binary.+3 unique values.+set_variable_metadata.+data_shape = 'categorical'"
+  )
+
+  # Fix it
+  participants <- participants %>%
+    quiet() %>%
+    set_variable_metadata('Family.Role', data_shape = 'categorical')
+
+  expect_true(participants %>% validate())
+})
+
