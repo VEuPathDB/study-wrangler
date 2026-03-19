@@ -217,6 +217,13 @@ list_validators <- function() {
    register_validator("eda_variable_display_name_not_null", validate_eda_variable_display_name_not_null,
                      "entity", "eda", "Validate display_name is not null for any variable")
 
+  # EDA string value validators
+  register_validator("eda_string_value_length", validate_entity_string_value_length,
+                    "entity", "eda", "Check string values do not exceed 1000 characters")
+
+  register_validator("eda_string_value_newlines", validate_entity_string_value_newlines,
+                    "entity", "eda", "Check string values do not contain newline characters")
+
   # Study-level EDA validators
   register_validator("study_unique_entity_stable_ids", validate_study_unique_entity_stable_ids,
                     "study", "eda", "Check that all entity stable_ids are unique across the study")

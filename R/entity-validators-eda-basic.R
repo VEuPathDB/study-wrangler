@@ -73,3 +73,110 @@ validate_eda_variable_display_name_not_null <- function(entity) {
 
   list(valid = TRUE)
 }
+
+#' Validator: Check string variable values do not exceed 1000 characters
+#'
+#' The EDA backend stores string values in VARCHAR(1000). Values longer than
+#' 1000 characters will cause import failures.
+#' @keywords internal
+validate_entity_string_value_length <- function(entity) {
+  data <- entity@data
+  variables <- entity@variables
+
+  string_vars <- variables %>%
+    filter(data_type == "string") %>%
+    select(variable, is_multi_valued, multi_value_delimiter)
+
+  if (nrow(string_vars) == 0) return(list(valid = TRUE))
+
+  exceeds_limit <- function(col_name, is_mv, delim) {
+    vals <- data[[col_name]]
+    raw_lengths <- nchar(vals)
+    if (max(raw_lengths, na.rm = TRUE) <= 1000) return(FALSE)
+
+    if (!is_mv) return(TRUE)
+
+    # Two-stage check for multi-valued: only split rows where the raw cell
+    # exceeds 1000 chars (a necessary condition for any component to exceed it).
+    long_rows <- vals[!is.na(vals) & raw_lengths > 1000]
+    any(sapply(strsplit(long_rows, delim, fixed = TRUE), function(parts) any(nchar(parts) > 1000)))
+  }
+
+  too_long <- string_vars %>%
+    filter(pmap_lgl(list(variable, is_multi_valued, multi_value_delimiter), exceeds_limit)) %>%
+    pull(variable)
+
+  if (length(too_long) == 0) return(list(valid = TRUE))
+
+  global_varname <- find_global_varname(entity, 'entity')
+
+  messages <- sapply(too_long, function(col_name) {
+    is_mv <- string_vars %>% filter(variable == col_name) %>% pull(is_multi_valued)
+    delim  <- string_vars %>% filter(variable == col_name) %>% pull(multi_value_delimiter)
+    if (is_mv) {
+      vals <- unlist(strsplit(data[[col_name]][!is.na(data[[col_name]])], delim, fixed = TRUE))
+    } else {
+      vals <- data[[col_name]]
+    }
+    max_len <- max(nchar(vals), na.rm = TRUE)
+    paste0("Variable '", col_name, "' has values up to ", max_len,
+           " characters long (EDA backend limit is 1000).")
+  })
+
+  fix_commands <- sapply(too_long, function(col_name) {
+    paste0("    ", global_varname, " <- ", global_varname,
+           " %>% modify_data(mutate(", col_name, " = substr(", col_name, ", 1, 1000)))")
+  })
+
+  message <- paste(
+    paste(messages, collapse = "\n"),
+    "If appropriate for your data, truncate these values to 1000 characters:",
+    paste(fix_commands, collapse = "\n"),
+    sep = "\n"
+  )
+
+  list(valid = FALSE, fatal = FALSE, message = message)
+}
+
+#' Validator: Check string variable values do not contain newline characters
+#'
+#' Newlines in string values corrupt the TSV-based VDI import format.
+#' For multi-valued columns, checking the raw (unsplit) cell is sufficient:
+#' if no raw cell contains a newline, no component can either.
+#' @keywords internal
+validate_entity_string_value_newlines <- function(entity) {
+  data <- entity@data
+  variables <- entity@variables
+
+  string_cols <- variables %>%
+    filter(data_type == "string") %>%
+    pull(variable)
+
+  if (length(string_cols) == 0) return(list(valid = TRUE))
+
+  has_newlines <- string_cols[vapply(string_cols, function(col) {
+    any(grepl("\n|\r", data[[col]], perl = TRUE), na.rm = TRUE)
+  }, logical(1))]
+
+  if (length(has_newlines) == 0) return(list(valid = TRUE))
+
+  global_varname <- find_global_varname(entity, 'entity')
+
+  messages <- paste0("Variable '", has_newlines,
+                     "' contains newline characters, which will corrupt VDI import.")
+
+  fix_commands <- sapply(has_newlines, function(col_name) {
+    paste0("    ", global_varname, " <- ", global_varname,
+           " %>% modify_data(mutate(", col_name,
+           " = gsub(\"\\n|\\r\", \" \", ", col_name, ")))")
+  })
+
+  message <- paste(
+    paste(messages, collapse = "\n"),
+    "If appropriate for your data, replace newlines with spaces:",
+    paste(fix_commands, collapse = "\n"),
+    sep = "\n"
+  )
+
+  list(valid = FALSE, fatal = FALSE, message = message)
+}
