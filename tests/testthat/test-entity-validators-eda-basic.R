@@ -100,6 +100,29 @@ test_that("eda_display_name_not_null validator passes when categories have displ
   expect_true(households %>% quiet() %>% validate(profiles = c("baseline", "eda")))
 })
 
+# Tests for format = "upload" output
+
+test_that("format='upload' emits upload_message for string value length (no R code)", {
+  file_path <- system.file("extdata", "toy_example/households.tsv", package = 'study.wrangler')
+
+  households <- entity_from_file(file_path, name = 'household') %>%
+    quiet() %>%
+    set_variable_metadata('Number.of.animals', display_name = 'Number of animals') %>%
+    set_variable_metadata('Owns.property', display_name = 'Owns property') %>%
+    set_variable_metadata('Enrollment.date', display_name = 'Enrollment date') %>%
+    set_variable_metadata('Construction.material', display_name = 'Construction material') %>%
+    # Inject a long string value
+    modify_data(mutate(Construction.material = paste0(Construction.material, strrep("x", 1001)))) %>%
+    verbose()
+
+  # Non-fatal warning should contain upload_message with original column name, no R code
+  expect_warning(
+    is_valid <- validate(households, profiles = c("baseline", "eda"), format = "upload"),
+    "longer than 1000 characters.*Construction material"
+  )
+  expect_false(is_valid)
+})
+
 test_that("eda_display_name_not_null validator fails when both variables and categories missing display_name", {
   file_path <- system.file("extdata", "toy_example/households.tsv", package = 'study.wrangler')
 

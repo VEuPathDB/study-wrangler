@@ -24,9 +24,11 @@ setGeneric("verbose", function(object, ...) standardGeneric("verbose"))
 #' Validate Generic
 #'
 #' Defines the S4 generic for the validate function.
-#' 
+#'
 #' @param object The object to validate.
 #' @param profile Character vector of validation profiles to use. If NULL, uses global config.
+#' @param format Character. "full" (default) shows R-oriented messages with fix-it commands.
+#'   "upload" shows plain-language messages suitable for web upload users.
 #' @returns a Boolean indicating success or failure
 #' @export
-setGeneric("validate", function(object, profiles = NULL) standardGeneric("validate"))
+setGeneric("validate", function(object, profiles = NULL, format = "full") standardGeneric("validate"))

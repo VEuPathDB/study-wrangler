@@ -135,7 +135,14 @@ validate_entity_string_value_length <- function(entity) {
     sep = "\n"
   )
 
-  list(valid = FALSE, fatal = FALSE, message = message)
+  labels <- column_label(entity, too_long)
+  upload_message <- paste0(
+    "The following columns contain values longer than 1000 characters: ",
+    paste(labels, collapse = ", "),
+    ". Please shorten these values before uploading."
+  )
+
+  list(valid = FALSE, fatal = FALSE, message = message, upload_message = upload_message)
 }
 
 #' Validator: Check string variable values do not contain newline characters
@@ -178,5 +185,12 @@ validate_entity_string_value_newlines <- function(entity) {
     sep = "\n"
   )
 
-  list(valid = FALSE, fatal = FALSE, message = message)
+  labels <- column_label(entity, has_newlines)
+  upload_message <- paste0(
+    "The following columns contain line breaks, which are not supported: ",
+    paste(labels, collapse = ", "),
+    ". Please remove or replace all line breaks in these columns before uploading."
+  )
+
+  list(valid = FALSE, fatal = FALSE, message = message, upload_message = upload_message)
 }

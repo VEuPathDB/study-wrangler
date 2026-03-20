@@ -7,7 +7,7 @@
 #' @param profile Character vector of validation profiles to use. If NULL, uses global config.
 #' @returns a Boolean indicating success or failure
 #' @export
-setMethod("validate", "Study", function(object, profiles = NULL) {
+setMethod("validate", "Study", function(object, profiles = NULL, format = "full") {
   study <- object
   quiet <- study@quiet
   
@@ -24,7 +24,8 @@ setMethod("validate", "Study", function(object, profiles = NULL) {
   
   tools <- create_feedback_tools(
     quiet = quiet,
-    success_message = glue("Study and its {length(entities)} {ifelse(length(entities) == 1, 'entity', 'entities')} are valid.")
+    success_message = glue("Study and its {length(entities)} {ifelse(length(entities) == 1, 'entity', 'entities')} are valid."),
+    format = format
   )
   add_feedback <- tools$add_feedback
   give_feedback <- tools$give_feedback
@@ -33,20 +34,21 @@ setMethod("validate", "Study", function(object, profiles = NULL) {
   # Validate all entities  
   entities %>% map(
     function(entity) {
-      is_valid <- entity %>% quiet() %>% validate(profiles = profiles)
+      is_valid <- entity %>% quiet() %>% validate(profiles = profiles, format = format)
       if (!is_valid) {
         entity_name <- get_entity_name(entity)
         add_feedback(
           glue(
             "The entity named '{entity_name}' is not valid.\nPlease run `{global_varname} %>% get_entity('{entity_name}') %>% verbose() %>% validate()` for more details."
-          )
+          ),
+          upload_message = glue("The '{entity_name}' data has validation issues. Please review the details above and correct your data file.")
         )
       }
     }
   )
   # early termination if any of the entities are invalid
   if (!get_is_valid()) {
-    give_feedback(fatal_message = "Error: one or more entities is invalid.")
+    give_feedback(fatal_message = "Error: one or more entities is invalid.", fatal_upload_message = "Your data has validation issues that must be fixed before it can be loaded.")
     return(invisible(FALSE))
   }
   
@@ -57,19 +59,19 @@ setMethod("validate", "Study", function(object, profiles = NULL) {
     if (!result$valid) {
       if (result$fatal %||% FALSE) {
         # Fatal error - stop validation immediately
-        give_feedback(fatal_message = result$message)
+        give_feedback(fatal_message = result$message, fatal_upload_message = result$upload_message)
         return(invisible(FALSE))
       } else if (validator_meta$stop_on_error %||% FALSE) {
         # Stop on error validator failed - stop validation immediately
-        give_feedback(fatal_message = result$message)
+        give_feedback(fatal_message = result$message, fatal_upload_message = result$upload_message)
         return(invisible(FALSE))
       } else {
         # Non-fatal warning - continue validation
-        add_feedback(result$message)
+        add_feedback(result$message, upload_message = result$upload_message)
       }
     } else if (is_truthy(result$message)) {
       # Advisory message - validation passed but there's informational feedback
-      add_feedback(result$message)
+      add_feedback(result$message, upload_message = result$upload_message)
     }
   }
   

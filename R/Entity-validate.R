@@ -8,7 +8,7 @@
 #' @param profile Character vector of validation profiles to use. If NULL, uses global config.
 #' @returns a Boolean indicating success or failure
 #' @export
-setMethod("validate", "Entity", function(object, profiles = NULL) {
+setMethod("validate", "Entity", function(object, profiles = NULL, format = "full") {
   entity <- object
   quiet <- entity@quiet
   
@@ -18,7 +18,7 @@ setMethod("validate", "Entity", function(object, profiles = NULL) {
   # Get validators for this profile and object type
   validators <- get_validators_for_profiles(profiles, "entity")
   
-  tools <- create_feedback_tools(quiet = quiet, success_message = "Entity is valid.")
+  tools <- create_feedback_tools(quiet = quiet, success_message = "Entity is valid.", format = format)
   add_feedback <- tools$add_feedback
   give_feedback <- tools$give_feedback
   get_is_valid <- tools$get_is_valid
@@ -33,20 +33,20 @@ setMethod("validate", "Entity", function(object, profiles = NULL) {
     if (!result$valid) {
       if (result$fatal %||% FALSE) {
         # Fatal error - stop validation immediately
-        give_feedback(fatal_message = result$message)
+        give_feedback(fatal_message = result$message, fatal_upload_message = result$upload_message)
         return(invisible(FALSE))
       } else if (validator_meta$stop_on_error %||% FALSE) {
         # Stop on error validator failed - stop validation immediately
-        give_feedback(fatal_message = result$message)
+        give_feedback(fatal_message = result$message, fatal_upload_message = result$upload_message)
         return(invisible(FALSE))
       } else {
         # Non-fatal warning - continue validation
-        add_feedback(result$message)
+        add_feedback(result$message, upload_message = result$upload_message)
       }
     } else if (is_truthy(result$message)) {
       # Advisory message - validation passed but there's informational feedback
       advisory <- result$advisory %||% FALSE
-      add_feedback(result$message, advisory = advisory)
+      add_feedback(result$message, advisory = advisory, upload_message = result$upload_message)
     }
   }
   
