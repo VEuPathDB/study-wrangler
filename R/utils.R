@@ -120,7 +120,12 @@ type_convert_quietly <- function(data, guess_integer = TRUE, global_varname = 'e
 
     tryCatch(
       {
-        suppressMessages(readr::type_convert(tibble(value = column), guess_integer = guess_integer)$value)
+        result <- suppressMessages(readr::type_convert(tibble(value = column), guess_integer = guess_integer)$value)
+        # Do not allow readr to convert boolean strings to logical type.
+        # Boolean-like columns (TRUE/FALSE/T/F etc.) are kept as character
+        # and handled via binary data_shape detection in infer_missing_data_shapes().
+        if (is.logical(result)) return(column)
+        result
       },
       warning = function(w) {
         if (grepl("expected valid date", conditionMessage(w))) {

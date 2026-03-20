@@ -492,7 +492,7 @@ test_that("validate() complains about string columns with non-character data", {
       modify_data(mutate(Number.of.animals = as.character(Number.of.animals))) %>%
       set_variable_metadata('Number.of.animals', data_shape = 'categorical')
   )
-  expect_true(households %>% validate())
+  expect_true(households %>% quiet() %>% validate())
 })
 
 test_that("validate() complains about string variables with continuous data_shape", {
@@ -518,7 +518,7 @@ test_that("validate() complains about string variables with continuous data_shap
     quiet() %>%
     set_variable_metadata('Construction.material', data_shape = 'categorical')
 
-  expect_true(households %>% validate())
+  expect_true(households %>% quiet() %>% validate())
 })
 
 test_that("validate() catches string/integer mismatch that causes VDI export failure", {
@@ -553,6 +553,96 @@ test_that("validate() catches string/integer mismatch that causes VDI export fai
     set_variable_metadata('Number.of.animals', data_shape = 'categorical')
 
   # Now validation should pass
-  expect_true(households %>% validate())
+  expect_true(households %>% quiet() %>% validate())
+})
+
+test_that("validate() complains about binary variables with more than 2 unique values", {
+  file_path <- system.file("extdata", "toy_example/participants.tsv", package = 'study.wrangler')
+  participants <- entity_from_file(file_path, name = 'participant') %>%
+    quiet() %>%
+    redetect_columns_as_variables('Name') %>%
+    verbose()
+
+  # Should validate cleanly
+  expect_true(participants %>% quiet() %>% validate())
+
+  # Force Family.Role (3 values: Relative, Child, Parent) to binary
+  participants <- participants %>%
+    quiet() %>%
+    set_variable_metadata('Family.Role', data_shape = 'binary') %>%
+    verbose()
+
+  # Validation should now fail with an informative message
+  expect_warning(
+    expect_false(validate(participants)),
+    "Family.Role.+binary.+3 unique values.+set_variable_metadata.+data_shape = 'categorical'"
+  )
+
+  # Fix it
+  participants <- participants %>%
+    quiet() %>%
+    set_variable_metadata('Family.Role', data_shape = 'categorical')
+
+  expect_true(participants %>% quiet() %>% validate())
+})
+
+test_that("validate() (EDA) complains about string values longer than 1000 characters", {
+  file_path <- system.file("extdata", "toy_example/households.tsv", package = 'study.wrangler')
+  households <- entity_from_file(file_path, name = 'household') %>%
+    quiet() %>%
+    set_variable_display_names_from_provider_labels()
+
+  # Should pass EDA validation out of the box
+  expect_true(households %>% quiet() %>% validate(profiles = c("baseline", "eda")))
+
+  # Inject a 1001-character value into Construction.material
+  households <- households %>%
+    quiet() %>%
+    modify_data(mutate(Construction.material = paste(rep("x", 1001), collapse = ""))) %>%
+    verbose()
+
+  # EDA validation should now fail
+  expect_warning(
+    expect_false(validate(households, profiles = c("baseline", "eda"))),
+    "Construction\\.material.+1001.+characters.+EDA backend limit is 1000"
+  )
+
+  # Baseline validation should still pass (this is an EDA-only constraint)
+  expect_true(households %>% quiet() %>% validate())
+
+  # Fix it by truncating
+  households <- households %>%
+    quiet() %>%
+    modify_data(mutate(Construction.material = substr(Construction.material, 1, 1000)))
+
+  expect_true(households %>% quiet() %>% validate(profiles = c("baseline", "eda")))
+})
+
+test_that("validate() (EDA) complains about string values containing newlines", {
+  file_path <- system.file("extdata", "toy_example/households.tsv", package = 'study.wrangler')
+  households <- entity_from_file(file_path, name = 'household') %>%
+    quiet() %>%
+    set_variable_display_names_from_provider_labels()
+
+  # Inject a newline into Construction.material
+  households <- households %>%
+    quiet() %>%
+    modify_data(mutate(Construction.material = paste0(Construction.material, "\ninjected"))) %>%
+    verbose()
+
+  expect_warning(
+    expect_false(validate(households, profiles = c("baseline", "eda"))),
+    "Construction\\.material.+newline"
+  )
+
+  # Baseline should still pass
+  expect_true(households %>% quiet() %>% validate())
+
+  # Fix by replacing newlines with spaces
+  households <- households %>%
+    quiet() %>%
+    modify_data(mutate(Construction.material = gsub("\n|\r", " ", Construction.material)))
+
+  expect_true(households %>% quiet() %>% validate(profiles = c("baseline", "eda")))
 })
 

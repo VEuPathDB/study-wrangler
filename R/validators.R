@@ -163,6 +163,9 @@ list_validators <- function() {
   register_validator("entity_string_data_shapes", validate_entity_string_data_shapes,
                     "entity", "baseline", "Check string variables have appropriate data_shape")
 
+  register_validator("entity_binary_value_count", validate_entity_binary_value_count,
+                    "entity", "baseline", "Check binary variables have at most 2 unique values")
+
   register_validator("entity_date_data_types", validate_entity_date_data_types,
                     "entity", "baseline", "Check date variables are R date type")
   
@@ -213,6 +216,13 @@ list_validators <- function() {
   # EDA display_name validators
    register_validator("eda_variable_display_name_not_null", validate_eda_variable_display_name_not_null,
                      "entity", "eda", "Validate display_name is not null for any variable")
+
+  # EDA string value validators
+  register_validator("eda_string_value_length", validate_entity_string_value_length,
+                    "entity", "eda", "Check string values do not exceed 1000 characters")
+
+  register_validator("eda_string_value_newlines", validate_entity_string_value_newlines,
+                    "entity", "eda", "Check string values do not contain newline characters")
 
   # Study-level EDA validators
   register_validator("study_unique_entity_stable_ids", validate_study_unique_entity_stable_ids,
