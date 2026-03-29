@@ -82,6 +82,15 @@ entity_from_tibble <- function(data, preprocess_fn = NULL, skip_type_convert = F
     data <- preprocess_fn(data)
   }
 
+  # Silently remove ghost columns: empty/whitespace-only headers with all-NA values
+  ghost_col_indices <- which(
+    trimws(colnames(data)) == "" &
+    sapply(data, function(col) all(is.na(col)))
+  )
+  if (length(ghost_col_indices) > 0) {
+    data <- data[, -ghost_col_indices, drop = FALSE]
+  }
+
   provider_labels <- colnames(data) %>% map(list)
   clean_names <- make.names(colnames(data), unique = TRUE)
   colnames(data) <- clean_names
