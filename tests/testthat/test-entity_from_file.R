@@ -108,12 +108,48 @@ test_that("entity_from_file sets metadata from ... args", {
 })
 
 test_that("entity_from_file reports problems from read_tsv()", {
-  
+
   file_path <- system.file("extdata", "toy_example/brokenHouseholds.tsv", package = 'study.wrangler')
-  
+
   expect_error(
     result <- entity_from_file(file_path, name = "household"),
     "Issues were encountered while parsing the file.+5 columns.+6 columns"
   )
+})
+
+test_that("entity_from_file silently removes trailing empty columns", {
+  file_path <- system.file("extdata", "toy_example/trailingEmptyColumns.tsv", package = 'study.wrangler')
+
+  # Should be silent — no spurious duplicate column name warning
+  expect_silent(
+    result <- entity_from_file(file_path)
+  )
+
+  # Should produce the same columns as the clean version
+  households_path <- system.file("extdata", "toy_example/households.tsv", package = 'study.wrangler')
+  reference <- entity_from_file(households_path)
+  expect_equal(colnames(result@data), colnames(reference@data))
+  expect_equal(result@variables$variable, reference@variables$variable)
+})
+
+test_that("entity_from_tibble silently removes whitespace-header empty columns", {
+  ghost_data <- tibble::tibble(
+    `Household Id` = c("HH_1", "HH_2"),
+    `Number of animals` = c("3", "5"),
+    `   ` = c(NA_character_, NA_character_)
+  )
+  expect_silent(
+    result <- entity_from_tibble(ghost_data)
+  )
+  expect_equal(ncol(result@data), 2)
+  expect_equal(result@variables$variable, c("Household.Id", "Number.of.animals"))
+})
+
+test_that("entity_from_tibble keeps empty-header columns that have real data", {
+  # A column with empty header but real data is NOT a ghost column
+  real_data <- tibble::tibble(`Household Id` = c("HH_1", "HH_2"), x = c("value1", "value2"))
+  colnames(real_data)[2] <- ""
+  result <- entity_from_tibble(real_data)
+  expect_equal(ncol(result@data), 2)
 })
 
