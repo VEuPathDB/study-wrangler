@@ -150,7 +150,8 @@ function(entity) {
         stable_id    = geoagg_ids[[col_name]],
         data_type    = factor('string'),
         display_type = factor('geoaggregator'),
-        display_name = glue("Geohash (precision {precision})")
+        display_name = glue("Geohash (precision {precision})"),
+        hidden       = list('everywhere')
       )
   }
 

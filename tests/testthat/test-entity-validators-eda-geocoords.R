@@ -422,6 +422,7 @@ test_that("infer_geo_variables_for_eda generates six geohash columns with correc
     expect_equal(as.character(row$display_type), 'geoaggregator', info = col_name)
     expect_equal(row$stable_id, expected_ids[[col_name]], info = col_name)
     expect_equal(as.character(row$data_type), 'string', info = col_name)
+    expect_equal(as.character(unlist(row$hidden)), 'everywhere', info = col_name)
   }
 
   # Data should also contain the six columns
