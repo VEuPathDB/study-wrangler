@@ -20,7 +20,15 @@ NULL
     eda = list(
       stable_ids = list(
         latitude = 'OBI_0001620',
-        longitude = 'OBI_0001621'
+        longitude = 'OBI_0001621',
+        geoaggregator = list(
+          geohash_1 = 'EUPATH_0043203',
+          geohash_2 = 'EUPATH_0043204',
+          geohash_3 = 'EUPATH_0043205',
+          geohash_4 = 'EUPATH_0043206',
+          geohash_5 = 'EUPATH_0043207',
+          geohash_6 = 'EUPATH_0043208'
+        )
       )
     )
   )

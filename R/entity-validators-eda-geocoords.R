@@ -102,6 +102,9 @@ validate_geocoordinate_variables <- function(entity) {
   if (is.na(lat_metadata$data_type) || lat_metadata$data_type != 'number') {
     lat_issues <- c(lat_issues, paste0("Latitude variable '", lat_var, "' must have data_type = 'number'"))
   }
+  if (is.na(lat_metadata$display_type) || lat_metadata$display_type != 'latitude') {
+    lat_issues <- c(lat_issues, paste0("Latitude variable '", lat_var, "' must have display_type = 'latitude'"))
+  }
 
   # Validate the longitude variable
   lng_var <- lng_vars[1]
@@ -115,9 +118,24 @@ validate_geocoordinate_variables <- function(entity) {
   if (is.na(lng_metadata$data_type) || lng_metadata$data_type != 'longitude') {
     lng_issues <- c(lng_issues, paste0("Longitude variable '", lng_var, "' must have data_type = 'longitude'"))
   }
-  
+  if (is.na(lng_metadata$display_type) || lng_metadata$display_type != 'longitude') {
+    lng_issues <- c(lng_issues, paste0("Longitude variable '", lng_var, "' must have display_type = 'longitude'"))
+  }
+
+  # Validate that geoaggregator variables are present (front-end requirement)
+  expected_geoagg_ids <- unlist(get_config()$export$eda$stable_ids$geoaggregator, use.names = FALSE)
+  geoagg_vars <- variables %>%
+    filter(!is.na(display_type), display_type == 'geoaggregator') %>%
+    pull(stable_id)
+
+  geoagg_issues <- c()
+  if (length(intersect(geoagg_vars, expected_geoagg_ids)) == 0) {
+    geoagg_issues <- c(geoagg_issues,
+      "No geoaggregator variables found. Geohash variables with display_type = 'geoaggregator' are required alongside latitude/longitude variables.")
+  }
+
   # Combine all issues
-  all_issues <- c(lat_issues, lng_issues)
+  all_issues <- c(lat_issues, lng_issues, geoagg_issues)
 
   if (length(all_issues) > 0) {
     # Get global variable name for fix-it suggestions
@@ -126,7 +144,7 @@ validate_geocoordinate_variables <- function(entity) {
     message <- paste(
       paste(all_issues, collapse = "\n"),
       "",
-      "To automatically set the correct metadata for geocoordinate variables, use:",
+      "To automatically set the correct metadata and generate geohash variables, use:",
       paste0("    ", global_varname, " <- ", global_varname, " %>% infer_geo_variables_for_eda()"),
       sep = "\n"
     )
@@ -137,7 +155,7 @@ validate_geocoordinate_variables <- function(entity) {
       message = message
     ))
   }
-  
+
   # All validations passed
   list(valid = TRUE)
 }

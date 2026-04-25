@@ -720,3 +720,52 @@ write_pretty_yaml <- function(data, file) {
     str_replace_all("(\n\\w+:(?: \\[\\])?\n)", "\n\\1") %>%
     writeLines(file)
 }
+
+#' Encode a latitude/longitude coordinate pair as a geohash string
+#'
+#' Faithful port of the Perl `encodeGeohash` function from VEuPathDB/ApiCommonData.
+#' The algorithm starts with longitude (even bits), alternates with latitude (odd bits),
+#' and encodes every 5 bits into one character of the base-32 alphabet
+#' `0123456789bcdefghjkmnpqrstuvwxyz`.
+#'
+#' @param latitude  Numeric latitude  (-90 to 90).  NA returns NA.
+#' @param longitude Numeric longitude (-180 to 180). NA returns NA.
+#' @param precision Integer number of geohash characters (1–12 are typical).
+#' @return A character string of length `precision`, or `NA_character_` when
+#'   either coordinate is NA.
+#' @keywords internal
+encode_geohash <- function(latitude, longitude, precision) {
+  if (is.na(latitude) || is.na(longitude)) return(NA_character_)
+
+  geo32 <- c('0','1','2','3','4','5','6','7','8','9',
+             'b','c','d','e','f','g','h','j','k','m',
+             'n','p','q','r','s','t','u','v','w','x','y','z')
+
+  coord     <- c(as.numeric(latitude), as.numeric(longitude))
+  range_lat <- c(-90,  90)
+  range_lng <- c(-180, 180)
+  which_idx <- 2L   # start with longitude (Perl: $which = 1, 0-indexed)
+  n_bits    <- precision * 5L
+  bits      <- integer(n_bits)
+
+  for (k in seq_len(n_bits)) {
+    rng <- if (which_idx == 1L) range_lat else range_lng
+    mid <- (rng[1] + rng[2]) / 2
+    if (coord[which_idx] <= mid) {
+      bits[k] <- 0L
+      if (which_idx == 1L) range_lat[2] <- mid else range_lng[2] <- mid
+    } else {
+      bits[k] <- 1L
+      if (which_idx == 1L) range_lat[1] <- mid else range_lng[1] <- mid
+    }
+    which_idx <- if (which_idx == 2L) 1L else 2L
+  }
+
+  enc <- character(precision)
+  for (i in seq_len(precision)) {
+    s   <- (i - 1L) * 5L + 1L
+    idx <- sum(bits[s:(s + 4L)] * c(16L, 8L, 4L, 2L, 1L)) + 1L
+    enc[i] <- geo32[idx]
+  }
+  paste(enc, collapse = '')
+}

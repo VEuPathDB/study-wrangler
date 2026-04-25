@@ -111,11 +111,54 @@ function(entity) {
   lng_var <- lng_vars[1]
 
   entity <- entity %>%
-    set_variable_metadata(lat_var, stable_id = get_config()$export$eda$stable_ids$latitude, data_type = factor('number')) %>%
-    set_variable_metadata(lng_var, stable_id = get_config()$export$eda$stable_ids$longitude, data_type = factor('longitude'))
+    set_variable_metadata(lat_var,
+      stable_id  = get_config()$export$eda$stable_ids$latitude,
+      data_type  = factor('number'),
+      display_type = factor('latitude')
+    ) %>%
+    set_variable_metadata(lng_var,
+      stable_id  = get_config()$export$eda$stable_ids$longitude,
+      data_type  = factor('longitude'),
+      display_type = factor('longitude')
+    )
+
+  # Generate six geohash columns (precision 1–6) from the numeric lat/lng data
+  lat_data <- as.numeric(entity@data[[lat_var]])
+  lng_data <- as.numeric(entity@data[[lng_var]])
+
+  geoagg_ids   <- get_config()$export$eda$stable_ids$geoaggregator
+  geohash_cols <- names(geoagg_ids)  # "geohash_1" … "geohash_6"
+
+  # Add all six geohash columns to the data in one mutate call
+  geohash_data <- purrr::imap(
+    setNames(seq_along(geohash_cols), geohash_cols),
+    function(precision, col_name) {
+      mapply(encode_geohash, lat_data, lng_data, precision,
+             USE.NAMES = FALSE, SIMPLIFY = TRUE)
+    }
+  ) %>% as_tibble()
+
+  entity <- entity %>%
+    modify_data(bind_cols(geohash_data)) %>%
+    sync_variable_metadata()
+
+  # Set metadata for each geohash column
+  for (col_name in geohash_cols) {
+    precision <- as.integer(sub("geohash_", "", col_name))
+    entity <- entity %>%
+      set_variable_metadata(col_name,
+        stable_id    = geoagg_ids[[col_name]],
+        data_type    = factor('string'),
+        display_type = factor('geoaggregator'),
+        display_name = glue("Geohash (precision {precision})")
+      )
+  }
 
   if (!entity@quiet) {
-    message(glue("Set geographic metadata for latitude variable '{lat_var}' and longitude variable '{lng_var}'"))
+    message(glue(
+      "Set geographic metadata for latitude variable '{lat_var}' and longitude variable '{lng_var}', ",
+      "and generated geohash columns: {paste(geohash_cols, collapse = ', ')}"
+    ))
   }
 
   return(entity)
