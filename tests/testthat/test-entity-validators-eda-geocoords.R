@@ -515,4 +515,3 @@ test_that("geocoordinate validator fails when no geoaggregator variables are pre
   )
   expect_false(is_valid)
 })
-})
