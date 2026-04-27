@@ -137,10 +137,9 @@ function(entity) {
              USE.NAMES = FALSE, SIMPLIFY = TRUE)
     }
   ) %>% as_tibble()
-
-  entity <- entity %>%
-    modify_data(bind_cols(geohash_data)) %>%
-    sync_variable_metadata()
+  # Evaluate bind_cols eagerly here to avoid NSE scoping issues with modify_data's ... forwarding
+  entity <- initialize(entity, data = dplyr::bind_cols(entity@data, geohash_data))
+  entity <- entity %>% sync_variable_metadata()
 
   # Set metadata for each geohash column
   for (col_name in geohash_cols) {
@@ -149,6 +148,7 @@ function(entity) {
       set_variable_metadata(col_name,
         stable_id    = geoagg_ids[[col_name]],
         data_type    = factor('string'),
+        data_shape   = factor('categorical'),
         display_type = factor('geoaggregator'),
         display_name = glue("Geohash (precision {precision})"),
         hidden       = list('everywhere')
