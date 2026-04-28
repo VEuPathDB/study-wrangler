@@ -125,26 +125,27 @@ entity_from_tibble <- function(data, preprocess_fn = NULL, skip_type_convert = F
   return(entity)
 }
 
-# Try encodings in order; stop at the first where readLines produces no "invalid input" warning.
+# Detect file encoding. Probes UTF-8 first via readLines warning; if that fails,
+# distinguishes Windows-1252 from ISO-8859-1 by checking for bytes in 0x80-0x9F
+# (printable in Windows-1252, C1 control characters in ISO-8859-1).
 detect_file_encoding <- function(path) {
-  encodings <- c("UTF-8", "Windows-1252", "ISO-8859-1")
-  enc <- purrr::detect(encodings, function(enc) {
-    had_invalid_input <- FALSE
-    tryCatch(
-      withCallingHandlers({
-        con <- file(path, open = "r", encoding = enc)
-        on.exit(close(con))
-        readLines(con, warn = TRUE)
-        !had_invalid_input
-      }, warning = function(w) {
-        if (grepl("invalid input", conditionMessage(w))) had_invalid_input <<- TRUE
-        invokeRestart("muffleWarning")
-      }),
-      error = function(e) FALSE
-    )
-  })
-  if (is.null(enc)) enc <- "UTF-8"
-  enc
+  had_invalid_input <- FALSE
+  tryCatch(
+    withCallingHandlers({
+      con <- file(path, open = "r", encoding = "UTF-8")
+      on.exit(close(con))
+      readLines(con, warn = TRUE)
+      !had_invalid_input
+    }, warning = function(w) {
+      if (grepl("invalid input", conditionMessage(w))) had_invalid_input <<- TRUE
+      invokeRestart("muffleWarning")
+    }),
+    error = function(e) FALSE
+  )
+  if (!had_invalid_input) return("UTF-8")
+
+  raw_bytes <- readBin(path, what = "raw", n = file.info(path)$size)
+  if (any(raw_bytes >= as.raw(0x80) & raw_bytes <= as.raw(0x9F))) "Windows-1252" else "ISO-8859-1"
 }
 
 #' entity_from_tsv
