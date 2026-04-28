@@ -125,15 +125,46 @@ entity_from_tibble <- function(data, preprocess_fn = NULL, skip_type_convert = F
   return(entity)
 }
 
+# Detect file encoding. UTF-8, Windows-1252, and ISO-8859-1 cover the vast
+# majority of tabular data files users upload in the wild (UTF-8 from modern
+# tools; Windows-1252 and ISO-8859-1 from legacy Excel/Access exports in Western
+# locales). We roll our own rather than using readr::guess_encoding() because
+# it uses inconsistent casing ("windows-1252"), gives ~0.4 confidence for
+# ISO-8859-1/Windows-1252, and its sampling behaviour is unspecified across
+# readr versions — too unreliable for a deterministic pick. Instead: probe UTF-8 via readLines
+# warning, then use a binary byte-range scan to distinguish the two single-byte
+# encodings (bytes 0x80-0x9F are printable only in Windows-1252).
+detect_file_encoding <- function(path) {
+  had_invalid_input <- FALSE
+  con <- file(path, open = "r", encoding = "UTF-8")
+  on.exit(close(con), add = TRUE)
+  withCallingHandlers(
+    readLines(con, warn = TRUE),
+    warning = function(w) {
+      if (grepl("invalid input", conditionMessage(w))) had_invalid_input <<- TRUE
+      invokeRestart("muffleWarning")
+    }
+  )
+  if (!had_invalid_input) return("UTF-8")
+
+  has_windows_range <- local({
+    raw_bytes <- readBin(path, what = "raw", n = file.info(path)$size)
+    any(raw_bytes >= as.raw(0x80) & raw_bytes <= as.raw(0x9F))
+  })
+  if (has_windows_range) "Windows-1252" else "ISO-8859-1"
+}
+
 #' entity_from_tsv
 #' @description Convenience function to create an Entity from a TSV file.
 #' @export
 entity_from_tsv <- function(file_path, preprocess_fn = NULL, ...) {
+  enc <- detect_file_encoding(file_path)
   data <- suppressWarnings(
     readr::read_tsv(
       file_path,
       name_repair = 'minimal',
       col_types = readr::cols(.default = "c"),
+      locale = readr::locale(encoding = enc),
       progress = FALSE
     )
   )
@@ -154,11 +185,13 @@ entity_from_tsv <- function(file_path, preprocess_fn = NULL, ...) {
 #' @description Convenience function to create an Entity from a CSV file.
 #' @export
 entity_from_csv <- function(file_path, preprocess_fn = NULL, ...) {
+  enc <- detect_file_encoding(file_path)
   data <- suppressWarnings(
     readr::read_csv(
       file_path,
       name_repair = 'minimal',
       col_types = readr::cols(.default = "c"),
+      locale = readr::locale(encoding = enc),
       progress = FALSE
     )
   )
