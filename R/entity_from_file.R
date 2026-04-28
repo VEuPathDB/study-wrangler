@@ -130,17 +130,14 @@ entity_from_tibble <- function(data, preprocess_fn = NULL, skip_type_convert = F
 # (printable in Windows-1252, C1 control characters in ISO-8859-1).
 detect_file_encoding <- function(path) {
   had_invalid_input <- FALSE
-  tryCatch(
-    withCallingHandlers({
-      con <- file(path, open = "r", encoding = "UTF-8")
-      on.exit(close(con))
-      readLines(con, warn = TRUE)
-      !had_invalid_input
-    }, warning = function(w) {
+  con <- file(path, open = "r", encoding = "UTF-8")
+  on.exit(close(con), add = TRUE)
+  withCallingHandlers(
+    readLines(con, warn = TRUE),
+    warning = function(w) {
       if (grepl("invalid input", conditionMessage(w))) had_invalid_input <<- TRUE
       invokeRestart("muffleWarning")
-    }),
-    error = function(e) FALSE
+    }
   )
   if (!had_invalid_input) return("UTF-8")
 
