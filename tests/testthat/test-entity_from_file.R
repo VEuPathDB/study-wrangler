@@ -153,3 +153,51 @@ test_that("entity_from_tibble keeps empty-header columns that have real data", {
   expect_equal(ncol(result@data), 2)
 })
 
+test_that("entity_from_tibble drops all-NA named columns with a message", {
+  data <- tibble::tibble(
+    id    = c("A", "B", "C"),
+    value = c("1", "2", "3"),
+    empty = c(NA_character_, NA_character_, NA_character_)
+  )
+  expect_message(
+    result <- entity_from_tibble(data),
+    "Dropped 1 empty column\\(s\\).*empty"
+  )
+  expect_equal(ncol(result@data), 2)
+  expect_equal(result@variables$variable, c("id", "value"))
+})
+
+test_that("entity_from_tibble drops all-blank-string named columns with a message", {
+  data <- tibble::tibble(
+    id    = c("A", "B"),
+    blank = c("", "  ")
+  )
+  expect_message(
+    result <- entity_from_tibble(data),
+    "Dropped 1 empty column\\(s\\).*blank"
+  )
+  expect_equal(ncol(result@data), 1)
+})
+
+test_that("entity_from_tibble suppresses empty-column message when quiet = TRUE", {
+  data <- tibble::tibble(
+    id    = c("A", "B"),
+    empty = c(NA_character_, NA_character_)
+  )
+  expect_silent(
+    result <- entity_from_tibble(data, quiet = TRUE)
+  )
+  expect_equal(ncol(result@data), 1)
+})
+
+test_that("entity_from_tibble keeps columns that have at least one non-empty value", {
+  data <- tibble::tibble(
+    id      = c("A", "B", "C"),
+    partial = c("x", NA, NA)
+  )
+  expect_silent(
+    result <- entity_from_tibble(data)
+  )
+  expect_equal(ncol(result@data), 2)
+})
+

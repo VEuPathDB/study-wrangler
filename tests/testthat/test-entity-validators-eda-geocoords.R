@@ -490,6 +490,93 @@ test_that("geocoordinate validator fails when longitude variable has wrong displ
   expect_false(is_valid)
 })
 
+test_that("geocoordinate validator is fatal for latitude values outside [-90, 90]", {
+  file_path <- system.file("extdata", "toy_example/households.tsv", package = 'study.wrangler')
+  add_bad_lat <- function(data) {
+    data %>% mutate(
+      latitude  = c("91.0", "41.0", "42.0"),
+      longitude = c("-74.0", "-73.0", "-72.0")
+    )
+  }
+  households <- entity_from_file(file_path, name = 'household', preprocess_fn = add_bad_lat) %>%
+    quiet() %>% infer_geo_variables_for_eda() %>% verbose()
+
+  expect_warning(
+    is_valid <- validate(households, profiles = c("baseline", "eda")),
+    "1 latitude value\\(s\\) are outside the WGS-84 range"
+  )
+  expect_false(is_valid)
+})
+
+test_that("geocoordinate validator is fatal for longitude values outside [-180, 180]", {
+  file_path <- system.file("extdata", "toy_example/households.tsv", package = 'study.wrangler')
+  add_bad_lng <- function(data) {
+    data %>% mutate(
+      latitude  = c("40.7", "41.0", "42.0"),
+      longitude = c("-181.0", "-73.0", "-72.0")
+    )
+  }
+  households <- entity_from_file(file_path, name = 'household', preprocess_fn = add_bad_lng) %>%
+    quiet() %>% infer_geo_variables_for_eda() %>% verbose()
+
+  expect_warning(
+    is_valid <- validate(households, profiles = c("baseline", "eda")),
+    "1 longitude value\\(s\\) are outside the WGS-84 range"
+  )
+  expect_false(is_valid)
+})
+
+test_that("geocoordinate validator is fatal for partial lat/lng pairs", {
+  file_path <- system.file("extdata", "toy_example/households.tsv", package = 'study.wrangler')
+  add_partial <- function(data) {
+    data %>% mutate(
+      latitude  = c("40.7", NA, "42.0"),
+      longitude = c("-74.0", "-73.0", NA)
+    )
+  }
+  households <- entity_from_file(file_path, name = 'household', preprocess_fn = add_partial) %>%
+    quiet() %>% infer_geo_variables_for_eda() %>% verbose()
+
+  expect_warning(
+    is_valid <- validate(households, profiles = c("baseline", "eda")),
+    "2 row\\(s\\) have only one coordinate value"
+  )
+  expect_false(is_valid)
+})
+
+test_that("geocoordinate validator reports multiple value issues together", {
+  file_path <- system.file("extdata", "toy_example/households.tsv", package = 'study.wrangler')
+  add_multiple_issues <- function(data) {
+    data %>% mutate(
+      latitude  = c("91.0", NA, "42.0"),
+      longitude = c("-181.0", "-73.0", NA)
+    )
+  }
+  households <- entity_from_file(file_path, name = 'household', preprocess_fn = add_multiple_issues) %>%
+    quiet() %>% set_variable_display_names_from_provider_labels() %>% infer_geo_variables_for_eda() %>% verbose()
+
+  # Both the partial-pair issue and the range issue must appear in the same message
+  expect_warning(
+    is_valid <- validate(households, profiles = c("baseline", "eda")),
+    "partial lat/lng pair.*WGS-84 range"
+  )
+  expect_false(is_valid)
+})
+
+test_that("geocoordinate validator accepts rows where both lat and lng are NA", {
+  file_path <- system.file("extdata", "toy_example/households.tsv", package = 'study.wrangler')
+  add_some_na <- function(data) {
+    data %>% mutate(
+      latitude  = c("40.7", NA, "42.0"),
+      longitude = c("-74.0", NA, "-72.0")
+    )
+  }
+  households <- entity_from_file(file_path, name = 'household', preprocess_fn = add_some_na) %>%
+    quiet() %>% set_variable_display_names_from_provider_labels() %>% infer_geo_variables_for_eda() %>% verbose()
+
+  expect_true(households %>% quiet() %>% validate(profiles = c("baseline", "eda")))
+})
+
 test_that("geocoordinate validator fails when no geoaggregator variables are present", {
   file_path <- system.file("extdata", "toy_example/households.tsv", package = 'study.wrangler')
   add_geo_coords <- function(data) {
