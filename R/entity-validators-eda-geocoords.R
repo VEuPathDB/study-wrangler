@@ -156,6 +156,51 @@ validate_geocoordinate_variables <- function(entity) {
     ))
   }
 
+  # Validate actual coordinate values
+  lat_values <- suppressWarnings(as.numeric(entity@data[[lat_var]]))
+  lng_values <- suppressWarnings(as.numeric(entity@data[[lng_var]]))
+
+  value_issues <- c()
+
+  # Check for partial pairs (one NA, the other not)
+  partial_pairs <- is.na(lat_values) != is.na(lng_values)
+  if (any(partial_pairs)) {
+    value_issues <- c(value_issues, paste0(
+      sum(partial_pairs), " row(s) have only one coordinate value (partial lat/lng pair). ",
+      "Both latitude and longitude must be present or both must be absent."
+    ))
+  }
+
+  # Check latitude range [-90, 90]
+  non_na_lat <- lat_values[!is.na(lat_values)]
+  if (length(non_na_lat) > 0 && any(non_na_lat < -90 | non_na_lat > 90)) {
+    value_issues <- c(value_issues, paste0(
+      sum(non_na_lat < -90 | non_na_lat > 90),
+      " latitude value(s) are outside the WGS-84 range [-90, 90]."
+    ))
+  }
+
+  # Check longitude range [-180, 180]
+  non_na_lng <- lng_values[!is.na(lng_values)]
+  if (length(non_na_lng) > 0 && any(non_na_lng < -180 | non_na_lng > 180)) {
+    value_issues <- c(value_issues, paste0(
+      sum(non_na_lng < -180 | non_na_lng > 180),
+      " longitude value(s) are outside the WGS-84 range [-180, 180]."
+    ))
+  }
+
+  if (length(value_issues) > 0) {
+    return(list(
+      valid = FALSE,
+      fatal = TRUE,
+      message = paste(
+        paste(value_issues, collapse = "\n"),
+        "Coordinate data must use WGS-84 decimal degrees.",
+        sep = "\n"
+      )
+    ))
+  }
+
   # All validations passed
   list(valid = TRUE)
 }

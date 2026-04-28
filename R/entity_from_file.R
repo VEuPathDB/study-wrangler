@@ -91,6 +91,22 @@ entity_from_tibble <- function(data, preprocess_fn = NULL, skip_type_convert = F
     data <- data[, -ghost_col_indices, drop = FALSE]
   }
 
+  # Drop named columns where every value is NA or blank, and inform the user
+  empty_data_indices <- which(
+    sapply(data, function(col) all(is.na(col) | trimws(as.character(col)) == ""))
+  )
+  if (length(empty_data_indices) > 0) {
+    empty_col_names <- colnames(data)[empty_data_indices]
+    if (!isTRUE(metadata$quiet)) {
+      message(
+        "Dropped ", length(empty_data_indices),
+        " empty column(s) (all values missing or blank): ",
+        paste(empty_col_names, collapse = ", ")
+      )
+    }
+    data <- data[, -empty_data_indices, drop = FALSE]
+  }
+
   provider_labels <- colnames(data) %>% map(list)
   clean_names <- make.names(colnames(data), unique = TRUE)
   colnames(data) <- clean_names
