@@ -125,16 +125,23 @@ entity_from_tibble <- function(data, preprocess_fn = NULL, skip_type_convert = F
   return(entity)
 }
 
-# Try encodings in order; stop at the first where every line survives nchar().
+# Try encodings in order; stop at the first where readLines produces no "invalid input" warning.
 detect_file_encoding <- function(path) {
   encodings <- c("UTF-8", "Windows-1252", "ISO-8859-1")
   enc <- purrr::detect(encodings, function(enc) {
-    tryCatch({
-      con <- file(path, open = "r", encoding = enc)
-      on.exit(close(con))
-      lines <- readLines(con, warn = FALSE)
-      !any(is.na(purrr::map_int(lines, ~ nchar(.x, allowNA = TRUE))))
-    }, error = function(e) FALSE)
+    had_invalid_input <- FALSE
+    tryCatch(
+      withCallingHandlers({
+        con <- file(path, open = "r", encoding = enc)
+        on.exit(close(con))
+        readLines(con, warn = TRUE)
+        !had_invalid_input
+      }, warning = function(w) {
+        if (grepl("invalid input", conditionMessage(w))) had_invalid_input <<- TRUE
+        invokeRestart("muffleWarning")
+      }),
+      error = function(e) FALSE
+    )
   })
   if (is.null(enc)) enc <- "UTF-8"
   enc
