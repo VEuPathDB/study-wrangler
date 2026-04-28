@@ -125,9 +125,15 @@ entity_from_tibble <- function(data, preprocess_fn = NULL, skip_type_convert = F
   return(entity)
 }
 
-# Detect file encoding. Probes UTF-8 first via readLines warning; if that fails,
-# distinguishes Windows-1252 from ISO-8859-1 by checking for bytes in 0x80-0x9F
-# (printable in Windows-1252, C1 control characters in ISO-8859-1).
+# Detect file encoding. UTF-8, Windows-1252, and ISO-8859-1 cover the vast
+# majority of tabular data files users upload in the wild (UTF-8 from modern
+# tools; Windows-1252 and ISO-8859-1 from legacy Excel/Access exports in Western
+# locales). We roll our own rather than using readr::guess_encoding() because
+# it uses inconsistent casing ("windows-1252"), gives ~0.4 confidence for
+# ISO-8859-1/Windows-1252, and its sampling behaviour is unspecified across
+# readr versions — too unreliable for a deterministic pick. Instead: probe UTF-8 via readLines
+# warning, then use a binary byte-range scan to distinguish the two single-byte
+# encodings (bytes 0x80-0x9F are printable only in Windows-1252).
 detect_file_encoding <- function(path) {
   had_invalid_input <- FALSE
   con <- file(path, open = "r", encoding = "UTF-8")
