@@ -147,8 +147,11 @@ detect_file_encoding <- function(path) {
   )
   if (!had_invalid_input) return("UTF-8")
 
-  raw_bytes <- readBin(path, what = "raw", n = file.info(path)$size)
-  if (any(raw_bytes >= as.raw(0x80) & raw_bytes <= as.raw(0x9F))) "Windows-1252" else "ISO-8859-1"
+  has_windows_range <- local({
+    raw_bytes <- readBin(path, what = "raw", n = file.info(path)$size)
+    any(raw_bytes >= as.raw(0x80) & raw_bytes <= as.raw(0x9F))
+  })
+  if (has_windows_range) "Windows-1252" else "ISO-8859-1"
 }
 
 #' entity_from_tsv
