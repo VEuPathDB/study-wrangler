@@ -10,7 +10,11 @@
 #'   before type inference. This can be used for tasks such as correcting
 #'   invalid dates or other data cleanup. The function should accept a tibble
 #'   and return a modified tibble. All columns in the input tibble will be
-#'   character type (aka strings). Default is `NULL`.
+#'   character type (aka strings). Default is `NULL`. Note: if the input file
+#'   contains duplicate column names, they will be deduplicated before
+#'   `preprocess_fn` is called (e.g. two `notes` columns become `notes` and
+#'   `notes.1`), so any column references inside the function must use the
+#'   deduplicated names.
 #' @param ... Additional named parameters to set entity metadata (see Entity class),
 #'   e.g. name="household", display_name="Household"   
 #' @return An Entity object with two main components:
@@ -69,6 +73,8 @@ entity_from_file <- function(file_path, preprocess_fn = NULL, ...) {
 #' Creates an Entity object from a raw character-only tibble. Optionally applies a preprocessing function.
 #' @param data A tibble with all columns as character (unless skip_type_convert is TRUE)
 #' @param preprocess_fn Optional function to preprocess the tibble before type inference.
+#'   If the input has duplicate column names, they are deduplicated (e.g. `notes`, `notes.1`)
+#'   before this function is called, so column references must use the deduplicated names.
 #' @param skip_type_convert Optional boolean to skip R column type detection and use existing types. Default is FALSE. 
 #' @param ... Additional named parameters to set entity metadata (see Entity class).
 #' @return An Entity object.
@@ -77,18 +83,37 @@ entity_from_tibble <- function(data, preprocess_fn = NULL, skip_type_convert = F
   metadata = list(...)
   validate_object_metadata_names('Entity', metadata)
 
-  # Apply the pre-processing function, if provided.
-  if (!is.null(preprocess_fn)) {
-    data <- preprocess_fn(data)
-  }
-
-  # Silently remove ghost columns: empty/whitespace-only headers with all-NA values
+  # Silently remove ghost columns first so they don't trigger a spurious
+  # duplicate-name warning below (e.g. multiple trailing empty-header columns).
   ghost_col_indices <- which(
     trimws(colnames(data)) == "" &
     sapply(data, function(col) all(is.na(col)))
   )
   if (length(ghost_col_indices) > 0) {
     data <- data[, -ghost_col_indices, drop = FALSE]
+  }
+
+  # Warn about and rename duplicate column names before preprocess_fn runs, so
+  # that callers can catch the warning and preprocess_fn receives unique names.
+  # Capture original names first so provider_label can reflect the input file.
+  original_names <- colnames(data)
+  deduped_names <- make.names(original_names, unique = TRUE)
+  if (anyDuplicated(original_names)) {
+    renamed <- tibble(original = original_names, renamed = deduped_names) %>%
+      filter(original != renamed)
+    warning(
+      paste(
+        "Duplicate column names detected in input. Renamed as follows:\n",
+        paste(renamed$original, "->", renamed$renamed, collapse = "\n"),
+        sep = ""
+      )
+    )
+    colnames(data) <- deduped_names
+  }
+
+  # Apply the pre-processing function, if provided.
+  if (!is.null(preprocess_fn)) {
+    data <- preprocess_fn(data)
   }
 
   # Drop named columns where every value is NA or blank, and inform the user
@@ -107,25 +132,15 @@ entity_from_tibble <- function(data, preprocess_fn = NULL, skip_type_convert = F
     data <- data[, -empty_data_indices, drop = FALSE]
   }
 
-  provider_labels <- colnames(data) %>% map(list)
+  # Build a map from deduplicated name → original name so provider_label
+  # reflects what the user's input file actually contained.
+  name_map <- setNames(original_names, deduped_names)
+  provider_labels <- colnames(data) %>% map(function(col) {
+    list(if (col %in% names(name_map)) name_map[[col]] else col)
+  })
+
   clean_names <- make.names(colnames(data), unique = TRUE)
   colnames(data) <- clean_names
-
-  if (anyDuplicated(provider_labels)) {
-    duplicates <- provider_labels[duplicated(provider_labels) | duplicated(provider_labels, fromLast = TRUE)]
-    renamed <- tibble(
-      original = provider_labels,
-      renamed = clean_names
-    ) %>% 
-      filter(original %in% duplicates)
-    warning(
-      paste(
-        "Duplicate column names detected in input. Renamed as follows:\n",
-        paste(renamed$original, "->", renamed$renamed, collapse = "\n"),
-        sep=""
-      )
-    )
-  }
 
   if (!skip_type_convert) {
     data <- type_convert_quietly(data)
