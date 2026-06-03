@@ -61,6 +61,25 @@ make_minimal_stf <- function(output_directory) {
   
 }
 
+make_study_with_tabs_data <- function(quiet_entities = TRUE, ...) {
+  metadata <- list(...)
+  validate_object_metadata_names('Study', metadata)
+
+  households_path <- system.file("extdata", "toy_example/households.tsv", package = 'study.wrangler')
+
+  # dirty_notes has embedded tabs, a newline, and a backtick.
+  # Two rows share the same value so the column isn't auto-detected as an ID.
+  households <- entity_from_file(households_path, name="household", quiet=quiet_entities) %>%
+    modify_data(mutate(
+      dirty_notes = c("has\ta tab\nand a `backtick`", "also\ta tab", "has\ta tab\nand a `backtick`")
+    )) %>%
+    sync_variable_metadata()
+
+  args <- c(list(entities = list(households)), metadata)
+  study <- do.call(study_from_entities, args)
+  return(study)
+}
+
 make_study_with_collections <- function(quiet_entities = TRUE, ...) {
   study <- make_study(quiet_entities, ...)
 
