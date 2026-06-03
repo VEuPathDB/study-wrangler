@@ -145,7 +145,7 @@ entity_from_stf <- function(tsv_path, yaml_path = NULL) {
     ids_metadata <- map2(
       id_column_names,
       entity_levels,
-      ~ list(variable = .x, entity_name = .x, entity_level = .y, data_type = factor('id'))
+      ~ list(variable = .x, entity_name = .x, entity_level = .y, data_type = factor('id'), provider_label = list(.x))
     ) %>%
       process_metadata_list(variable_metadata_defaults)
     
