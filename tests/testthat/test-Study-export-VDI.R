@@ -131,3 +131,49 @@ test_that("A study with collections exports to VDI", {
   # Clean up
   unlink(output_dir, recursive = TRUE)
 })
+
+test_that("Tabs, newlines and backticks in string values are sanitized in VDI cache files", {
+  study <- make_study_with_tabs_data(name = 'tabs test study')
+
+  output_dir <- "./tmp/vdi-tabs"
+
+  expect_no_error(
+    capture_messages(study %>% export_to_vdi(output_directory = output_dir))
+  )
+
+  cache_files <- list.files(output_dir, pattern = "\\.cache$", full.names = TRUE)
+  # study.cache is intentionally not sanitized (controlled IDs only)
+  data_cache_files <- cache_files[basename(cache_files) != "study.cache"]
+
+  # The dirty_notes column in the test fixture has values containing embedded tabs,
+  # a newline, and a backtick.  After sanitization those characters should be gone.
+  # Check the attributevalue cache where string data lands.
+  av_file <- cache_files[grepl("^attributevalue", basename(cache_files))]
+  expect_equal(length(av_file), 1)
+  av_lines <- readLines(av_file)
+
+  # Original tab-in-value pattern must not be present
+  expect_false(any(grepl("has\ta", av_lines, fixed = TRUE)),
+               info = "Embedded tab survived into attributevalue cache")
+
+  # Sanitized value (tab replaced by space) must be present
+  expect_true(any(grepl("has a tab", av_lines, fixed = TRUE)),
+              info = "Expected space-for-tab substitution not found in attributevalue cache")
+
+  # Backticks must be replaced by single quotes
+  expect_false(any(grepl("`", av_lines, fixed = TRUE)),
+               info = "Backtick found in attributevalue cache")
+  expect_true(any(grepl("'backtick'", av_lines, fixed = TRUE)),
+              info = "Expected single-quote replacement not found in attributevalue cache")
+
+  # No embedded carriage returns should survive into any data cache file
+  for (f in data_cache_files) {
+    lines <- readLines(f)
+    expect_false(
+      any(grepl("\r", lines, fixed = TRUE)),
+      info = paste("Embedded carriage return found in", basename(f))
+    )
+  }
+
+  unlink(output_dir, recursive = TRUE)
+})

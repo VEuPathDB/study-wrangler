@@ -63,7 +63,7 @@ setMethod("export_to_vdi", "Study", function(object, output_directory) {
   entitytypegraph_cache <- export_data$entitytypegraph_cache %>% bind_rows()
 
   write_tsv(
-    entitytypegraph_cache,
+    entitytypegraph_cache %>% sanitize_for_cache(),
     file = file.path(output_directory, "entitytypegraph.cache"),
     col_names = FALSE,
     na = '',
@@ -192,7 +192,7 @@ export_ancestors_to_vdi <- function(entities, output_directory, install_json, st
   # Output the data
   tablename <- glue("ancestors_{study %>% get_study_abbreviation()}_{entity_abbreviation}")
   filename <- glue("{tablename}.cache")
-  write_tsv(ancestors, file.path(output_directory, filename), col_names = FALSE)
+  write_tsv(ancestors %>% sanitize_for_cache(), file.path(output_directory, filename), col_names = FALSE)
   
   # Create the table definition JSON
   
@@ -298,7 +298,7 @@ export_attributes_to_vdi <- function(entities, output_directory, install_json, s
   filename <- glue("{tablename}.cache")
   # `escape = 'none'` prevents doubling of double-quotes
   write_tsv(
-    metadata_only,
+    metadata_only %>% sanitize_for_cache(),
     file.path(output_directory, filename),
     col_names = FALSE,
     na = '',
@@ -544,7 +544,7 @@ export_attributes_to_vdi <- function(entities, output_directory, install_json, s
   filename <- glue("{tablename}.cache")
   # `escape = 'none'` prevents doubling of double-quotes
   write_tsv(
-    attribute_values_data,
+    attribute_values_data %>% sanitize_for_cache(),
     file.path(output_directory, filename),
     col_names = FALSE,
     na = '',
@@ -625,13 +625,13 @@ export_collections_to_vdi <- function(entities, output_directory, install_json, 
   filename <- glue("{tablename}.cache")
   # `escape = 'none'` prevents doubling of double-quotes
   write_tsv(
-    metadata_only,
+    metadata_only %>% sanitize_for_cache(),
     file.path(output_directory, filename),
     col_names = FALSE,
     na = '',
     escape = 'none'
   )
-  
+
   # set `maxLength` to max from data for all type="SQL_VARCHAR"
   # in `collections_table_fields` before adding to `install_json`
   # also similar treatment for `prec` field for "SQL_NUMBER" fields
@@ -671,7 +671,7 @@ export_collections_to_vdi <- function(entities, output_directory, install_json, 
   
   # write the data
   write_tsv(
-    collectionattributes,
+    collectionattributes %>% sanitize_for_cache(),
     file.path(output_directory, collectionattributes_filename),
     col_names = FALSE,
     na = '',
@@ -705,5 +705,14 @@ jsonify_list_column <- function(x) {
   } else {
     as.character(jsonlite::toJSON(unlist(x)))
   }
+}
+
+# Replace characters that would corrupt the TSV-based VDI import format.
+# Newlines/carriage returns/tabs are replaced with a single space.
+# Backticks are replaced with single quotes (Postgres loader uses backtick as quote char).
+sanitize_for_cache <- function(df) {
+  df %>% mutate(across(where(is.character), function(x) {
+    gsub("`", "'", gsub("[\n\r\t]", " ", x), fixed = TRUE)
+  }))
 }
 

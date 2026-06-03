@@ -151,6 +151,9 @@ validate_entity_string_value_length <- function(entity) {
 #' Newlines in string values corrupt the TSV-based VDI import format.
 #' For multi-valued columns, checking the raw (unsplit) cell is sufficient:
 #' if no raw cell contains a newline, no component can either.
+#'
+#' DEPRECATED/UNUSED
+#'
 #' @keywords internal
 validate_entity_string_value_newlines <- function(entity) {
   data <- entity@data
