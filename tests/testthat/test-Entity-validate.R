@@ -618,7 +618,9 @@ test_that("validate() (EDA) complains about string values longer than 1000 chara
   expect_true(households %>% quiet() %>% validate(profiles = c("baseline", "eda")))
 })
 
-test_that("validate() (EDA) complains about string values containing newlines", {
+# Since v1.0.43
+# newlines in values are no longer a validation fail for the EDA profile
+test_that("validate() (EDA) no longer complains about string values containing newlines", {
   file_path <- system.file("extdata", "toy_example/households.tsv", package = 'study.wrangler')
   households <- entity_from_file(file_path, name = 'household') %>%
     quiet() %>%
@@ -630,19 +632,6 @@ test_that("validate() (EDA) complains about string values containing newlines", 
     modify_data(mutate(Construction.material = paste0(Construction.material, "\ninjected"))) %>%
     verbose()
 
-  expect_warning(
-    expect_false(validate(households, profiles = c("baseline", "eda"))),
-    "Construction\\.material.+newline"
-  )
-
-  # Baseline should still pass
-  expect_true(households %>% quiet() %>% validate())
-
-  # Fix by replacing newlines with spaces
-  households <- households %>%
-    quiet() %>%
-    modify_data(mutate(Construction.material = gsub("\n|\r", " ", Construction.material)))
-
-  expect_true(households %>% quiet() %>% validate(profiles = c("baseline", "eda")))
+  expect_true(validate(households, profiles = c("baseline", "eda")))
 })
 
