@@ -13,6 +13,26 @@ test_that("detect_file_encoding identifies Windows-1252", {
   expect_equal(study.wrangler:::detect_file_encoding(file_path), "Windows-1252")
 })
 
+test_that("detect_file_encoding identifies UTF-16LE with BOM", {
+  file_path <- system.file("extdata", "toy_example/householdsUTF16LE.tsv", package = "study.wrangler")
+  expect_equal(study.wrangler:::detect_file_encoding(file_path), "UTF-16LE")
+})
+
+test_that("detect_file_encoding identifies UTF-16BE with BOM", {
+  file_path <- system.file("extdata", "toy_example/householdsUTF16BE.tsv", package = "study.wrangler")
+  expect_equal(study.wrangler:::detect_file_encoding(file_path), "UTF-16BE")
+})
+
+test_that("detect_file_encoding identifies UTF-16LE without BOM", {
+  file_path <- system.file("extdata", "toy_example/householdsUTF16LEno_bom.tsv", package = "study.wrangler")
+  expect_equal(study.wrangler:::detect_file_encoding(file_path), "UTF-16LE")
+})
+
+test_that("detect_file_encoding identifies UTF-16BE without BOM", {
+  file_path <- system.file("extdata", "toy_example/householdsUTF16BEno_bom.tsv", package = "study.wrangler")
+  expect_equal(study.wrangler:::detect_file_encoding(file_path), "UTF-16BE")
+})
+
 test_that("entity_from_file handles ISO-8859-1 encoded files", {
   file_path <- system.file("extdata", "toy_example/householdsISO8859.tsv", package = 'study.wrangler')
 

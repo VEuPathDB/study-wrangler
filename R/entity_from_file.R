@@ -156,16 +156,40 @@ entity_from_tibble <- function(data, preprocess_fn = NULL, skip_type_convert = F
   return(entity)
 }
 
-# Detect file encoding. UTF-8, Windows-1252, and ISO-8859-1 cover the vast
-# majority of tabular data files users upload in the wild (UTF-8 from modern
-# tools; Windows-1252 and ISO-8859-1 from legacy Excel/Access exports in Western
-# locales). We roll our own rather than using readr::guess_encoding() because
-# it uses inconsistent casing ("windows-1252"), gives ~0.4 confidence for
-# ISO-8859-1/Windows-1252, and its sampling behaviour is unspecified across
-# readr versions — too unreliable for a deterministic pick. Instead: probe UTF-8 via readLines
-# warning, then use a binary byte-range scan to distinguish the two single-byte
-# encodings (bytes 0x80-0x9F are printable only in Windows-1252).
+# Detect file encoding. UTF-16LE/BE, UTF-8, Windows-1252, and ISO-8859-1 cover
+# the vast majority of tabular data files users upload in the wild (UTF-8 from
+# modern tools; Windows-1252 and ISO-8859-1 from legacy Excel/Access exports in
+# Western locales; UTF-16 from some Windows applications). We roll our own
+# rather than using readr::guess_encoding() because it uses inconsistent casing
+# ("windows-1252"), gives ~0.4 confidence for ISO-8859-1/Windows-1252, and its
+# sampling behaviour is unspecified across readr versions — too unreliable for a
+# deterministic pick. Instead: check for UTF-16 BOM or alternating-NUL pattern
+# on a small raw sample first, then probe UTF-8 via readLines warning, then use
+# a binary byte-range scan to distinguish the two single-byte encodings (bytes
+# 0x80-0x9F are printable only in Windows-1252).
 detect_file_encoding <- function(path) {
+  # ~100 lines worth of bytes is more than enough to detect UTF-16 patterns
+  sample_bytes <- readBin(path, what = "raw", n = 4000L)
+
+  if (length(sample_bytes) >= 2) {
+    if (sample_bytes[1] == as.raw(0xFF) && sample_bytes[2] == as.raw(0xFE))
+      return("UTF-16LE")
+    if (sample_bytes[1] == as.raw(0xFE) && sample_bytes[2] == as.raw(0xFF))
+      return("UTF-16BE")
+  }
+
+  # No BOM: look for alternating NUL bytes that indicate UTF-16 encoded ASCII.
+  # In UTF-16LE the high byte (positions 2,4,6,...) is 0x00 for BMP ASCII chars;
+  # in UTF-16BE the high byte is at positions 1,3,5,...
+  if (length(sample_bytes) >= 4) {
+    n <- length(sample_bytes)
+    pos1_nuls <- sum(sample_bytes[seq(1L, n, 2L)] == as.raw(0x00))
+    pos2_nuls <- sum(sample_bytes[seq(2L, n, 2L)] == as.raw(0x00))
+    threshold <- 0.4 * (n %/% 2L)
+    if (pos2_nuls >= threshold && pos1_nuls < threshold) return("UTF-16LE")
+    if (pos1_nuls >= threshold && pos2_nuls < threshold) return("UTF-16BE")
+  }
+
   had_invalid_input <- FALSE
   con <- file(path, open = "r", encoding = "UTF-8")
   on.exit(close(con), add = TRUE)
