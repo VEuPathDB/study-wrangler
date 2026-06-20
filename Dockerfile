@@ -129,6 +129,10 @@ RUN apt-get update && apt-get install -y \
 ## From now on, don't upgrade already-installed R packages (if they are sufficient)
 ARG R_REMOTES_UPGRADE=never
 
+# Raise the download timeout (R default is 60s, too short for slow
+# Bioconductor/CRAN mirrors during package downloads).
+RUN echo 'options(timeout = 600)' >> "$(R RHOME)/etc/Rprofile.site"
+
 # Install remaining CRAN dependencies not available via apt, plus remotes
 # (apt version of remotes is too old to handle the 'huge=url' remote type)
 RUN R -e "install.packages(c('remotes', 'S7'))"
@@ -143,11 +147,19 @@ RUN ln -s /study.wrangler /home/rstudio/study.wrangler
 COPY DESCRIPTION /study.wrangler/DESCRIPTION
 
 ## Install all dependencies (cached unless DESCRIPTION changes)
-RUN R -e "remotes::install_deps('/study.wrangler', dependencies=TRUE)"
+## install_deps() exits 0 even when downloads fail, so retry a few times
+## (failures are usually transient download timeouts; retries only re-fetch
+## the still-missing packages). The final source install below is the gate
+## that actually verifies the full dependency tree is present.
+RUN R -e "for (i in 1:3) try(remotes::install_deps('/study.wrangler', dependencies=TRUE))"
 
 ## NOW copy all the source code (this layer invalidates when code changes)
 ## But the dependency installation layer above will be cached!
 COPY . /study.wrangler
 
-## Install the local package (fast - dependencies already installed)
-RUN R -e "install.packages('/study.wrangler', repos=NULL, type='source')"
+## Install the local package (fast - dependencies already installed).
+## install.packages() exits 0 even when the install fails (e.g. a dependency
+## is missing), so verify the package actually loads and fail the build
+## otherwise — this exercises the whole dependency chain.
+RUN R -e "install.packages('/study.wrangler', repos=NULL, type='source'); \
+  if (!requireNamespace('study.wrangler', quietly=TRUE)) quit(status=1)"
