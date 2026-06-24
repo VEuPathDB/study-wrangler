@@ -510,3 +510,76 @@ validate_entity_multivalued_ordinal_levels <- function(entity) {
 
   list(valid = TRUE)
 }
+
+#' Validator: Check vocabulary_order values are all observed in the data
+#' @keywords internal
+validate_entity_vocabulary_order <- function(entity) {
+  variables <- entity@variables
+  data <- entity@data
+
+  # Only examine variables that have a non-empty vocabulary_order
+  vars_with_order <- variables %>%
+    filter(map_lgl(vocabulary_order, ~ length(.x) > 0))
+
+  if (nrow(vars_with_order) == 0) {
+    return(list(valid = TRUE))
+  }
+
+  issues <- c()
+
+  for (i in seq_len(nrow(vars_with_order))) {
+    var_name    <- vars_with_order$variable[i]
+    order_vals  <- unlist(vars_with_order$vocabulary_order[[i]])
+    shape       <- as.character(vars_with_order$data_shape[i])
+    is_mv       <- vars_with_order$is_multi_valued[i]
+
+    # vocabulary_order only makes sense on categorical/binary
+    if (!shape %in% c("categorical", "binary")) {
+      issues <- c(issues, glue(
+        "Variable '{var_name}' has vocabulary_order set but data_shape is '{shape}'. ",
+        "vocabulary_order is only applicable to categorical or binary variables."
+      ))
+      next
+    }
+
+    # Collect observed values
+    if (is_mv && !is.na(vars_with_order$multi_value_delimiter[i])) {
+      delimiter <- vars_with_order$multi_value_delimiter[i]
+      expanded <- expand_multivalued_data_column(
+        data, var_name,
+        is_multi_valued = TRUE, multi_value_delimiter = delimiter, .type_convert = FALSE
+      )
+      observed_values <- expanded %>% pull(var_name) %>% na.omit() %>% unique() %>% as.character()
+    } else {
+      observed_values <- data %>% pull(var_name) %>% na.omit() %>% unique() %>% as.character()
+    }
+
+    not_in_data <- setdiff(order_vals, observed_values)
+    if (length(not_in_data) > 0) {
+      issues <- c(issues, glue(
+        "Variable '{var_name}' has vocabulary_order value(s) not found in the data: ",
+        "{paste(not_in_data, collapse = ', ')}"
+      ))
+    }
+  }
+
+  if (length(issues) > 0) {
+    global_varname <- find_global_varname(entity, 'entity')
+    message <- paste(
+      paste(issues, collapse = "\n"),
+      "To fix, supply only values observed in the data:",
+      paste0("    ", global_varname, " <- ", global_varname,
+             " %>% set_variable_vocabulary_order('variable_name', c('val1', 'val2', ...))"),
+      "Or to apply a sort function to the observed values (e.g. for natural numeric sort), use:",
+      paste0("    ", global_varname, " <- ", global_varname,
+             " %>% set_variable_vocabulary_order('variable_name', order = gtools::mixedsort)"),
+      "Or to clear the vocabulary_order entirely, use:",
+      paste0("    ", global_varname, " <- ", global_varname,
+             " %>% set_variable_metadata('variable_name', vocabulary_order = list())"),
+      sep = "\n"
+    )
+    return(list(valid = FALSE, fatal = FALSE, message = message))
+  }
+
+  list(valid = TRUE)
+}

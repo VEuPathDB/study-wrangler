@@ -632,6 +632,6 @@ test_that("validate() (EDA) no longer complains about string values containing n
     modify_data(mutate(Construction.material = paste0(Construction.material, "\ninjected"))) %>%
     verbose()
 
-  expect_true(validate(households, profiles = c("baseline", "eda")))
+  expect_true(validate(households %>% quiet(), profiles = c("baseline", "eda")))
 })
 

@@ -71,6 +71,8 @@ setGeneric("get_hydrated_variable_and_category_metadata", function(entity) stand
 #' @export
 setGeneric("set_variable_ordinal_levels", function(entity, variable_name, levels) standardGeneric("set_variable_ordinal_levels"))
 #' @export
+setGeneric("set_variable_vocabulary_order", function(entity, variable_name, order) standardGeneric("set_variable_vocabulary_order"))
+#' @export
 setGeneric("create_variable_category", function(entity, category_name, children, ...) standardGeneric("create_variable_category"))
 #' @export
 setGeneric("delete_variable_category", function(entity, category_name) standardGeneric("delete_variable_category"))
@@ -1174,10 +1176,15 @@ setMethod("get_hydrated_variable_and_category_metadata", "Entity", function(enti
     )
 
   # 3. Categorical/binary variables - vocabulary from data, distinct count (vectorized with map)
+  #    vocabulary_order pins explicitly ordered values first; remaining observed values appended
   categorical_vars <- var_metadata %>%
     filter(has_values, data_shape != 'continuous', data_shape != 'ordinal') %>%
     mutate(
-      vocabulary = map(column_data, ~ as.factor(.x) %>% levels()),
+      vocabulary = map2(column_data, vocabulary_order, ~ {
+        pinned <- unlist(.y)
+        observed <- as.factor(.x) %>% levels()
+        if (length(pinned) > 0) c(pinned, setdiff(observed, pinned)) else observed
+      }),
       precision = case_when(
         data_type == 'integer' ~ 0L,
         data_type == 'number' ~ map_int(column_data, max_decimals),
@@ -1345,8 +1352,139 @@ setMethod("set_variable_ordinal_levels", "Entity", function(entity, variable_nam
 })
 
 
+#' set_variable_vocabulary_order
+#'
+#' Sets a custom sort order for the vocabulary of a categorical or binary variable.
+#'
+#' The specified values are "pinned" to the front of the vocabulary in the given order.
+#' Any observed data values not listed appear after, in their default lexicographic order.
+#' This is the mechanism used to fix unintuitive lexicographic orderings (e.g. "1, 10, 2"
+#' instead of "1, 2, 10") without converting the variable to an ordinal.
+#'
+#' @param entity An Entity object.
+#' @param variable_name Name of the variable column in `entity@data`.
+#' @param order Either:
+#'   - A character (or integer-coercible) vector of values in the desired order.
+#'     Partial lists are fine — unlisted observed values are appended lexicographically.
+#'   - A function that accepts the observed values vector and returns an ordered vector.
+#'     The result is evaluated immediately and stored as a character vector so it
+#'     round-trips through STF. For string columns whose values are numbers (e.g.
+#'     `"1"`, `"2"`, `"10"`), use numeric sort to avoid lexicographic ordering:
+#'     `sort_numeric <- function(vec) vec[order(as.numeric(vec))]`
+#'
+#' @details
+#' - Only applies to `data_shape` values `"categorical"` or `"binary"`.
+#'   For ordinal variables use `set_variable_ordinal_levels()` instead.
+#' - All values supplied in `order` must be present in the data. Values not found in the
+#'   data are rejected with an error (likely a typo).
+#' - To clear a vocabulary order set by either a vector or a function (restoring the
+#'   default lexicographic order), use:
+#'   `entity <- entity %>% set_variable_metadata("variable_name", vocabulary_order = list())`
+#'
+#' @returns Modified entity.
+#' @examples
+#' # Pin a specific order for a binary variable (overrides default lexicographic "No, Yes")
+#' entity <- entity %>%
+#'   set_variable_vocabulary_order("Owns.property", order = c("Yes", "No"))
+#'
+#' # Sort a numeric-valued string categorical correctly ("1","2","10" not "1","10","2")
+#' sort_numeric <- function(vec) vec[order(as.numeric(vec))]
+#' entity <- entity %>%
+#'   set_variable_vocabulary_order("Barcode.number", order = sort_numeric)
+#'
+#' # Mixed data (e.g. "1","2",">=3","unknown"): sort numerics first, non-numerics
+#' # lexicographically at the end, with no warnings for non-numeric coercion
+#' sort_numbers_first <- function(vec) {
+#'   nums <- suppressWarnings(as.numeric(vec))
+#'   c(vec[!is.na(nums)][order(nums[!is.na(nums)])], sort(vec[is.na(nums)]))
+#' }
+#' # e.g. c("1","10","many","2","3","100","NA") -> "1","2","3","10","100","many","NA"
+#' entity <- entity %>%
+#'   set_variable_vocabulary_order("Household.size", order = sort_numbers_first)
+#' @export
+setMethod("set_variable_vocabulary_order", "Entity", function(entity, variable_name, order) {
+  global_varname <- find_global_varname(entity, "entity")
+  variables <- entity@variables
+  data <- entity@data
+
+  # Check variable exists
+  if (variables %>% filter(variable == variable_name) %>% nrow() != 1) {
+    if (variable_name %in% names(data)) {
+      stop(to_lines(
+        glue("Variable '{variable_name}' has no metadata. Run the following to fix it:"),
+        indented(glue("{global_varname} <- {global_varname} %>% sync_variable_metadata()"))
+      ))
+    } else {
+      stop(glue("No such variable '{variable_name}' - did you make a typo?"))
+    }
+  }
+
+  var_meta <- variables %>% filter(variable == variable_name)
+  data_shape_val <- as.character(var_meta$data_shape)
+
+  # Only categorical and binary are supported
+  if (!data_shape_val %in% c("categorical", "binary")) {
+    if (data_shape_val == "ordinal") {
+      stop(to_lines(
+        glue("Variable '{variable_name}' is ordinal. Use set_variable_ordinal_levels() to control its order:"),
+        indented(glue("{global_varname} <- {global_varname} %>% set_variable_ordinal_levels('{variable_name}', c('level1', 'level2', ...))"))
+      ))
+    } else {
+      stop(to_lines(
+        glue("vocabulary_order can only be set on categorical or binary variables, not '{data_shape_val}'."),
+        "Check the variable's data_shape with:",
+        indented(glue("{global_varname} %>% get_variable_metadata() %>% filter(variable == '{variable_name}') %>% select(data_shape)"))
+      ))
+    }
+  }
+
+  # Collect observed values (expand multi-valued columns first)
+  is_mv <- var_meta$is_multi_valued
+  if (is_mv) {
+    delimiter <- var_meta$multi_value_delimiter
+    expanded <- expand_multivalued_data_column(
+      data, variable_name,
+      is_multi_valued = TRUE, multi_value_delimiter = delimiter, .type_convert = FALSE
+    )
+    observed_values <- expanded %>% pull(variable_name) %>% na.omit() %>% unique() %>% as.character()
+  } else {
+    observed_values <- data %>% pull(variable_name) %>% na.omit() %>% unique() %>% as.character()
+  }
+
+  # If order is a function, apply it now and capture the result as a character vector
+  if (is.function(order)) {
+    order <- as.character(order(observed_values))
+  } else {
+    order <- as.character(order)
+  }
+
+  # Reject any values not present in the data
+  not_in_data <- setdiff(order, observed_values)
+  if (length(not_in_data) > 0) {
+    stop(to_lines(
+      glue("vocabulary_order for '{variable_name}' contains value(s) not found in the data:"),
+      glue("  {paste(not_in_data, collapse = ', ')}"),
+      "Check for typos. To see all observed values, use:",
+      indented(glue("{global_varname} %>% get_data() %>% pull('{variable_name}') %>% unique()"))
+    ))
+  }
+
+  former_quiet <- entity@quiet
+  entity <- entity %>%
+    quiet() %>%
+    set_variable_metadata(variable_name, vocabulary_order = as.list(order))
+  entity@quiet <- former_quiet
+
+  if (!entity@quiet) {
+    message(glue("Successfully set vocabulary_order for '{variable_name}': {paste(order, collapse = ', ')}"))
+  }
+
+  return(entity)
+})
+
+
 #' create_variable_category
-#' 
+#'
 #' Checks that all members of the `children` vector or list are values in variables$variable
 #' 
 #' Creates a new row in the variables metadata with
