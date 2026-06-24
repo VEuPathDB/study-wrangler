@@ -1377,6 +1377,9 @@ setMethod("set_variable_ordinal_levels", "Entity", function(entity, variable_nam
 #'   For ordinal variables use `set_variable_ordinal_levels()` instead.
 #' - All values supplied in `order` must be present in the data. Values not found in the
 #'   data are rejected with an error (likely a typo).
+#' - To clear a vocabulary order set by either a vector or a function (restoring the
+#'   default lexicographic order), use:
+#'   `entity <- entity %>% set_variable_metadata("variable_name", vocabulary_order = list())`
 #'
 #' @returns Modified entity.
 #' @examples
