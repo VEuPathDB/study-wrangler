@@ -1366,9 +1366,11 @@ setMethod("set_variable_ordinal_levels", "Entity", function(entity, variable_nam
 #' @param order Either:
 #'   - A character (or integer-coercible) vector of values in the desired order.
 #'     Partial lists are fine — unlisted observed values are appended lexicographically.
-#'   - A function that accepts the observed values vector and returns an ordered vector
-#'     (e.g. `sort`, `gtools::mixedsort`). The result is evaluated immediately and stored
-#'     as a character vector so it round-trips through STF.
+#'   - A function that accepts the observed values vector and returns an ordered vector.
+#'     The result is evaluated immediately and stored as a character vector so it
+#'     round-trips through STF. For string columns whose values are numbers (e.g.
+#'     `"1"`, `"2"`, `"10"`), use numeric sort to avoid lexicographic ordering:
+#'     `sort_numeric <- function(vec) vec[order(as.numeric(vec))]`
 #'
 #' @details
 #' - Only applies to `data_shape` values `"categorical"` or `"binary"`.
@@ -1377,6 +1379,25 @@ setMethod("set_variable_ordinal_levels", "Entity", function(entity, variable_nam
 #'   data are rejected with an error (likely a typo).
 #'
 #' @returns Modified entity.
+#' @examples
+#' # Pin a specific order for a binary variable (overrides default "No, Yes")
+#' entity <- entity %>%
+#'   set_variable_vocabulary_order("Owns.property", order = c("Yes", "No"))
+#'
+#' # Sort a numeric-valued string categorical correctly ("1","2","10" not "1","10","2")
+#' sort_numeric <- function(vec) vec[order(as.numeric(vec))]
+#' entity <- entity %>%
+#'   set_variable_vocabulary_order("Barcode.number", order = sort_numeric)
+#'
+#' # Mixed data (e.g. "1","2",">=3","unknown"): sort numerics first, non-numerics
+#' # lexicographically at the end, with no warnings for non-numeric coercion
+#' sort_numbers_first <- function(vec) {
+#'   nums <- suppressWarnings(as.numeric(vec))
+#'   c(vec[!is.na(nums)][order(nums[!is.na(nums)])], sort(vec[is.na(nums)]))
+#' }
+#' # e.g. c("1","10","many","2","3","100","NA") -> "1","2","3","10","100","many","NA"
+#' entity <- entity %>%
+#'   set_variable_vocabulary_order("Household.size", order = sort_numbers_first)
 #' @export
 setMethod("set_variable_vocabulary_order", "Entity", function(entity, variable_name, order) {
   global_varname <- find_global_varname(entity, "entity")
