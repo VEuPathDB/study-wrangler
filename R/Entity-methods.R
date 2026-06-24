@@ -1380,7 +1380,7 @@ setMethod("set_variable_ordinal_levels", "Entity", function(entity, variable_nam
 #'
 #' @returns Modified entity.
 #' @examples
-#' # Pin a specific order for a binary variable (overrides default "No, Yes")
+#' # Pin a specific order for a binary variable (overrides default lexicographic "No, Yes")
 #' entity <- entity %>%
 #'   set_variable_vocabulary_order("Owns.property", order = c("Yes", "No"))
 #'
