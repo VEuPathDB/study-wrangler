@@ -14,6 +14,8 @@ variable_metadata_defaults <- tibble(
   data_shape = factor(NA, levels = c("continuous", "categorical", "ordinal", "binary")),
   # for ordinals only
   ordinal_levels = list(list()),
+  # for categorical/binary: explicit sort order for vocabulary (partial list allowed)
+  vocabulary_order = list(list()),
   # remember when dumping metadata for factor columns (data_shape != "continuous")
   # that we need to dump the levels of the factor as "vocabulary"
   display_order = NA_integer_, # for some reason this is NUMBER(3,0) on the database side, so integers -999 to 999
