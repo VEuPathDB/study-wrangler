@@ -6,8 +6,8 @@ test_that("set_variable_vocabulary_order with a character vector", {
   # Basic setter with a partial order vector
   expect_message(
     households <- households %>%
-      set_variable_vocabulary_order("Owns.property", order = c("No", "Yes")),
-    "Successfully set vocabulary_order for 'Owns.property': No, Yes"
+      set_variable_vocabulary_order("Owns.property", order = c("Yes", "No")),
+    "Successfully set vocabulary_order for 'Owns.property': Yes, No"
   )
 
   # Hydrated vocabulary should pin the given order first, then append remaining
@@ -18,7 +18,7 @@ test_that("set_variable_vocabulary_order with a character vector", {
     pull(vocabulary) %>%
     unlist()
 
-  expect_equal(vocab[1:2], c("No", "Yes"))
+  expect_equal(vocab[1:2], c("Yes", "No"))
   # Any remaining observed values (e.g. "Maybe") come after — none in this toy data
   # but the first two must be in the specified order
 })
@@ -142,19 +142,19 @@ test_that("clearing vocabulary_order restores lexicographic vocabulary", {
   households <- entity_from_file(file_path, name = "household") %>% quiet()
 
   households_ordered <- households %>%
-    set_variable_vocabulary_order("Owns.property", order = c("No", "Yes"))
+    set_variable_vocabulary_order("Owns.property", order = c("Yes", "No"))
 
   # Now clear it
   households_cleared <- households_ordered %>%
     set_variable_metadata("Owns.property", vocabulary_order = list())
 
-  vocab_ordered <- households_ordered %>%
+  vocab_ordered <- households_ordered %>% quiet() %>%
     get_hydrated_variable_and_category_metadata() %>%
     filter(variable == "Owns.property") %>%
     pull(vocabulary) %>%
     unlist()
 
-  vocab_cleared <- households_cleared %>%
+  vocab_cleared <- households_cleared %>% quiet() %>%
     get_hydrated_variable_and_category_metadata() %>%
     filter(variable == "Owns.property") %>%
     pull(vocabulary) %>%
@@ -169,7 +169,7 @@ test_that("clearing vocabulary_order restores lexicographic vocabulary", {
 test_that("STF round-trip preserves vocabulary_order", {
   file_path <- system.file("extdata", "toy_example/households.tsv", package = 'study.wrangler')
   households <- entity_from_file(file_path, name = "household") %>% quiet() %>%
-    set_variable_vocabulary_order("Owns.property", order = c("No", "Yes"))
+    set_variable_vocabulary_order("Owns.property", order = c("Yes", "No"))
 
   output_dir <- "./tmp/stf-vocabulary-order"
 
@@ -196,13 +196,13 @@ test_that("STF round-trip preserves vocabulary_order", {
   expect_equal(order_roundtrip, order_original)
 
   # And the hydrated vocabulary should also match
-  vocab_original <- households %>%
+  vocab_original <- households %>% quiet() %>%
     get_hydrated_variable_and_category_metadata() %>%
     filter(variable == "Owns.property") %>%
     pull(vocabulary) %>%
     unlist()
 
-  vocab_roundtrip <- households2 %>%
+  vocab_roundtrip <- households2 %>% quiet() %>%
     get_hydrated_variable_and_category_metadata() %>%
     filter(variable == "Owns.property") %>%
     pull(vocabulary) %>%
