@@ -201,3 +201,75 @@ test_that("entity_from_tibble keeps columns that have at least one non-empty val
   expect_equal(ncol(result@data), 2)
 })
 
+test_that("entity_from_tibble drops fully empty rows with a message", {
+  data <- tibble::tibble(
+    id    = c("A", NA, "B"),
+    value = c("1", NA, "2")
+  )
+  expect_message(
+    result <- entity_from_tibble(data),
+    "Dropped 1 empty row\\(s\\)"
+  )
+  expect_equal(nrow(result@data), 2)
+  expect_equal(result@data$id, c("A", "B"))
+})
+
+test_that("entity_from_tibble treats whitespace-only rows as empty", {
+  data <- tibble::tibble(
+    id    = c("A", "  ", "B"),
+    value = c("1", "", "2")
+  )
+  expect_message(
+    result <- entity_from_tibble(data),
+    "Dropped 1 empty row\\(s\\)"
+  )
+  expect_equal(nrow(result@data), 2)
+})
+
+test_that("entity_from_tibble suppresses empty-row message when quiet = TRUE", {
+  data <- tibble::tibble(
+    id    = c("A", NA, "B"),
+    value = c("1", NA, "2")
+  )
+  expect_silent(
+    result <- entity_from_tibble(data, quiet = TRUE)
+  )
+  expect_equal(nrow(result@data), 2)
+})
+
+test_that("entity_from_tibble keeps rows that have at least one non-empty value", {
+  data <- tibble::tibble(
+    id    = c("A", "B", "C"),
+    value = c("1", NA, NA)
+  )
+  expect_silent(
+    result <- entity_from_tibble(data)
+  )
+  expect_equal(nrow(result@data), 3)
+})
+
+test_that("entity_from_file strips an empty data row (smoke test)", {
+  # Both fixtures are the households data with a bare-delimiter empty row: a
+  # tab-only row in the TSV and a comma-only row in the CSV. readr skips these
+  # inconsistently by default, but because we read with skip_empty_rows = FALSE
+  # both reach our own empty-row handling and are dropped with a message,
+  # leaving the same result as the clean households file.
+  households_path <- system.file("extdata", "toy_example/households.tsv", package = 'study.wrangler')
+  reference <- entity_from_file(households_path, name = "household")
+
+  for (ext in c("tsv", "csv")) {
+    file_path <- system.file("extdata", paste0("toy_example/householdsWithEmptyRow.", ext), package = 'study.wrangler')
+
+    expect_message(
+      result <- entity_from_file(file_path, name = "household"),
+      "Dropped 1 empty row\\(s\\)"
+    )
+
+    expect_equal(nrow(result@data), nrow(reference@data))
+    expect_equal(result@data, reference@data)
+    expect_equal(result@variables$data_type, reference@variables$data_type)
+
+    expect_true(result %>% quiet() %>% validate())
+  }
+})
+
