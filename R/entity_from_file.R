@@ -5,6 +5,12 @@
 #' This function infers variables' metadata, including data types and shapes,
 #' and allows for pre-processing of the raw data before type inference.
 #'
+#' Fully empty rows and columns are silently cleaned up during import: any row
+#' or column whose values are all missing or blank is dropped (a cell counts as
+#' empty if it is `NA` or contains only whitespace). This removes stray
+#' delimiter-only rows (e.g. a bare `"\\t\\t\\t"` line) that would otherwise be
+#' imported as spurious all-missing records.
+#'
 #' @param file_path A string specifying the path to the input file.
 #' @param preprocess_fn An optional function to modify the raw data
 #'   before type inference. This can be used for tasks such as correcting
@@ -71,6 +77,11 @@ entity_from_file <- function(file_path, preprocess_fn = NULL, ...) {
 #'
 #' @description
 #' Creates an Entity object from a raw character-only tibble. Optionally applies a preprocessing function.
+#'
+#' Fully empty rows and columns are dropped: any row or column whose values are
+#' all missing or blank is removed (a cell counts as empty if it is `NA` or
+#' contains only whitespace). A message reports how many were dropped unless
+#' `quiet = TRUE` is passed.
 #' @param data A tibble with all columns as character (unless skip_type_convert is TRUE)
 #' @param preprocess_fn Optional function to preprocess the tibble before type inference.
 #'   If the input has duplicate column names, they are deduplicated (e.g. `notes`, `notes.1`)
@@ -130,6 +141,26 @@ entity_from_tibble <- function(data, preprocess_fn = NULL, skip_type_convert = F
       )
     }
     data <- data[, -empty_data_indices, drop = FALSE]
+  }
+
+  # Drop fully empty rows, and inform the user. The file readers pass
+  # skip_empty_rows = FALSE, so blank lines (including bare-delimiter rows like
+  # "\t\t\t") arrive here as all-NA rows for us to handle uniformly. As with
+  # empty columns, a cell counts as empty if it is NA or contains only whitespace.
+  if (nrow(data) > 0) {
+    empty_row_mask <- apply(data, 1, function(row) {
+      all(is.na(row) | trimws(as.character(row)) == "")
+    })
+    n_empty_rows <- sum(empty_row_mask)
+    if (n_empty_rows > 0) {
+      if (!isTRUE(metadata$quiet)) {
+        message(
+          "Dropped ", n_empty_rows,
+          " empty row(s) (all values missing or blank)"
+        )
+      }
+      data <- data[!empty_row_mask, , drop = FALSE]
+    }
   }
 
   # Build a map from deduplicated name → original name so provider_label
@@ -220,6 +251,11 @@ entity_from_tsv <- function(file_path, preprocess_fn = NULL, ...) {
       name_repair = 'minimal',
       col_types = readr::cols(.default = "c"),
       locale = readr::locale(encoding = enc),
+      # Keep blank lines so our own empty-row handling in entity_from_tibble()
+      # reports them consistently, rather than relying on readr's delimiter- and
+      # format-dependent skipping (e.g. read_tsv skips a bare-tab row but
+      # read_csv keeps a bare-comma row).
+      skip_empty_rows = FALSE,
       progress = FALSE
     )
   )
@@ -247,6 +283,8 @@ entity_from_csv <- function(file_path, preprocess_fn = NULL, ...) {
       name_repair = 'minimal',
       col_types = readr::cols(.default = "c"),
       locale = readr::locale(encoding = enc),
+      # See note in entity_from_tsv(): keep blank lines for consistent handling.
+      skip_empty_rows = FALSE,
       progress = FALSE
     )
   )
