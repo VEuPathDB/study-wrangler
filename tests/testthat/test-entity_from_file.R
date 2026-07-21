@@ -273,3 +273,30 @@ test_that("entity_from_file strips an empty data row (smoke test)", {
   }
 })
 
+test_that("entity_from_file strips a truly blank line, not just a bare-delimiter row", {
+  # Unlike householdsWithEmptyRow.*, these fixtures have a zero-length blank
+  # line rather than a delimiter-only row. readr (with skip_empty_rows =
+  # FALSE) parses a blank line as a single empty field, which is one fewer
+  # column than expected, and records this as a parsing "problem" even though
+  # the row itself parses fine as all-NA. That problem must not be treated as
+  # a fatal parse error, since the all-NA row is legitimately handled by our
+  # own empty-row cleanup.
+  households_path <- system.file("extdata", "toy_example/households.tsv", package = 'study.wrangler')
+  reference <- entity_from_file(households_path, name = "household")
+
+  for (ext in c("tsv", "csv")) {
+    file_path <- system.file("extdata", paste0("toy_example/householdsWithBlankLine.", ext), package = 'study.wrangler')
+
+    expect_message(
+      result <- entity_from_file(file_path, name = "household"),
+      "Dropped 1 empty row\\(s\\)"
+    )
+
+    expect_equal(nrow(result@data), nrow(reference@data))
+    expect_equal(result@data, reference@data)
+    expect_equal(result@variables$data_type, reference@variables$data_type)
+
+    expect_true(result %>% quiet() %>% validate())
+  }
+})
+

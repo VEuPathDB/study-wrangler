@@ -240,6 +240,21 @@ detect_file_encoding <- function(path) {
   if (has_windows_range) "Windows-1252" else "ISO-8859-1"
 }
 
+# A truly blank line (as opposed to a bare-delimiter row) parses as a single
+# empty field, one column short of the header count, which readr flags as a
+# parsing "problem" even though it pads the row out to all-NA underneath.
+# That all-NA row is exactly what entity_from_tibble()'s empty-row cleanup is
+# meant to catch, so it isn't a real problem; drop it before deciding whether
+# to fail on genuinely malformed rows (e.g. truncated data with real values).
+drop_blank_line_problems <- function(problems, data) {
+  if (nrow(problems) == 0) return(problems)
+  is_blank_line_row <- vapply(problems$row, function(r) {
+    row_values <- unlist(data[r, ], use.names = FALSE)
+    all(is.na(row_values) | trimws(row_values) == "")
+  }, logical(1))
+  problems[!is_blank_line_row, , drop = FALSE]
+}
+
 #' entity_from_tsv
 #' @description Convenience function to create an Entity from a TSV file.
 #' @export
@@ -259,7 +274,7 @@ entity_from_tsv <- function(file_path, preprocess_fn = NULL, ...) {
       progress = FALSE
     )
   )
-  problems <- readr::problems(data)
+  problems <- drop_blank_line_problems(readr::problems(data), data)
   if (nrow(problems) > 0) {
     stop(paste0(
       c(
@@ -288,7 +303,7 @@ entity_from_csv <- function(file_path, preprocess_fn = NULL, ...) {
       progress = FALSE
     )
   )
-  problems <- readr::problems(data)
+  problems <- drop_blank_line_problems(readr::problems(data), data)
   if (nrow(problems) > 0) {
     stop(paste0(
       c(
