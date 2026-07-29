@@ -68,10 +68,10 @@ Each entity YAML file describes an entity in the study dataset, including its ID
   - **`data_type`**: *(string, required)*
     The data type of the variable. Allowed values:
     - `integer`
-    - `decimal`
+    - `number`
     - `string`
     - `date`
-    - `boolean`
+    - `longitude`
 
   - **`data_shape`**: *(string, required)*
     The variable’s statistical nature. Allowed values:
