@@ -187,17 +187,27 @@ entity_from_tibble <- function(data, preprocess_fn = NULL, skip_type_convert = F
   return(entity)
 }
 
-# Detect file encoding. UTF-16LE/BE, UTF-8, Windows-1252, and ISO-8859-1 cover
-# the vast majority of tabular data files users upload in the wild (UTF-8 from
-# modern tools; Windows-1252 and ISO-8859-1 from legacy Excel/Access exports in
-# Western locales; UTF-16 from some Windows applications). We roll our own
-# rather than using readr::guess_encoding() because it uses inconsistent casing
-# ("windows-1252"), gives ~0.4 confidence for ISO-8859-1/Windows-1252, and its
-# sampling behaviour is unspecified across readr versions — too unreliable for a
-# deterministic pick. Instead: check for UTF-16 BOM or alternating-NUL pattern
-# on a small raw sample first, then probe UTF-8 via readLines warning, then use
-# a binary byte-range scan to distinguish the two single-byte encodings (bytes
-# 0x80-0x9F are printable only in Windows-1252).
+#' detect_file_encoding
+#'
+#' @description
+#' Detect the character encoding of a file. UTF-16LE/BE, UTF-8, Windows-1252,
+#' and ISO-8859-1 cover the vast majority of tabular data files users upload in
+#' the wild (UTF-8 from modern tools; Windows-1252 and ISO-8859-1 from legacy
+#' Excel/Access exports in Western locales; UTF-16 from some Windows
+#' applications). We roll our own rather than using `readr::guess_encoding()`
+#' because it uses inconsistent casing ("windows-1252"), gives ~0.4 confidence
+#' for ISO-8859-1/Windows-1252, and its sampling behaviour is unspecified
+#' across readr versions — too unreliable for a deterministic pick. Instead:
+#' check for a UTF-16 BOM or alternating-NUL pattern on a small raw sample
+#' first, then probe UTF-8 via a `readLines()` warning, then use a binary
+#' byte-range scan to distinguish the two single-byte encodings (bytes
+#' 0x80-0x9F are printable only in Windows-1252).
+#'
+#' @param path A string specifying the path to the input file.
+#' @return A string naming the detected encoding, suitable for passing as
+#'   `readr::locale(encoding = ...)`. One of `"UTF-16LE"`, `"UTF-16BE"`,
+#'   `"UTF-8"`, `"Windows-1252"`, or `"ISO-8859-1"`.
+#' @export
 detect_file_encoding <- function(path) {
   # ~100 lines worth of bytes is more than enough to detect UTF-16 patterns
   sample_bytes <- readBin(path, what = "raw", n = 4000L)
