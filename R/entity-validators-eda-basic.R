@@ -90,7 +90,8 @@ validate_entity_string_value_length <- function(entity) {
   if (nrow(string_vars) == 0) return(list(valid = TRUE))
 
   exceeds_limit <- function(col_name, is_mv, delim) {
-    vals <- data[[col_name]]
+    # ordinal string variables are factors; nchar() needs the labels
+    vals <- as.character(data[[col_name]])
     if (all(is.na(vals))) return(FALSE)
     raw_lengths <- nchar(vals)
     if (max(raw_lengths, na.rm = TRUE) <= 1000) return(FALSE)

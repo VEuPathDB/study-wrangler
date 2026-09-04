@@ -5,6 +5,17 @@
 #' @name entity-validators-data-types
 NULL
 
+#' Are all of a column's values whole numbers?
+#'
+#' Reads factor labels rather than codes, so integer ordinals are judged on
+#' the values they actually carry.
+#' @keywords internal
+all_values_are_integers <- function(x) {
+  values <- column_values_as_numeric(x)
+  values <- values[!is.na(values)]
+  length(values) > 0 && all(values == as.integer(values))
+}
+
 #' Validator: Check integer variables contain integers
 #' @keywords internal
 validate_entity_integer_data_types <- function(entity) {
@@ -23,8 +34,9 @@ validate_entity_integer_data_types <- function(entity) {
     summarise(
       across(
         everything(),
-        # we allow factors as long as they are all-integer
-        ~ !(is.integer(.) | (is.factor(.) & all(as.integer(.) == ., na.rm = TRUE)))
+        # we allow factors as long as they are all-integer; a factor's own
+        # integer codes are positions, so the labels are what must be checked
+        ~ !(is.integer(.) | all_values_are_integers(.))
       )
     ) %>%
     unlist() %>% as.logical()
