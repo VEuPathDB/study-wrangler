@@ -12,6 +12,7 @@ make_ordinal_stf <- function(dir) {
 
   metadata <- list(
     name = "participant",
+    stable_id = "PART",
     display_name = "Participant",
     display_name_plural = "Participants",
     id_columns = list(list(
