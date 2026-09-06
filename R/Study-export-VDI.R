@@ -417,6 +417,8 @@ export_attributes_to_vdi <- function(entities, output_directory, install_json, s
     data %>%
       select("{id_col_vdi}" := {{id_col}}, all_of(sv_number_vars)) %>%
       mutate("{id_col_vdi}" := as.character(!!sym(id_col_vdi))) %>%
+      # integer/number ordinals are factors; pivot needs real numbers
+      mutate(across(all_of(sv_number_vars), column_values_as_numeric)) %>%
       pivot_longer(
         all_of(sv_number_vars),
         names_transform = function(name) stable_ids[name],

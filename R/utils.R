@@ -769,3 +769,14 @@ encode_geohash <- function(latitude, longitude, precision) {
   }
   paste(enc, collapse = '')
 }
+
+
+#' Read a column's values as numeric, whatever its storage type
+#'
+#' Ordinal variables are stored as factors regardless of their `data_type`,
+#' and a factor's integer codes are positions, not values, so numeric access
+#' must go via the labels.
+#' @keywords internal
+column_values_as_numeric <- function(x) {
+  if (is.factor(x)) suppressWarnings(as.numeric(as.character(x))) else x
+}
