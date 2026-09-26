@@ -217,12 +217,18 @@ setMethod("redetect_columns", "Entity", function(entity, columns, .allowed_data_
     stop(glue("Error: the following columns are missing from entity metadata: {paste(missing_metadata, collapse = ', ')}"))
   }
 
-  # Set `variables$data_type` to NA where `variable %in% columns`
+  # Set `variables$data_type` and `variables$data_shape` to NA where `variable %in% columns`,
+  # so both are re-inferred from scratch (a changed data_type can invalidate the old data_shape)
   if (!entity@quiet) message("Redoing type detection")
   variables <- variables %>%
     mutate(
       data_type = fct_mutate(
         data_type,
+        variable %in% columns,
+        NA
+      ),
+      data_shape = fct_mutate(
+        data_shape,
         variable %in% columns,
         NA
       )
