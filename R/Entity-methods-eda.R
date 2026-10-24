@@ -19,6 +19,19 @@ setGeneric("infer_geo_variables_for_eda", function(entity) standardGeneric("infe
 #' Metadata is only set if exactly one latitude variable and one longitude variable are found.
 #' If multiple matches or mismatched pairs are detected, a warning is issued and no changes are made.
 #'
+#' When a pair is found, six geohash columns (`geohash_1` to `geohash_6`) are generated
+#' from the latitude and longitude data.
+#'
+#' The method is **idempotent**: geohash columns left by a previous run (data and metadata)
+#' are dropped and regenerated from the current coordinates, so re-running never duplicates
+#' them and always refreshes stale values. It is **silent on entities without coordinate
+#' columns** (no message and no warning, even when the entity is not quiet) and returns them
+#' unchanged. It is designed to be applied across a whole study:
+#'
+#' ```
+#' study <- study %>% map_entities(infer_geo_variables_for_eda)
+#' ```
+#'
 #' ## Column name matching rules
 #'
 #' Matching is **case-insensitive**. A column name matches if it contains one of the
@@ -87,11 +100,9 @@ function(entity) {
 
   total_geocoord_vars <- length(lat_vars) + length(lng_vars)
 
-  # Case 1: No geocoordinate variables found - nothing to do
+  # Case 1: No geocoordinate variables found - nothing to do, silently,
+  # so that map_entities(study, infer_geo_variables_for_eda) is quiet on non-geo entities
   if (total_geocoord_vars == 0) {
-    if (!entity@quiet) {
-      message("No geographic coordinate variables detected")
-    }
     return(entity)
   }
 
@@ -128,6 +139,17 @@ function(entity) {
 
   geoagg_ids   <- get_config()$export$eda$stable_ids$geoaggregator
   geohash_cols <- names(geoagg_ids)  # "geohash_1" … "geohash_6"
+
+  # Drop any geohash columns from a previous run (data and metadata) so that
+  # re-running regenerates them from the current lat/lng rather than duplicating them
+  stale_cols <- intersect(geohash_cols, union(colnames(entity@data), entity@variables$variable))
+  if (length(stale_cols) > 0) {
+    entity <- initialize(
+      entity,
+      data      = entity@data %>% select(-any_of(stale_cols)),
+      variables = entity@variables %>% filter(!variable %in% stale_cols)
+    )
+  }
 
   # Add all six geohash columns to the data in one mutate call
   geohash_data <- purrr::imap(

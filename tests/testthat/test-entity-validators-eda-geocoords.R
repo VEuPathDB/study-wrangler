@@ -603,3 +603,83 @@ test_that("geocoordinate validator fails when no geoaggregator variables are pre
   )
   expect_false(is_valid)
 })
+
+# ── infer_geo_variables_for_eda idempotency and silence ─────────────────────
+
+make_geo_households <- function() {
+  file_path <- system.file("extdata", "toy_example/households.tsv", package = 'study.wrangler')
+  add_geo_coords <- function(data) {
+    data %>% mutate(
+      latitude  = c("40.7", "41.0", "42.0"),
+      longitude = c("-74.0", "-73.0", "-72.0")
+    )
+  }
+  entity_from_file(file_path, name = 'household', preprocess_fn = add_geo_coords, quiet = TRUE) %>%
+    set_variable_display_names_from_provider_labels()
+}
+
+test_that("infer_geo_variables_for_eda is silent on an entity without coordinates", {
+  households <- entity_from_file(system.file("extdata", "toy_example/households.tsv", package = 'study.wrangler'), name = 'household')
+  expect_silent(result <- households %>% verbose() %>% infer_geo_variables_for_eda())
+  expect_identical(result@data, households@data)
+  expect_identical(result@variables, households@variables)
+})
+
+test_that("infer_geo_variables_for_eda is idempotent", {
+  geo_households <- make_geo_households()
+  once  <- geo_households %>% quiet() %>% infer_geo_variables_for_eda()
+  expect_silent(twice <- once %>% quiet() %>% infer_geo_variables_for_eda())
+  expect_identical(names(twice@data), names(once@data))
+  expect_equal(sum(grepl("^geohash_", names(twice@data))), 6)
+  expect_equal(sum(grepl("^geohash_", twice@variables$variable)), 6)
+  expect_identical(twice@data, once@data)
+  expect_true(twice %>% quiet() %>% validate(profiles = c("baseline", "eda")))
+})
+
+test_that("infer_geo_variables_for_eda recomputes stale geohashes", {
+  geo_households <- make_geo_households()
+  once  <- geo_households %>% quiet() %>% infer_geo_variables_for_eda()
+  moved <- once %>% modify_data(mutate(latitude = latitude + 10))
+  again <- moved %>% quiet() %>% infer_geo_variables_for_eda()
+  expect_false(identical(again@data$geohash_6, once@data$geohash_6))
+  expect_equal(again@data$geohash_6[1], encode_geohash(50.7, -74.0, 6))
+  expect_equal(sum(grepl("^geohash_", names(again@data))), 6)
+})
+
+test_that("infer_geo_variables_for_eda warns and leaves entity unchanged with two longitude-like columns", {
+  file_path <- system.file("extdata", "toy_example/households.tsv", package = 'study.wrangler')
+  add_two_longs <- function(data) {
+    data %>% mutate(
+      latitude  = c("40.7", "41.0", "42.0"),
+      longitude = c("-74.0", "-73.0", "-72.0"),
+      `long term carer` = c("yes", "no", "yes")
+    )
+  }
+  households <- entity_from_file(file_path, name = 'household', preprocess_fn = add_two_longs, quiet = TRUE) %>%
+    verbose()
+
+  expect_warning(
+    result <- households %>% infer_geo_variables_for_eda(),
+    "not exactly one latitude and one longitude"
+  )
+  expect_identical(result@data, households@data)
+  expect_identical(result@variables, households@variables)
+})
+
+test_that("geohash columns survive an STF round trip and re-inference", {
+  geo_households <- make_geo_households() %>% infer_geo_variables_for_eda()
+  study1 <- study_from_entities(list(geo_households), name = 'geo round trip')
+
+  stf_directory <- tempfile("stf-geo-")
+  on.exit(unlink(stf_directory, recursive = TRUE), add = TRUE)
+  study1 %>% export_to_stf(stf_directory)
+
+  study2 <- study_from_stf(stf_directory) %>%
+    map_entities(~ .x %>% quiet() %>% infer_geo_variables_for_eda())
+
+  households2 <- study2 %>% get_root_entity()
+  expect_equal(sum(grepl("^geohash_", names(households2@data))), 6)
+  expect_equal(sum(grepl("^geohash_", households2@variables$variable)), 6)
+  expect_equal(households2@data$geohash_6, geo_households@data$geohash_6)
+  expect_true(study2 %>% quiet() %>% validate(profiles = c("baseline", "eda")))
+})
