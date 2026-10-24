@@ -162,7 +162,7 @@ ancestors). The loader sets `data_type: id` on these columns itself.
 
 | Key | Type | Required | Default | Notes |
 |---|---|---|---|---|
-| `id_column` | string | yes | none | The ID column heading in the TSV, without the `\\ Descriptors` marker. |
+| `id_column` | string | yes | none | The ID column heading in the TSV, without the `\\` separator and `Descriptors` marker. |
 | `entity_name` | string | yes | none | The entity this ID belongs to. For the entity's own ID column (level 0) it must equal the entity's `name`; otherwise `validate()` fails. |
 | `entity_level` | integer | no | `0` | `0` for this entity's own ID column, `-1` for the parent's ID, `-2` for the grandparent's, and so on. Exactly one ID column per level. |
 | `provider_label` | list of strings | no | none | The original column heading(s) from the data provider. |
@@ -185,8 +185,8 @@ id_columns:
 
 ### Variables (`variables`)
 
-One entry per data column of the TSV (every column after the
-`\\ Descriptors` marker). Only `variable` is required by the loader; the other
+One entry per data column of the TSV (every column after the entity's own
+ID column, the one carrying the `Descriptors` marker). Only `variable` is required by the loader; the other
 fields have defaults. For EDA, `display_name` is also required.
 
 #### Quick reference

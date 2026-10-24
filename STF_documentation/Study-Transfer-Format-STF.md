@@ -76,21 +76,33 @@ entity instance. The first column(s) define hierarchical relationships
 through **parent ID columns**, linking child entities to their parent
 records.
 
-Each entity must have a unique identifier column, which is suffixed
-with `\\ Descriptors` to indicate the start of data attributes. For
-child entities, the first column is the parent ID, followed by the
-child entity’s ID with the `\\ Descriptors` suffix. For deeper
-hierarchies, you may provide all parent IDs or just the immediate
-parent. See the example below.
+Each entity must have a unique identifier column. Its heading carries the
+**`Descriptors` marker**, joined to the ID heading by the separator `\\`
+(two backslashes, with a space either side), to show where the ID columns
+end and the data attributes (the "descriptors") begin. For child entities,
+the first column is the parent ID, followed by the child entity’s own ID
+column carrying the marker. For deeper hierarchies, you may provide all
+parent IDs or just the immediate parent. See the example below.
 
-**The header row (for a standard file) must carry the `\\ Descriptors`
-marker** on the entity's own ID column, even when the entity has a YAML file.
-In a transposed file the marker sits on the entity's own ID row instead (see
-[Transposed entity files](#transposed-entity-files)). The loader
-looks for the marker in the first row to tell a standard file (one row per
-record) from a transposed one (one row per variable). If the first row has no
-marker, the file is treated as transposed and silently flipped, so the
-columns and rows come out wrong.
+**Which side of the ID heading the marker is on gives the file's layout:**
+
+| Layout | Marked cell | Where it is |
+|---|---|---|
+| Standard (one row per record) | `<ID heading> \\ Descriptors` (marker *after* the heading) | in the header row, on the entity's own ID column |
+| Transposed (one row per variable) | `Descriptors \\ <ID heading>` (marker *before* the heading) | in the first column, on the entity's own ID row |
+
+The marker is required in both layouts, even when the entity has a YAML
+file. The loader strips the marker and separator to get the ID heading.
+
+**Current loader behaviour (differs from the rule above).** The loader does
+not yet use the marker's position. It checks only whether *any* cell of the
+first row contains the marker, in either order: if so it reads the file as
+standard, if not as transposed. So a standard file whose header row lacks
+the marker is silently read as transposed (rows and columns come out wrong),
+and a transposed file whose first row is the entity's own marked ID row is
+silently read as standard (see
+[Transposed entity files](#transposed-entity-files) and
+[issue #94](https://github.com/VEuPathDB/study-wrangler/issues/94)).
 
 For example:
 - **Parent entity (`household`)**: The first column is `Household.Id \\ Descriptors`, as it has no parent.
@@ -686,8 +698,8 @@ headings can contain spaces and other non-alphanumeric characters if
 you like.
 
 The STF loaders (`study_from_stf()` and `entity_from_stf()`) **keep the
-headings exactly as written** (apart from removing the `\\ Descriptors`
-marker). The `variable` and `id_column` values in the entity YAML must
+headings exactly as written** (apart from removing the `\\` separator
+and `Descriptors` marker from the entity's own ID heading). The `variable` and `id_column` values in the entity YAML must
 therefore match the headings character for character. For example, a column
 headed `Height (cm)` must be listed as `variable: Height (cm)`; an entry
 `variable: Height..cm.` matches no column, so it is dropped and the column
@@ -758,16 +770,20 @@ the default.
 An entity file may instead be **transposed**: one row per ID or variable, and
 one column per record. This is a simple transpose of the standard layout
 (rows and columns swapped), not a pivot to a long or key-value format with
-one row per record, variable and value. The `\\ Descriptors` marker then
-sits in the first column, on the entity's own ID row, as
-`Descriptors \\ <ID heading>`. The loader recognises a transposed file by
-the absence of the marker from its first row, and transposes it back.
+one row per record, variable and value. The `Descriptors` marker then comes
+*before* the ID heading, `Descriptors \\ <ID heading>`, in the first column
+on the entity's own ID row; in the standard layout it comes *after* it,
+`<ID heading> \\ Descriptors`, in the header row (see
+[Entity TSV files](#entity-tsv-files)).
 
-**Write the standard layout.** Because of that test, a transposed file is
-only read correctly when its first row is a parent ID row. A transposed file
-for an entity with no parent starts with its own, marked ID row, so the
-loader takes it for a standard file and loads it without transposing it,
-silently producing the wrong columns and rows.
+**Write the standard layout.** The loader does not yet tell the layouts
+apart by the marker's position: it reads a file as standard whenever any cell
+of the first row contains the marker, in either order. A transposed file is
+therefore only read correctly when its first row is a parent ID row (which
+has no marker). A transposed file for an entity with no parent starts with
+its own `Descriptors \\ <ID heading>` row, so the loader takes it for a
+standard file and loads it without transposing it, silently producing the
+wrong columns and rows.
 
 Here's a snippet of `entity-observations.tsv` transposed. The right-most
 columns have been truncated for space reasons. Tabs have been replaced by
