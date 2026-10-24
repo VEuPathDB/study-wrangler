@@ -180,6 +180,14 @@ test_that("the geocoordinates example loads, and passes EDA validation after inf
   expect_true(validate(study, profiles = c("baseline", "eda")))
 })
 
+test_that("every in-page link in the format doc resolves to a heading", {
+  doc <- read_stf_format_doc()
+  headings <- doc[grepl("^#+ ", doc)] %>% sub("^#+ +", "", .) %>% trimws()
+  linked <- str_match_all(paste(doc, collapse = "\n"), "\\]\\(#([^)]+)\\)")[[1]][, 2] %>% unique()
+  expect_gt(length(linked), 0)
+  expect_setequal(setdiff(linked, map_chr(headings, github_slug)), character(0))
+})
+
 test_that("the format doc documents the optional raw-data/ directory", {
   doc <- read_stf_format_doc()
   headings <- doc[grepl("^#+ ", doc)] %>% sub("^#+ +", "", .) %>% trimws()

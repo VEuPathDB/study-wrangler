@@ -83,11 +83,12 @@ child entity’s ID with the `\\ Descriptors` suffix. For deeper
 hierarchies, you may provide all parent IDs or just the immediate
 parent. See the example below.
 
-**The header row must carry the `\\ Descriptors` marker** on the
-entity's own ID column, even when the entity has a YAML file. The loader
+**The header row (for a standard file) must carry the `\\ Descriptors`
+marker** on the entity's own ID column, even when the entity has a YAML file.
+In a transposed file the marker sits on the entity's own ID row instead (see
+[Transposed entity files](#transposed-entity-files)). The loader
 looks for the marker in the first row to tell a standard file (one row per
-record) from a transposed one (one row per variable; see
-[Transposed entity files](#transposed-entity-files)). If the first row has no
+record) from a transposed one (one row per variable). If the first row has no
 marker, the file is treated as transposed and silently flipped, so the
 columns and rows come out wrong.
 
@@ -788,6 +789,11 @@ Teeth.brushed.today           1                             1                   
 The Study Wrangler reads both layouts, subject to the limitation above.
 `export_to_stf()` writes the standard layout, except for an entity with at
 least 200 columns and more columns than rows, which it writes transposed.
+Because of the limitation above, an entity with no parent and 200 or more
+columns (and fewer rows than columns) currently does **not** round-trip
+through `export_to_stf()` and `study_from_stf()`: it is exported transposed
+and read back untransposed. See
+[issue #94](https://github.com/VEuPathDB/study-wrangler/issues/94).
 
 
 ## Comparison of Full STF vs. STF-Lite
