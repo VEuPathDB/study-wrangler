@@ -45,6 +45,8 @@ The STF directory should contain:
 - Optional entity metadata YAML files (`entity-<entity_name>.yaml`)
 - Optional study-level metadata file (`study.yaml`)
 - Optional curation notes (`curation-notes.md`), which the loaders ignore
+- An optional `raw-data/` subdirectory holding the original source files,
+  which the loaders ignore
 
 All these are described in more detail below.
 
@@ -53,6 +55,10 @@ All these are described in more detail below.
 my_study/
 ├── study.yaml
 ├── curation-notes.md
+├── raw-data/
+│   ├── households.xlsx
+│   ├── participants.csv
+│   └── data-dictionary.pdf
 ├── entity-household.tsv
 ├── entity-household.yaml
 ├── entity-participant.tsv
@@ -77,12 +83,13 @@ child entity’s ID with the `\\ Descriptors` suffix. For deeper
 hierarchies, you may provide all parent IDs or just the immediate
 parent. See the example below.
 
-**The header row of a wide file must carry the `\\ Descriptors` marker**
-on the entity's own ID column, even when the entity has a YAML file. The
-loader uses the marker to tell wide files from tall ones (see
-[Tall-or-wide format](#tall-or-wide-format)): a first row without it is
-treated as tall and the file is transposed, silently, so the columns and
-rows come out wrong.
+**The header row must carry the `\\ Descriptors` marker** on the
+entity's own ID column, even when the entity has a YAML file. The loader
+looks for the marker in the first row to tell a standard file (one row per
+record) from a transposed one (one row per variable; see
+[Transposed entity files](#transposed-entity-files)). If the first row has no
+marker, the file is treated as transposed and silently flipped, so the
+columns and rows come out wrong.
 
 For example:
 - **Parent entity (`household`)**: The first column is `Household.Id \\ Descriptors`, as it has no parent.
@@ -597,7 +604,9 @@ removes it.
 
 Keep curation reasoning here rather than in variable `definition`s, which are
 shown to EDA users. Write the notes so that a curator can check every change
-and redo the work from the original files.
+and redo the work from the original files. When the original files are kept
+in [`raw-data/`](#raw-data-raw-data), refer to them by their path relative to
+the STF directory, for example `raw-data/participants.csv`.
 
 Recommended sections:
 
@@ -618,6 +627,28 @@ Recommended sections:
   team, and the answers or decisions.
 - **Validation**: the validation run (profiles used, for example
   `c("baseline", "eda")`), its result and any issues left open.
+
+## Raw data (raw-data/)
+
+An STF directory may contain a `raw-data/` subdirectory holding the original
+source files the STF was made from, **unmodified**, together with any data
+dictionary or study description the provider supplied. With these, the STF
+can be audited and regenerated from what was actually received.
+
+The loaders ignore it. `study_from_stf()` lists only the top level of the STF
+directory (it does not recurse), whether or not there is a `study.yaml`, so
+files in `raw-data/` are never loaded, even ones named like `entity-*.tsv` or
+`study.yaml`.
+
+`curation-notes.md` should refer to these files by their relative path, for
+example `raw-data/participants.csv`.
+
+Caveats:
+
+- **Size:** keeping the raw data roughly doubles the size of the directory.
+- **Sensitive data:** `raw-data/` may contain columns deliberately left out of
+  the STF, such as names, exact coordinates or free text. Review it, or leave
+  it out, before sharing the directory outside the team.
 
 ## STF-Lite
 
@@ -717,15 +748,29 @@ H003	Seattle	NA
 
 Both formats will be correctly interpreted on import, with missing values preserved through STF export-import roundtrips.
 
-## Tall-or-wide format
+## Transposed entity files
 
-The examples above show TSV files in "wide" format. That is, each row
-describes an instance of the entity, and columns contain IDs and
-variables.
+The examples above show entity TSV files in the **standard** layout: one row
+per record (entity instance), with one column per ID and variable. This is
+the default.
 
-Here's a snippet of the `entity-observations.tsv` in tall format. The
-right-most columns have been truncated for space reasons. Tabs have
-been replaced by spaces for formatting/alignment reasons.
+An entity file may instead be **transposed**: one row per ID or variable, and
+one column per record. This is a simple transpose of the standard layout
+(rows and columns swapped), not a pivot to a long or key-value format with
+one row per record, variable and value. The `\\ Descriptors` marker then
+sits in the first column, on the entity's own ID row, as
+`Descriptors \\ <ID heading>`. The loader recognises a transposed file by
+the absence of the marker from its first row, and transposes it back.
+
+**Write the standard layout.** Because of that test, a transposed file is
+only read correctly when its first row is a parent ID row. A transposed file
+for an entity with no parent starts with its own, marked ID row, so the
+loader takes it for a standard file and loads it without transposing it,
+silently producing the wrong columns and rows.
+
+Here's a snippet of `entity-observations.tsv` transposed. The right-most
+columns have been truncated for space reasons. Tabs have been replaced by
+spaces for formatting/alignment reasons.
 
 
 ```
@@ -740,9 +785,9 @@ Teeth.brushed.today           1                             1                   
 ```
 
 
-With respect to **writing** STF files, the Study Wrangler's
-tall vs. wide policy is not yet finalised. However, Study Wrangler tools
-will always read both tall and wide though.
+The Study Wrangler reads both layouts, subject to the limitation above.
+`export_to_stf()` writes the standard layout, except for an entity with at
+least 200 columns and more columns than rows, which it writes transposed.
 
 
 ## Comparison of Full STF vs. STF-Lite
@@ -755,7 +800,7 @@ will always read both tall and wide though.
 | **ID column flexibility**                | ✅ Custom ID column names allowed, column order not important   | ❌ ID column headers must match entity names exactly, ID columns must be in parent-to-child order |
 | **Validation**                           | ✅ Ensures entity relationships and data integrity | ⚠️ Entity relationships validated, but limited metadata-based type validation |
 | **Geo-coordinates**                      | ✅ Flexible variable naming via metadata definitions | ⚠️ Common patterns (Lat/Latitude/Long/Longitude/lng etc.) supported via post-processing inference |
-| **Tall or wide TSV files** | ✅ | ✅ |
+| **Standard or transposed TSV files** | ✅ | ✅ |
 
 ## CSV compatibility
 

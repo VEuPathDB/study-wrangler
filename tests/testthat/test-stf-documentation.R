@@ -179,3 +179,40 @@ test_that("the geocoordinates example loads, and passes EDA validation after inf
   expect_equal(sum(grepl("^geohash_", names(get_entity(study, "site")@data))), 6)
   expect_true(validate(study, profiles = c("baseline", "eda")))
 })
+
+test_that("the format doc documents the optional raw-data/ directory", {
+  doc <- read_stf_format_doc()
+  headings <- doc[grepl("^#+ ", doc)] %>% sub("^#+ +", "", .) %>% trimws()
+  expect_true("Raw data (raw-data/)" %in% headings)
+  expect_true("Transposed entity files" %in% headings)
+})
+
+test_that("a raw-data/ subdirectory is ignored by study_from_stf(), with or without study.yaml", {
+  doc <- read_stf_format_doc()
+  dir <- write_doc_example_stf(doc, "categories", "participant")
+  baseline <- study_from_stf(dir) %>% quiet()
+
+  # files that would break loading if the loader read them
+  raw_dir <- file.path(dir, "raw-data")
+  dir.create(raw_dir)
+  writeLines(c("this is not\tan STF", "file\tat all\tnope"), file.path(raw_dir, "entity-bogus.tsv"))
+  writeLines("garbage: [unclosed", file.path(raw_dir, "entity-bogus.yaml"))
+  writeLines(c("name: Stray", "entities:", "  - bogus"), file.path(raw_dir, "study.yaml"))
+  writeLines(c("Id,Age", "P1,80+"), file.path(raw_dir, "participants.csv"))
+
+  # with study.yaml at the top level
+  study <- study_from_stf(dir) %>% quiet()
+  expect_equal(get_entity_names(study), get_entity_names(baseline))
+  expect_true(validate(study))
+
+  # without study.yaml (the fallback that scans the directory for entity
+  # files). The study then has no name, so validate the entities, not the study.
+  file.remove(file.path(dir, "study.yaml"))
+  study <- study_from_stf(dir) %>% quiet()
+  expect_equal(get_entity_names(study), get_entity_names(baseline))
+  for (name in get_entity_names(study)) {
+    entity <- get_entity(study, name)
+    expect_true(validate(quiet(entity)))
+    expect_equal(entity@data, get_entity(baseline, name)@data)
+  }
+})
