@@ -78,6 +78,18 @@ every section below.
 7. **List-valued fields** (`provider_label`, `ordinal_levels`,
    `vocabulary_order`) take a YAML sequence. A single scalar is also accepted
    as a one-item list. `hidden` is a special case; see its entry.
+8. **`study_from_stf()` validates each entity as it loads it.** By default
+   (`validate = TRUE`) it runs the entity checks of the default validation
+   profile (`baseline`) on every entity and **stops the load** if any check
+   fails, with "Can't create valid entity from STF file ...", after printing
+   the validation report. So wherever this reference says that `validate()`
+   reports or fails on a problem in an entity file (an entity or variable
+   field, a category or a collection), `study_from_stf()` refuses to load the
+   study. `entity_from_stf()` on its own, or `study_from_stf(dir, validate =
+   FALSE)`, returns the invalid entity so that you can inspect it. Study-level
+   checks (the study `name`, links between parent and child entities) and the
+   `eda` profile are not run at load time; call
+   `validate(study, profiles = c("baseline", "eda"))` for those.
 
 ---
 
@@ -93,7 +105,7 @@ no name.
 
 | Key | Type | Required | Default | Notes |
 |---|---|---|---|---|
-| `name` | string | yes (validation) | none | Human-readable study name. A missing name loads, but `validate()` reports "Study name is missing." |
+| `name` | string | yes (validation) | none | Human-readable study name. A missing name loads (study-level checks are not run at load time), but `validate()` then reports "Study name is missing." |
 | `entities` | list of strings | yes (load) | none | Entity names. Each must have `entity-<name>.tsv` in the directory; `entity-<name>.yaml` is optional. The load stops if the list is missing or empty. Order does not matter: the tree is assembled from the ID columns. |
 
 No other keys are read; any other key stops the load.
@@ -122,7 +134,7 @@ ignored** (see rule 1 above).
 
 | Key | Type | Required | Default | Notes |
 |---|---|---|---|---|
-| `name` | string | yes (validation) | none | Machine name of the entity. Use the same `<entity_name>` as in the file names and in `study.yaml`. Use letters and digits only (this is what `set_entity_name()` allows; the YAML loader does not check). A missing name loads, but `validate()` reports it. |
+| `name` | string | yes (validation) | none | Machine name of the entity. Use the same `<entity_name>` as in the file names and in `study.yaml`. Use letters and digits only (this is what `set_entity_name()` allows; the YAML loader does not check). A missing name fails validation, so `study_from_stf()` stops at load time (rule 8). |
 | `display_name` | string | no | the value of `name` | Human-readable singular name, e.g. `Household`. |
 | `display_name_plural` | string | no | `display_name` + `s` | Plural of `display_name`, e.g. `Households`. Set it when adding `s` is wrong (`Person` → `People`). |
 | `description` | string | no | none | Free-text description of the entity. Exported to EDA with the entity. |

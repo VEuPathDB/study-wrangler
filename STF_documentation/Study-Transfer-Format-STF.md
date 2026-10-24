@@ -460,7 +460,14 @@ Column names that do **not** match:
 | `belongs`, `elongated` | `long` embedded mid-word |
 | `latlong` | tokens are adjacent with no separator; neither `lat` nor `long` has the required trailing/leading boundary |
 
-The safest names are plain `Latitude` and `Longitude`.
+The EDA validator (the `eda` profile of `validate()`) finds coordinate
+columns with a **narrower** rule: the tokens must be bounded by word
+boundaries only, and an underscore does not count. So underscore names from
+the tables above, such as `wgs84_lat`, `sample_lat_value` or `lng_dd`, are
+found by `infer_geo_variables_for_eda()` but are invisible to the validator,
+which then does not check their metadata or values. Separate the token with
+`.`, `-` or a space (`sample.lat`, `lat-dd`), or better, name the columns
+plain `Latitude` and `Longitude`.
 
 **One latitude and one longitude per entity.** An entity must not have any
 other variable whose name matches these rules. The EDA validator also looks
@@ -495,8 +502,10 @@ with stable IDs `EUPATH_0043203` … `EUPATH_0043208`, `data_type: string`,
 [everywhere]`. EDA validation requires them alongside the coordinates.
 
 **You do not need to put them in STF.** `infer_geo_variables_for_eda()`
-derives them from the latitude and longitude, and sets the latitude and
-longitude metadata in the table above. It replaces any geohash columns already
+derives them from the latitude and longitude. It also sets `stable_id`,
+`data_type` and `display_type` on the latitude and longitude variables as in
+the table above; it does not set `data_shape`, so declare that in the YAML. It
+replaces any geohash columns already
 present (data and metadata), so it is safe to run more than once. STF exported
 by the Study Wrangler after this step contains the geohash columns; that is
 fine, and they are regenerated the next time the step runs.
@@ -514,8 +523,10 @@ validate(study, profiles = c("baseline", "eda"))
 
 `infer_geo_variables_for_eda()` is silent on entities without coordinate
 columns and leaves them unchanged. If an entity has coordinate-like columns
-but not exactly one of each, it warns and leaves the entity unchanged, and
-EDA validation then fails. Run this step before EDA validation and before VDI
+but not exactly one of each, it warns and leaves the entity unchanged. EDA
+validation then fails if it finds more than one latitude or more than one
+longitude column; a lone coordinate column only gets an advisory, and
+validation passes. Run this step before EDA validation and before VDI
 export.
 
 ### Worked example
