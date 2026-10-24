@@ -16,6 +16,13 @@ read_metadata_fields_doc <- function() {
   readLines(path, warn = FALSE)
 }
 
+# Scalar top-level keys of an entity YAML file: entity_from_stf() passes every
+# scalar top-level key to entity(), so they are the constructor's scalar
+# arguments. `quiet` is an R session setting, not study metadata.
+entity_scalar_yaml_keys <- function() {
+  setdiff(names(formals(entity)), c("data", "variables", "children", "collections", "quiet"))
+}
+
 # TRUE when `term` appears in backticks somewhere in the doc
 documented_in_backticks <- function(doc, term) {
   any(grepl(paste0("`", term, "`"), doc, fixed = TRUE))
@@ -60,12 +67,22 @@ test_that("metadata-fields.md lists every allowed value of the factor fields", {
 
 test_that("metadata-fields.md documents every entity-level YAML key", {
   doc <- read_metadata_fields_doc()
-  # entity_from_stf() passes every scalar top-level YAML key to entity(), so
-  # the accepted keys are the constructor's scalar arguments. `quiet` is an
-  # R session setting, not study metadata.
-  scalar_args <- setdiff(names(formals(entity)), c("data", "variables", "children", "collections", "quiet"))
+  scalar_args <- entity_scalar_yaml_keys()
   sections <- c("id_columns", "variables", "categories", "collections")
   keys <- c(scalar_args, sections)
   undocumented <- keys[!map_lgl(keys, ~ documented_in_backticks(doc, .x))]
   expect_equal(undocumented, character(0))
+})
+
+test_that("the documented section names are exactly the ones entity_from_stf() reads", {
+  doc <- read_metadata_fields_doc()
+  # entity_from_stf() silently drops unknown list-valued top-level keys, so a
+  # misspelt section is ignored without error. The doc spells the sections out;
+  # keep that list in step with the `metadata$<section>` reads in the loader.
+  documented_sections <- c("id_columns", "variables", "categories", "collections")
+  loader_source <- paste(deparse(body(entity_from_stf)), collapse = "\n")
+  loader_keys <- unique(str_match_all(loader_source, "metadata\\$([A-Za-z_]+)")[[1]][, 2])
+  loader_sections <- setdiff(loader_keys, entity_scalar_yaml_keys())
+  expect_setequal(loader_sections, documented_sections)
+  expect_true(any(grepl("silently", doc, fixed = TRUE) & grepl("misspelt", doc, fixed = TRUE)))
 })

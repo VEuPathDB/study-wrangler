@@ -25,10 +25,25 @@ or an allowed value is added to the code but not to this file.
 Read this before writing YAML by hand or by program. These rules apply to
 every section below.
 
-1. **Unknown keys are errors.** A key that is not in this reference stops the
-   load. In `id_columns`, `variables`, `categories` and `collections` the error
-   names the bad key and lists the allowed ones. At the top level of an entity
-   file or of `study.yaml` the error is R's `unused argument (...)`.
+1. **Unknown keys are mostly errors, but a misspelt section name is silently
+   ignored.**
+   - Inside an entry of `id_columns`, `variables`, `categories` or
+     `collections`, an unknown key stops the load. The error names the bad key
+     and lists the allowed ones.
+   - At the top level of `study.yaml`, any unknown key stops the load. The
+     error is either R's `unused argument (...)` or "not valid Entity
+     metadata names".
+   - At the top level of an entity file, an unknown key with a **scalar**
+     value (a string, number or boolean) stops the load with R's
+     `unused argument (...)`.
+   - At the top level of an entity file, an unknown key whose value is a
+     **list or mapping is silently dropped**. There is no error, warning or
+     message. The four section names are the only list-valued top-level keys
+     the loader reads, so spell them exactly: `id_columns`, `variables`,
+     `categories`, `collections`. A typo such as `variabels:` or
+     `categoris:` makes the loader ignore the whole section. The columns then
+     fall back to inferred metadata, and the entity may still validate. A
+     clean load is therefore no proof that a section was read.
 2. **A misspelt allowed value is not an error.** The loader converts the
    values of `data_type`, `data_shape`, `display_type`, `scale` and `hidden`
    to R factors, and a value outside the allowed list silently becomes
@@ -99,7 +114,11 @@ entities:
 
 Each entity YAML file describes one entity: its names, ID columns, variables,
 variable categories and variable collections. Every scalar top-level key is
-passed to the `entity()` constructor, so only the keys below are accepted.
+passed to the `entity()` constructor, so an unknown scalar key stops the load.
+The only list-valued keys read are the four sections, spelt exactly
+`id_columns`, `variables`, `categories` and `collections`. Any other list- or
+mapping-valued key, including a misspelt section name, is **silently
+ignored** (see rule 1 above).
 
 | Key | Type | Required | Default | Notes |
 |---|---|---|---|---|
