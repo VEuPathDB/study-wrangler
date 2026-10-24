@@ -42,7 +42,7 @@ Note that **dates must be provided in ISO-8601 format** without a time component
 The STF directory should contain:
 
 - Tab-delimited entity files (`entity-<entity_name>.tsv`)
-- Optional entity metadata YAML files (`entity-<entity-name>.yaml`)
+- Optional entity metadata YAML files (`entity-<entity_name>.yaml`)
 - Optional study-level metadata file (`study.yaml`)
 - Optional curation notes (`curation-notes.md`), which the loaders ignore
 
@@ -77,12 +77,19 @@ child entity’s ID with the `\\ Descriptors` suffix. For deeper
 hierarchies, you may provide all parent IDs or just the immediate
 parent. See the example below.
 
+**The header row of a wide file must carry the `\\ Descriptors` marker**
+on the entity's own ID column, even when the entity has a YAML file. The
+loader uses the marker to tell wide files from tall ones (see
+[Tall-or-wide format](#tall-or-wide-format)): a first row without it is
+treated as tall and the file is transposed, silently, so the columns and
+rows come out wrong.
+
 For example:
 - **Parent entity (`household`)**: The first column is `Household.Id \\ Descriptors`, as it has no parent.
 - **Child entity (`participant`)**: The first column (`Household.Id`) references the parent, and the second column (`Participant.Id \\ Descriptors`) uniquely identifies each participant.
 - **Grandchild entity (`observation`)**: Two options are available:
   - Provide *all* parent IDs in parent-to-child order: `Household.Id`, `Participant.Id`, `Part..Obs..Id \\ Descriptors`
-  - Provide just the parent IDs: `Participant.Id`, `Part.Obs.Id \\ Descriptors`
+  - Provide just the parent IDs: `Participant.Id`, `Part..Obs..Id \\ Descriptors`
 
 #### Example `entity-household.tsv`:
 | Household.Id \\\\ Descriptors | Number.of.animals | Owns.property | Enrollment.date | Construction.material |
@@ -644,9 +651,21 @@ non-existent parent IDs) are not allowed.
 
 There are no strict rules for column heading formats. IDs and variable
 headings can contain spaces and other non-alphanumeric characters if
-you like. When manipulating columns in the Study Wrangler, they will
-be converted into R-friendly column names, mainly by replacing
-non-standard characters with periods (`.`).
+you like.
+
+The STF loaders (`study_from_stf()` and `entity_from_stf()`) **keep the
+headings exactly as written** (apart from removing the `\\ Descriptors`
+marker). The `variable` and `id_column` values in the entity YAML must
+therefore match the headings character for character. For example, a column
+headed `Height (cm)` must be listed as `variable: Height (cm)`; an entry
+`variable: Height..cm.` matches no column, so it is dropped and the column
+silently falls back to default metadata (see rule 5 of
+[How the loader reads the YAML](./metadata-fields.md#how-the-loader-reads-the-yaml)).
+
+Conversion to R-friendly names (replacing spaces and other non-standard
+characters with periods, as in `Height..cm.`) happens only when a table is
+read with `entity_from_file()` and its relatives (`entity_from_tsv()`,
+`entity_from_csv()`, `entity_from_tibble()`), not when STF is loaded.
 
 ## Missing values
 
@@ -664,7 +683,7 @@ When Study Wrangler exports to STF format, missing values are written as empty c
 
 **Correct** (with trailing tabs for missing values at end of row):
 ```
-Household.Id<tab>Location<tab>Temperature<tab>Humidity
+Household.Id \\ Descriptors<tab>Location<tab>Temperature<tab>Humidity
 H001<tab>Boston<tab>72.5<tab>65
 H002<tab><tab>68.3<tab>
 H003<tab>Seattle<tab><tab>
@@ -672,7 +691,7 @@ H003<tab>Seattle<tab><tab>
 
 **Incorrect** (missing trailing tabs):
 ```
-Household.Id<tab>Location<tab>Temperature<tab>Humidity
+Household.Id \\ Descriptors<tab>Location<tab>Temperature<tab>Humidity
 H001<tab>Boston<tab>72.5<tab>65
 H002<tab><tab>68.3
 H003<tab>Seattle
@@ -682,7 +701,7 @@ H003<tab>Seattle
 
 **Example showing missing values as empty cells:**
 ```
-Household.Id<tab>Location<tab>Temperature
+Household.Id \\ Descriptors<tab>Location<tab>Temperature
 H001<tab>Boston<tab>72.5
 H002<tab><tab>68.3
 H003<tab>Seattle<tab>
@@ -690,7 +709,7 @@ H003<tab>Seattle<tab>
 
 **Example showing missing values as "NA" (also supported):**
 ```
-Household.Id	Location	Temperature
+Household.Id \\ Descriptors	Location	Temperature
 H001	Boston	72.5
 H002	NA	68.3
 H003	Seattle	NA

@@ -47,8 +47,10 @@ every section below.
 2. **A misspelt allowed value is not an error.** The loader converts the
    values of `data_type`, `data_shape`, `display_type`, `scale` and `hidden`
    to R factors, and a value outside the allowed list silently becomes
-   missing. A missing `data_shape` is then re-inferred from the data, and a
-   missing `display_type` or `scale` falls back to no setting. Copy allowed
+   missing. A missing `data_type` or `data_shape` is then re-inferred from
+   the data (so `data_type: integr` silently becomes whatever the data
+   suggests, for example `integer`), and a missing `display_type` or `scale`
+   falls back to no setting. Copy allowed
    values exactly from this reference.
 3. **The loader does not convert the data to match `data_type`.** The TSV is
    read as text and each column's R type is guessed (readr's `type_convert`).
@@ -100,8 +102,10 @@ every section below.
 else, so other files can sit in the same directory.
 
 Without a `study.yaml`, `study_from_stf()` loads every `entity-*.tsv` file in
-the directory (each with its same-stem `.yaml`, if present), and the study has
-no name.
+the directory, each with its same-stem `.yaml` or, failing that, `.yml` file
+if present, and the study has no name. With a `study.yaml`, only
+`entity-<name>.yaml` is read: an `entity-<name>.yml` file is ignored and the
+entity loads without metadata.
 
 | Key | Type | Required | Default | Notes |
 |---|---|---|---|---|
@@ -507,7 +511,7 @@ accepts them in `variables`, but you should leave them out.
 
 - **`entity_name`**: overwritten with the entity's `name` for every variable.
   (In `id_columns` it is a required key; see above.)
-- **`entity_level`**: `0` for every variable. (In `id_columns` it gives the
+- **`entity_level`**: defaults to `0`; leave unset (a value here is kept). (In `id_columns` it gives the
   ancestor level; see above.)
 - `has_values`: `true` for data columns and set to `false` by the loader for
   categories. Setting it in YAML breaks the link between metadata and data
