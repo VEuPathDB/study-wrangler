@@ -71,6 +71,10 @@ export_entity_to_stf <- function(entity, output_directory) {
 
 
 
+# entities with at least this many columns (and more columns than rows)
+# are written in the transposed STF layout
+STF_TRANSPOSE_MIN_COLUMNS <- 200L
+
 write_stf_data <- function(entity, output_directory) {
   entity_name <- entity %>% get_entity_name()
   data.path <- file.path(output_directory, glue("entity-{entity_name}.tsv"))
@@ -83,7 +87,7 @@ write_stf_data <- function(entity, output_directory) {
   # Determine if we need tall format
   headers <- names(data)
   ncols <- length(headers)
-  is_tall <- ncols > nrow(data) && ncols >= 200
+  is_tall <- ncols > nrow(data) && ncols >= STF_TRANSPOSE_MIN_COLUMNS
   
   # Replace the last ID column headers with the special
   # STF ID column header which tells us which orientation the file is in
@@ -103,7 +107,7 @@ write_stf_data <- function(entity, output_directory) {
   
   # Transpose if needed
   if (is_tall) {
-    data <- data %>% t() %>% as_tibble()
+    data <- data %>% t() %>% as_tibble(.name_repair = "minimal")
   }
   
   data %>% write_tsv(data.path, col_names = FALSE, progress = FALSE, na = "")
