@@ -50,6 +50,10 @@ entity_from_stf <- function(tsv_path, yaml_path = NULL) {
   # set the data column names
   colnames(data) <- clean_headers
   
+  # keep the raw character data so columns declared as string in the
+  # metadata can be restored after type detection
+  raw_data <- data
+
   # do basic R type detection on columns
   data <- data %>% type_convert_quietly()
   
@@ -295,6 +299,22 @@ entity_from_stf <- function(tsv_path, yaml_path = NULL) {
           call. = FALSE
         )
       }
+    }
+  }
+
+  # Columns explicitly declared as (non-multivalued, non-ordinal) strings must stay
+  # character, even if every value looks numeric (e.g. ID-like codes)
+  if (!is.null(variables) && all(c("data_type", "is_multi_valued", "data_shape") %in% names(variables))) {
+    string_columns <- variables %>%
+      filter(
+        data_type %in% "string",
+        !(is_multi_valued %in% TRUE),
+        !(data_shape %in% "ordinal"),
+        variable %in% names(raw_data)
+      ) %>%
+      pull(variable)
+    for (col in string_columns) {
+      data[[col]] <- raw_data[[col]]
     }
   }
 
