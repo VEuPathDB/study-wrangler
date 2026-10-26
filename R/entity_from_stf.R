@@ -29,12 +29,14 @@ entity_from_stf <- function(tsv_path, yaml_path = NULL) {
   # Read in the file as all-character with no headers
   data <- read_tsv(tsv_path, col_names = FALSE, col_types = cols(.default = "c"), progress = FALSE)
 
-  # Determine if it's wide or tall format based on the first row
-  is_wide <- any(str_detect(data[1, ], ".+\\\\\\\\ Descriptors|Descriptors \\\\\\\\"))
+  # Determine if it's wide or tall format based on the first row.
+  # Only the standard marker `X \\ Descriptors` counts: a transposed root entity
+  # starts with `Descriptors \\ X`, which must not be mistaken for standard layout.
+  is_wide <- any(str_detect(data[1, ], ".+\\\\\\\\ Descriptors"))
   
   # If tall, transpose to wide format
   if (!is_wide) {
-    data <- data %>% t() %>% as_tibble(.name_repair = "unique")
+    data <- data %>% t() %>% as_tibble(.name_repair = ~ paste0("X", seq_along(.x)))
   }
   
   # Extract the header row
@@ -43,6 +45,12 @@ entity_from_stf <- function(tsv_path, yaml_path = NULL) {
   
   # Locate the "Descriptors" marker column**
   descriptor_col_index <- which(str_detect(headers, "\\\\+\\s*Descriptors|Descriptors\\s*\\\\+"))
+
+  if (length(descriptor_col_index) == 0 && !is.null(yaml_path) && file.exists(yaml_path)) {
+    stop(glue("Error: No 'Descriptors' marker found in '{tsv_path}'. ",
+              "The ID column header must be `<Entity.Id> \\\\ Descriptors` (or ",
+              "`Descriptors \\\\ <Entity.Id>` in a transposed file)."))
+  }
 
   # clean headers without "Descriptors"
   clean_headers <- str_remove(headers, "\\s*\\\\+\\s*Descriptors|Descriptors\\s*\\\\+\\s*")

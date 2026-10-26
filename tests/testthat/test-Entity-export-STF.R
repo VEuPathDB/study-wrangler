@@ -88,3 +88,44 @@ test_that("An all-numeric column declared as string loads as un-mutated characte
   expect_type(get_data(entity)$room_number, "character")
   expect_equal(get_data(entity)$room_number, c("2.10", "3.50"))
 })
+
+test_that("A wide root entity (few rows, many columns) roundtrips via transposed STF", {
+  output_dir <- "./tmp/stf-wide-root-entity"
+  n_vars <- STF_TRANSPOSE_MIN_COLUMNS + 10
+  data <- tibble(Household.Id = c("H001", "H002", "H003"))
+  for (i in seq_len(n_vars)) {
+    data[[sprintf("Var%03d", i)]] <- c(i, i + 1, i + 2)
+  }
+
+  entity <- entity_from_tibble(data, name = "household")
+  expect_equal(dim(get_data(entity)), c(3, n_vars + 1))
+
+  expect_silent(entity %>% export_entity_to_stf(output_dir))
+  tsv_path <- file.path(output_dir, "entity-household.tsv")
+  first_cell <- strsplit(readLines(tsv_path, n = 1), "\t")[[1]][1]
+  expect_match(first_cell, "^Descriptors ")
+
+  entity2 <- entity_from_stf(tsv_path)
+  expect_equal(dim(get_data(entity2)), c(3, n_vars + 1))
+  expect_equal(get_data(entity2)$Household.Id, c("H001", "H002", "H003"))
+})
+
+test_that("A TSV without the Descriptors marker is an error when YAML is present", {
+  output_dir <- "./tmp/stf-no-marker"
+  dir.create(output_dir, recursive = TRUE, showWarnings = FALSE)
+  tsv_path <- file.path(output_dir, "entity-person.tsv")
+  writeLines(c("P.Id\tAge", "P1\t10", "P2\t20"), tsv_path)
+  writeLines("name: person", file.path(output_dir, "entity-person.yaml"))
+  expect_error(entity_from_stf(tsv_path), "Descriptors")
+})
+
+test_that("Fallback entity file match uses the file name, not the directory path", {
+  output_dir <- "./tmp/entity-dir-fallback"
+  unlink(output_dir, recursive = TRUE)
+  dir.create(output_dir, recursive = TRUE)
+  writeLines("notes", file.path(output_dir, "notes.tsv"))
+  # notes.tsv must not be loaded as an entity just because the directory
+  # name contains "entity-"; with no real entity files we get this error
+  # rather than a "Descriptors marker" error from reading notes.tsv
+  expect_error(study_from_stf(output_dir), "At least one entity must be provided")
+})

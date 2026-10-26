@@ -48,7 +48,7 @@ study_from_stf <- function(directory, validate = TRUE) {
   } else {
     # we can still make a study but it won't have a name
     # or any other metadata
-    entity_tsv_files <- filepaths %>% keep(~ .x %>% str_detect('entity-.+\\.tsv$'))
+    entity_tsv_files <- filepaths %>% keep(~ .x %>% basename() %>% str_detect('^entity-.+\\.tsv$'))
 
     entities <- entity_tsv_files %>% map(
       function(file_path) {
