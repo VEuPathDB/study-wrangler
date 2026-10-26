@@ -69,3 +69,22 @@ test_that("An entity with collections roundtrips via STF directory", {
   
   expect_roundtrip(observations, output_dir)  
 })
+
+test_that("An all-numeric column declared as string loads as un-mutated character from STF", {
+  dir <- withr::local_tempdir()
+  tsv_path <- file.path(dir, "entity-team.tsv")
+  writeLines(c("team \\\\ Descriptors\troom_number", "T1\t2.10", "T2\t3.50"), tsv_path)
+  writeLines(c(
+    "name: team",
+    "id_columns:",
+    "  - id_column: team",
+    "variables:",
+    "  - variable: room_number",
+    "    data_type: string",
+    "    data_shape: categorical"
+  ), file.path(dir, "entity-team.yaml"))
+
+  entity <- entity_from_stf(tsv_path)
+  expect_type(get_data(entity)$room_number, "character")
+  expect_equal(get_data(entity)$room_number, c("2.10", "3.50"))
+})
