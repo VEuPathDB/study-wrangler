@@ -35,7 +35,10 @@
 #' - The function preserves the order of factor levels and does not introduce
 #'   unwanted conversions between character and factor types.
 #'
+#' @keywords internal
 #' @examples
+#' fct_mutate <- study.wrangler:::fct_mutate
+#'
 #' # Example 1: Safe mutation with existing level
 #' f <- factor(c("numeric", "character"), levels = c("numeric", "character", "id"))
 #' fct_mutate(f, condition = f == "numeric", true_value = "id")
@@ -54,7 +57,9 @@
 #' 
 #' # For the simple case where you just want to change all values in a factor vector,
 #' # you can omit the condition (which will default to TRUE), e.g.
+#' \dontrun{
 #' exam_results <- exam_results %>% mutate(marked = fct_mutate(marked, "no"))
+#' }
 #'
 fct_mutate <- function(factor, condition, true_value, false_value = NULL, .auto_expand = FALSE) {
   if (!is.factor(factor)) stop("Error: 'factor' must be a factor.")

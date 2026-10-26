@@ -6,6 +6,8 @@
 #' @import forcats
 #' @import skimr
 #' @importFrom rlang %||%
+#' @importFrom methods is slot new
+#' @importFrom stats setNames
 #' @importFrom lubridate is.Date
 #' @importFrom tibble tibble deframe
 #' @importFrom glue glue
