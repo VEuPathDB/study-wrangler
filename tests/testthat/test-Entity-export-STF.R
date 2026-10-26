@@ -73,11 +73,11 @@ test_that("An entity with collections roundtrips via STF directory", {
 test_that("An all-numeric column declared as string loads as character from STF", {
   dir <- withr::local_tempdir()
   tsv_path <- file.path(dir, "entity-team.tsv")
-  writeLines(c("Team Id\tteam_extension", "T1\t203", "T2\t299"), tsv_path)
+  writeLines(c("team \\\\ Descriptors\tteam_extension", "T1\t203", "T2\t299"), tsv_path)
   writeLines(c(
     "name: team",
     "id_columns:",
-    "  - id_column: Team Id",
+    "  - id_column: team",
     "variables:",
     "  - variable: team_extension",
     "    data_type: string",
