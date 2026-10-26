@@ -52,7 +52,7 @@ entity_from_stf <- function(tsv_path, yaml_path = NULL) {
   
   # keep the raw character data so columns declared as string in the
   # metadata can be restored after type detection
-  raw_data <- data
+  raw_character_data <- data
 
   # do basic R type detection on columns
   data <- data %>% type_convert_quietly()
@@ -310,11 +310,11 @@ entity_from_stf <- function(tsv_path, yaml_path = NULL) {
         data_type %in% "string",
         !(is_multi_valued %in% TRUE),
         !(data_shape %in% "ordinal"),
-        variable %in% names(raw_data)
+        variable %in% names(raw_character_data)
       ) %>%
       pull(variable)
     for (col in string_columns) {
-      data[[col]] <- raw_data[[col]]
+      data[[col]] <- raw_character_data[[col]]
     }
   }
 
