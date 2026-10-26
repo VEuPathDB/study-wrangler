@@ -21,14 +21,11 @@
 #' # Define an Entity object
 #' library(tibble)
 #' data <- tibble(id = 1:3, value = c("A", "B", "C"))
-#' variables <- tibble(variable = c("id", "value"), data_type = c("id", "string"), ...)
-#' entity <- new("Entity",
-#'               data = data,
-#'               variables = variables,
-#'               name = "example_entity",
-#'               description = "An example entity",
-#'               display_name = "Example Entity",
-#'               display_name_plural = "Example Entities")
+#' entity <- entity(data = data,
+#'                   name = "example_entity",
+#'                   description = "An example entity",
+#'                   display_name = "Example Entity",
+#'                   display_name_plural = "Example Entities")
 #' print(entity)
 setClass(
   "Entity",
@@ -71,10 +68,8 @@ setClass(
 #' # Create an Entity object using the constructor
 #' library(tibble)
 #' data <- tibble(id = 1:3, value = c("A", "B", "C"))
-#' variables <- tibble(variable = c("id", "value"), data_type = c("id", "string", ...))
 #' entity <- entity(
 #'   data = data,
-#'   variables = variables,
 #'   name = "example_entity",
 #'   description = "An example entity"
 #' )

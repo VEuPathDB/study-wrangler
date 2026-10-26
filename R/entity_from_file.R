@@ -37,6 +37,7 @@
 #' }
 #'
 #' @examples
+#' \dontrun{
 #' # Load an entity from a file
 #' households <- entity_from_file('households.tsv', name='household')
 #'
@@ -51,6 +52,7 @@
 #' # Create another entity and combine into a study
 #' participants <- entity_from_file('participants.tsv')
 #' study <- study_from_entities(households, participants)
+#' }
 #'
 #' @export
 entity_from_file <- function(file_path, preprocess_fn = NULL, ...) {

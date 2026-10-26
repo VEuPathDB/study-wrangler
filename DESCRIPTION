@@ -17,7 +17,19 @@ Encoding: UTF-8
 Roxygen: list(markdown = TRUE)
 RoxygenNote: 7.3.3
 Imports:
-    tidyverse (>= 2.0.0),
+    data.table,
+    dplyr,
+    fs,
+    forcats,
+    igraph,
+    jsonlite,
+    lubridate,
+    methods,
+    purrr,
+    readr,
+    stringr,
+    tibble,
+    tidyr,
     skimr,
     rlang,
     glue,
@@ -28,7 +40,9 @@ Imports:
 Suggests: 
     testthat (>= 3.0.0),
     roxygen2,
-    rmarkdown
+    rmarkdown,
+    withr,
+    tidyverse (>= 2.0.0)
 Remotes:
     VEuPathDB/plot.data@v5.6.15
 URL: https://github.com/VEuPathDB/study-wrangler

@@ -12,6 +12,7 @@
 #'
 #' @examples
 #' # Create a Study object
+#' root_entity <- entity(data = tibble::tibble(id = 1:3), name = "example_entity")
 #' study <- study(name = "Example Study", root_entity = root_entity)
 #' print(study)
 setClass(

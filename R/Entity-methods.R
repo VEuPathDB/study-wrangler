@@ -1389,6 +1389,7 @@ setMethod("set_variable_ordinal_levels", "Entity", function(entity, variable_nam
 #'
 #' @returns Modified entity.
 #' @examples
+#' \dontrun{
 #' # Pin a specific order for a binary variable (overrides default lexicographic "No, Yes")
 #' entity <- entity %>%
 #'   set_variable_vocabulary_order("Owns.property", order = c("Yes", "No"))
@@ -1407,6 +1408,7 @@ setMethod("set_variable_ordinal_levels", "Entity", function(entity, variable_nam
 #' # e.g. c("1","10","many","2","3","100","NA") -> "1","2","3","10","100","many","NA"
 #' entity <- entity %>%
 #'   set_variable_vocabulary_order("Household.size", order = sort_numbers_first)
+#' }
 #' @export
 setMethod("set_variable_vocabulary_order", "Entity", function(entity, variable_name, order) {
   global_varname <- find_global_varname(entity, "entity")
@@ -1514,6 +1516,7 @@ setMethod("set_variable_vocabulary_order", "Entity", function(entity, variable_n
 #' - Updates `parent_variable` for all children.
 #'
 #' @examples
+#' \dontrun{
 #' entity <- entity %>%
 #'   create_variable_category(
 #'     category_name = "house_vars",
@@ -1521,6 +1524,7 @@ setMethod("set_variable_vocabulary_order", "Entity", function(entity, variable_n
 #'     display_name = "House-related",
 #'     definition = "Things about the house"
 #'   )
+#' }
 setMethod("create_variable_category", "Entity", function(entity, category_name, children, ...) {
   global_varname = find_global_varname(entity, "entity")
   variables <- entity@variables
@@ -1795,6 +1799,7 @@ setMethod("set_variables_univalued", "Entity", function(entity, variable_names) 
 #' @export
 #'
 #' @examples
+#' \dontrun{
 #' # For omics data with gene IDs as column names, use variable names as stable_ids:
 #' entity <- entity %>%
 #'   set_variables_stable_ids(c("GENE_00001_expression", "GENE_00002_expression"))
@@ -1805,6 +1810,7 @@ setMethod("set_variables_univalued", "Entity", function(entity, variable_names) 
 #'     variable_names = c("var1", "var2"),
 #'     stable_ids = c("VAR_custom1", "VAR_custom2")
 #'   )
+#' }
 setMethod("set_variables_stable_ids", "Entity", function(entity, variable_names, stable_ids = variable_names) {
   variables <- entity@variables
 

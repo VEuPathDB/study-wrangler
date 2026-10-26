@@ -21,7 +21,7 @@ test_that("redetect_columns_as_variables() resets data_shape when a continuous c
   # hydration (findBinWidth() has no method for character columns); this must
   # not error now that data_shape is re-inferred alongside data_type
   expect_no_error(households %>% get_hydrated_variable_and_category_metadata())
-  expect_no_error(inspect_variable(households, "Number.of.animals"))
+  expect_output(inspect_variable(households, "Number.of.animals"), "Number.of.animals")
 })
 
 test_that("redetect_columns_as_variables() resets data_shape when a categorical column becomes numeric", {
@@ -46,5 +46,5 @@ test_that("redetect_columns_as_variables() resets data_shape when a categorical 
   expect_equal(as.character(after$data_shape), "continuous")
 
   expect_no_error(households %>% get_hydrated_variable_and_category_metadata())
-  expect_no_error(inspect_variable(households, "Number.of.animals"))
+  expect_output(inspect_variable(households, "Number.of.animals"), "Number.of.animals")
 })

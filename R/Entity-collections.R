@@ -57,6 +57,7 @@ setGeneric("get_hydrated_collection_metadata", function(entity) standardGeneric(
 #' - If `stable_id` is not provided, it will be generated just-in-time during hydration (see also variable behaviour).
 #'
 #' @examples
+#' \dontrun{
 #' entity <- entity %>%
 #'   create_variable_collection(
 #'     category_name = "integer.measures",
@@ -68,6 +69,7 @@ setGeneric("get_hydrated_collection_metadata", function(entity) standardGeneric(
 #'     normalization_method = "none"
 #'     # stable_id is optional
 #'   )
+#' }
 #'
 #' @export
 setMethod("create_variable_collection", "Entity", function(entity, category_name, ...) {

@@ -240,6 +240,7 @@ setMethod("get_entity_abbreviation", "Study", function(study, entity_name) {
 #' @export
 #'
 #' @examples
+#' \dontrun{
 #' # Set display names from provider labels for all entities
 #' study <- study_from_stf(dir) %>%
 #'   map_entities(~ .x %>% quiet() %>% set_variable_display_names_from_provider_labels())
@@ -251,6 +252,7 @@ setMethod("get_entity_abbreviation", "Study", function(study, entity_name) {
 #'       set_variable_display_names_from_provider_labels() %>%
 #'       infer_geo_variables_for_eda()
 #'   })
+#' }
 setMethod("map_entities", "Study", function(study, fn) {
   # Get all entities from the study
   entities <- study %>% get_entities()
