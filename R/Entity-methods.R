@@ -752,7 +752,22 @@ setMethod("modify_data", "Entity", function(entity, ...) {
   if (missing(...)) {
     stop("The `...` argument is missing. Please provide a pipeline to modify the data.", call. = FALSE)
   }
-  new_data <- entity@data %>% ...
+  # Evaluate the pipeline in the caller's environment, so it can see variables
+  # local to the calling function. The previous implementation,
+  # `entity@data %>% ...`, would have evaluated it in this method's frame,
+  # where only globals are visible.
+  pipeline <- rlang::enquos(...)
+  if (length(pipeline) != 1) {
+    stop("modify_data() takes a single pipeline, got ", length(pipeline), ".", call. = FALSE)
+  }
+  env <- rlang::env(rlang::quo_get_env(pipeline[[1]]), .modify_data_input = entity@data)
+  # `!!` inlines our imported magrittr pipe (via dplyr) as a function object
+  # rather than the symbol `%>%`, which would be looked up from the caller's
+  # environment and fail if the caller hasn't attached dplyr/magrittr.
+  new_data <- eval(
+    rlang::expr((!!`%>%`)(.modify_data_input, !!rlang::quo_get_expr(pipeline[[1]]))),
+    env
+  )
   initialize(entity, data = new_data)
 })
 
