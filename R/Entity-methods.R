@@ -1153,6 +1153,32 @@ setMethod("get_hydrated_variable_and_category_metadata", "Entity", function(enti
   var_metadata <- var_metadata %>%
     mutate(column_data = column_data_list)
 
+  # Range, quartiles, mean and bin width for all number/integer/date variables
+  # regardless of data_shape: EDA offers histograms for these types and
+  # service-eda requires range_min/range_max/bin_width_computed for them.
+  # Rows without stats get NA via bind_rows()
+  has_stats <- var_metadata$has_values & var_metadata$data_type %in% c('number', 'integer', 'date')
+  var_metadata <- bind_rows(
+    var_metadata %>%
+      filter(has_stats) %>%
+      mutate(
+        is_date = data_type == "date",
+        values = map(column_data, column_values_as_numeric),
+        mean = map_chr(values, ~ as.character(mean(.x, na.rm = TRUE))),
+        bin_width_computed = map_chr(values, ~ as.character(findBinWidth(.x, na.rm = TRUE))),
+        summary_stats = map2(values, is_date, ~ safe_fivenum(.x, is_date = .y)),
+        range_min = map_chr(summary_stats, ~ as.character(.x[[1]])),
+        lower_quartile = map_chr(summary_stats, ~ as.character(.x[[2]])),
+        median = map_chr(summary_stats, ~ as.character(.x[[3]])),
+        upper_quartile = map_chr(summary_stats, ~ as.character(.x[[4]])),
+        range_max = map_chr(summary_stats, ~ as.character(.x[[5]])),
+        is_date = NULL,
+        values = NULL,
+        summary_stats = NULL
+      ),
+    var_metadata %>% filter(!has_stats)
+  )
+
   # Split processing by variable type for performance
   # 1. Variables with no data
   no_data_vars <- var_metadata %>%
@@ -1161,21 +1187,13 @@ setMethod("get_hydrated_variable_and_category_metadata", "Entity", function(enti
       vocabulary = list(NA),
       precision = NA_integer_,
       distinct_values_count = NA_integer_,
-      mean = NA_character_,
-      bin_width_computed = NA_character_,
-      range_min = NA_character_,
-      lower_quartile = NA_character_,
-      median = NA_character_,
-      upper_quartile = NA_character_,
-      range_max = NA_character_,
       column_data = NULL
     )
 
-  # 2. Continuous variables - compute stats in bulk (vectorized with map)
+  # 2. Continuous variables
   continuous_vars <- var_metadata %>%
     filter(has_values, data_shape == 'continuous') %>%
     mutate(
-      is_date = data_type == "date",
       vocabulary = map(seq_len(n()), ~ NA),
       precision = case_when(
         data_type == 'integer' ~ 0L,
@@ -1183,17 +1201,7 @@ setMethod("get_hydrated_variable_and_category_metadata", "Entity", function(enti
         TRUE ~ NA_integer_
       ),
       distinct_values_count = map_int(column_data, n_distinct),
-      mean = map_chr(column_data, ~ as.character(mean(.x, na.rm = TRUE))),
-      bin_width_computed = map_chr(column_data, ~ as.character(findBinWidth(.x, na.rm = TRUE))),
-      summary_stats = map2(column_data, is_date, ~ safe_fivenum(.x, is_date = .y)),
-      range_min = map_chr(summary_stats, ~ as.character(.x[[1]])),
-      lower_quartile = map_chr(summary_stats, ~ as.character(.x[[2]])),
-      median = map_chr(summary_stats, ~ as.character(.x[[3]])),
-      upper_quartile = map_chr(summary_stats, ~ as.character(.x[[4]])),
-      range_max = map_chr(summary_stats, ~ as.character(.x[[5]])),
-      is_date = NULL,
-      column_data = NULL,
-      summary_stats = NULL
+      column_data = NULL
     )
 
   # 3. Categorical/binary variables - vocabulary from data, distinct count (vectorized with map)
@@ -1212,13 +1220,6 @@ setMethod("get_hydrated_variable_and_category_metadata", "Entity", function(enti
         TRUE ~ NA_integer_
       ),
       distinct_values_count = map_int(column_data, n_distinct),
-      mean = NA_character_,
-      bin_width_computed = NA_character_,
-      range_min = NA_character_,
-      lower_quartile = NA_character_,
-      median = NA_character_,
-      upper_quartile = NA_character_,
-      range_max = NA_character_,
       column_data = NULL
     )
 
@@ -1233,13 +1234,6 @@ setMethod("get_hydrated_variable_and_category_metadata", "Entity", function(enti
         TRUE ~ NA_integer_
       ),
       distinct_values_count = map_int(column_data, n_distinct),
-      mean = NA_character_,
-      bin_width_computed = NA_character_,
-      range_min = NA_character_,
-      lower_quartile = NA_character_,
-      median = NA_character_,
-      upper_quartile = NA_character_,
-      range_max = NA_character_,
       column_data = NULL
     )
 
