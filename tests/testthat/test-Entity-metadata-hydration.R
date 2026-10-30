@@ -50,3 +50,117 @@ test_that("get_hydrated_variable_and_category_metadata(entity) works", {
     expect_false(hvmd %>% pull(stable_id) %>% duplicated() %>% any())
   }
 })
+
+test_that("numeric/date stats are hydrated for categorical number, integer and date variables (#82)", {
+  n <- 500
+  data <- tibble(
+    thing_id = sprintf("T%04d", seq_len(n)),
+    int_cat = rep(c(1L, 2L, 3L, 5L, 8L), length.out = n),
+    num_cat = rep(c(0.5, 1.25, 2.5), length.out = n),
+    date_cat = rep(as.Date(c("2020-01-15", "2021-06-30", "2023-11-02")), length.out = n),
+    # high-cardinality integer code, e.g. an external ID
+    int_code = 100000L + sample.int(900000L, n),
+    str_cat = rep(c("a", "b", "c"), length.out = n)
+  ) %>%
+    mutate(
+      int_cont = int_cat,
+      num_cont = num_cat,
+      date_cont = date_cat
+    )
+
+  entity <- entity_from_tibble(data, name = "thing", skip_type_convert = TRUE) %>%
+    quiet() %>%
+    set_variable_metadata("int_cat", data_type = "integer", data_shape = "categorical") %>%
+    set_variable_metadata("num_cat", data_type = "number", data_shape = "categorical") %>%
+    set_variable_metadata("date_cat", data_type = "date", data_shape = "categorical") %>%
+    set_variable_metadata("int_code", data_type = "integer", data_shape = "categorical") %>%
+    set_variable_metadata("str_cat", data_type = "string", data_shape = "categorical") %>%
+    set_variable_metadata("int_cont", data_type = "integer", data_shape = "continuous") %>%
+    set_variable_metadata("num_cont", data_type = "number", data_shape = "continuous") %>%
+    set_variable_metadata("date_cont", data_type = "date", data_shape = "continuous")
+
+  expect_no_error(hvmd <- entity %>% get_hydrated_variable_and_category_metadata())
+
+  stats_columns <- c(
+    "mean", "bin_width_computed", "range_min", "lower_quartile",
+    "median", "upper_quartile", "range_max"
+  )
+  row_for <- function(var) hvmd %>% filter(variable == var)
+
+  # categorical numeric/date variables get exactly the stats their continuous twins get
+  for (pair in list(c("int_cat", "int_cont"), c("num_cat", "num_cont"), c("date_cat", "date_cont"))) {
+    expect_equal(
+      row_for(pair[1]) %>% select(all_of(stats_columns)),
+      row_for(pair[2]) %>% select(all_of(stats_columns)),
+      label = pair[1]
+    )
+  }
+
+  # continuous outputs are what they were before
+  expect_equal(row_for("int_cont")$range_min, "1")
+  expect_equal(row_for("int_cont")$range_max, "8")
+  expect_equal(row_for("num_cont")$range_max, "2.5")
+  expect_equal(row_for("date_cont")$range_min, "2020-01-15")
+  expect_equal(row_for("date_cont")$range_max, "2023-11-02")
+  expect_match(row_for("date_cont")$bin_width_computed, "^(day|week|month|year)$")
+
+  # categoricals keep their vocabulary
+  expect_equal(unlist(row_for("int_cat")$vocabulary), c("1", "2", "3", "5", "8"))
+  expect_equal(unlist(row_for("date_cat")$vocabulary), c("2020-01-15", "2021-06-30", "2023-11-02"))
+
+  # high-cardinality integer code: bin width computes and is a positive integer
+  code_row <- row_for("int_code")
+  expect_equal(code_row$range_min, as.character(min(data$int_code)))
+  expect_equal(code_row$range_max, as.character(max(data$int_code)))
+  expect_false(is.na(code_row$bin_width_computed))
+  expect_gt(as.numeric(code_row$bin_width_computed), 0)
+  expect_equal(code_row$distinct_values_count, n_distinct(data$int_code))
+
+  # string categoricals are unchanged: vocabulary, no numeric stats
+  str_row <- row_for("str_cat")
+  expect_equal(unlist(str_row$vocabulary), c("a", "b", "c"))
+  expect_true(all(is.na(str_row %>% select(all_of(stats_columns)))))
+})
+
+test_that("single-valued number/integer/date variables get a non-zero bin width", {
+  # plot.data::findBinWidth returns 0 for a constant non-integer number;
+  # like the legacy loader (LoadAttributesFromEntityGraph.pm), use 1 instead
+  data <- tibble(
+    thing_id = sprintf("T%02d", 1:6),
+    num_const = rep(2.5, 6),
+    num_const_na = c(7.25, NA, 7.25, 7.25, NA, 7.25),
+    num_const_cat = rep(123.456, 6),
+    num_const_whole = rep(100, 6),
+    int_const = rep(5L, 6),
+    date_const = rep(as.Date("2020-01-01"), 6),
+    num_varied = c(0.5, 1.5, 2.5, 3.5, 4.5, 5.5)
+  )
+
+  entity <- entity_from_tibble(data, name = "thing", skip_type_convert = TRUE) %>%
+    quiet() %>%
+    set_variable_metadata("num_const", data_type = "number", data_shape = "continuous") %>%
+    set_variable_metadata("num_const_na", data_type = "number", data_shape = "continuous") %>%
+    set_variable_metadata("num_const_cat", data_type = "number", data_shape = "categorical") %>%
+    set_variable_metadata("num_const_whole", data_type = "number", data_shape = "continuous") %>%
+    set_variable_metadata("int_const", data_type = "integer", data_shape = "continuous") %>%
+    set_variable_metadata("date_const", data_type = "date", data_shape = "continuous") %>%
+    set_variable_metadata("num_varied", data_type = "number", data_shape = "continuous")
+
+  hvmd <- entity %>% get_hydrated_variable_and_category_metadata()
+  bin_width <- function(var) hvmd %>% filter(variable == var) %>% pull(bin_width_computed)
+
+  expect_equal(bin_width("num_const"), "1")
+  expect_equal(bin_width("num_const_na"), "1")
+  expect_equal(bin_width("num_const_cat"), "1")
+  expect_equal(bin_width("num_const_whole"), "1")
+  expect_equal(bin_width("int_const"), "1")
+  expect_equal(bin_width("date_const"), "day")
+
+  # range stats are untouched
+  num_const <- hvmd %>% filter(variable == "num_const")
+  expect_equal(num_const$range_min, "2.5")
+  expect_equal(num_const$range_max, "2.5")
+
+  # varied columns keep the computed bin width
+  expect_equal(bin_width("num_varied"), as.character(findBinWidth(data$num_varied)))
+})
