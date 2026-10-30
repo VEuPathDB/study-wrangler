@@ -1172,6 +1172,10 @@ setMethod("get_hydrated_variable_and_category_metadata", "Entity", function(enti
         median = map_chr(summary_stats, ~ as.character(.x[[3]])),
         upper_quartile = map_chr(summary_stats, ~ as.character(.x[[4]])),
         range_max = map_chr(summary_stats, ~ as.character(.x[[5]])),
+        # findBinWidth gives 0 for single-valued numbers; use 1 like the legacy loader
+        bin_width_computed = if_else(
+          bin_width_computed == "0" & range_min == range_max, "1", bin_width_computed
+        ),
         is_date = NULL,
         values = NULL,
         summary_stats = NULL

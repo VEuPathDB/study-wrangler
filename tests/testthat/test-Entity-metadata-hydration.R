@@ -121,3 +121,46 @@ test_that("numeric/date stats are hydrated for categorical number, integer and d
   expect_equal(unlist(str_row$vocabulary), c("a", "b", "c"))
   expect_true(all(is.na(str_row %>% select(all_of(stats_columns)))))
 })
+
+test_that("single-valued number/integer/date variables get a non-zero bin width", {
+  # plot.data::findBinWidth returns 0 for a constant non-integer number;
+  # like the legacy loader (LoadAttributesFromEntityGraph.pm), use 1 instead
+  data <- tibble(
+    thing_id = sprintf("T%02d", 1:6),
+    num_const = rep(2.5, 6),
+    num_const_na = c(7.25, NA, 7.25, 7.25, NA, 7.25),
+    num_const_cat = rep(123.456, 6),
+    num_const_whole = rep(100, 6),
+    int_const = rep(5L, 6),
+    date_const = rep(as.Date("2020-01-01"), 6),
+    num_varied = c(0.5, 1.5, 2.5, 3.5, 4.5, 5.5)
+  )
+
+  entity <- entity_from_tibble(data, name = "thing", skip_type_convert = TRUE) %>%
+    quiet() %>%
+    set_variable_metadata("num_const", data_type = "number", data_shape = "continuous") %>%
+    set_variable_metadata("num_const_na", data_type = "number", data_shape = "continuous") %>%
+    set_variable_metadata("num_const_cat", data_type = "number", data_shape = "categorical") %>%
+    set_variable_metadata("num_const_whole", data_type = "number", data_shape = "continuous") %>%
+    set_variable_metadata("int_const", data_type = "integer", data_shape = "continuous") %>%
+    set_variable_metadata("date_const", data_type = "date", data_shape = "continuous") %>%
+    set_variable_metadata("num_varied", data_type = "number", data_shape = "continuous")
+
+  hvmd <- entity %>% get_hydrated_variable_and_category_metadata()
+  bin_width <- function(var) hvmd %>% filter(variable == var) %>% pull(bin_width_computed)
+
+  expect_equal(bin_width("num_const"), "1")
+  expect_equal(bin_width("num_const_na"), "1")
+  expect_equal(bin_width("num_const_cat"), "1")
+  expect_equal(bin_width("num_const_whole"), "1")
+  expect_equal(bin_width("int_const"), "1")
+  expect_equal(bin_width("date_const"), "day")
+
+  # range stats are untouched
+  num_const <- hvmd %>% filter(variable == "num_const")
+  expect_equal(num_const$range_min, "2.5")
+  expect_equal(num_const$range_max, "2.5")
+
+  # varied columns keep the computed bin width
+  expect_equal(bin_width("num_varied"), as.character(findBinWidth(data$num_varied)))
+})
