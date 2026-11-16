@@ -160,14 +160,17 @@ setMethod("set_study_name", "Study", function(study, name) {
 
 #' get_study_id
 #'
-#' Gets the study's uniquely generated ID.
-#' 
-#' Fatal error if the study_name is not set
+#' Gets the study's `stable_id` if set, otherwise a unique ID generated from its name.
+#'
+#' Fatal error if neither stable_id nor study_name is set
 #'
 #' @param study A `Study` object.
 #' @return A `character` string representing a generated unique ID for the study.
 #' @export
 setMethod("get_study_id", "Study", function(study) {
+  if (is_truthy(study@stable_id)) {
+    return(study@stable_id)
+  }
   name <- study %>% get_study_name()
   if (is_truthy(name)) {
     return(prefixed_alphanumeric_id(seed_string=name, prefix="STUDY_", length=10))

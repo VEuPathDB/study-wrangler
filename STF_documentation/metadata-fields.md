@@ -110,6 +110,7 @@ entity loads without metadata.
 | Key | Type | Required | Default | Notes |
 |---|---|---|---|---|
 | `name` | string | yes (validation) | none | Human-readable study name. A missing name loads (study-level checks are not run at load time), but `validate()` then reports "Study name is missing." |
+| `stable_id` | string | no | generated | The study's stable ID in its source system. `export_to_vdi()` writes it to `study.cache` and as every entity's `study_stable_id`. Without it, a `STUDY_…` ID is generated from `name`. `export_to_stf()` writes it only when set. |
 | `entities` | list of strings | yes (load) | none | Entity names. Each must have `entity-<name>.tsv` in the directory; `entity-<name>.yaml` is optional. The load stops if the list is missing or empty. Order does not matter: the tree is assembled from the ID columns. |
 
 No other keys are read; any other key stops the load.

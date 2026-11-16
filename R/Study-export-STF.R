@@ -31,8 +31,11 @@ setMethod("export_to_stf", "Study", function(object, output_directory) {
   study_metadata.path <- file.path(output_directory, 'study.yaml')
   entities <- study %>% get_entities()
 
-  study_metadata <- study %>%
-    slotNames() %>%
+  # an unset stable_id is left out so it round-trips as unset
+  metadata_slots <- slotNames(study)
+  if (!is_truthy(study@stable_id)) metadata_slots <- setdiff(metadata_slots, "stable_id")
+
+  study_metadata <- metadata_slots %>%
     keep(~ is.character(slot(study, .x))) %>%
     set_names() %>% # make a named character vector, c(name = 'name'), etc
     map(~ slot(study, .x)) %>% # map it to a list with the actual slot value as values
