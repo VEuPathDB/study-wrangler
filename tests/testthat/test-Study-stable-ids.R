@@ -57,6 +57,58 @@ test_that("set_entity_stable_ids() handles empty inputs", {
   expect_identical(result@root_entity, study@root_entity)
 })
 
+read_vdi_cache <- function(output_dir, file_name) {
+  readr::read_tsv(file.path(output_dir, file_name), col_names = FALSE,
+                  col_types = readr::cols(.default = "c"))
+}
+
+test_that("a study's stable_id is exported to study.cache and every entity's study_stable_id", {
+  study <- make_study(name = 'my study', stable_id = 'DANICA-1') %>% quiet()
+  expect_equal(get_study_id(study), 'DANICA-1')
+
+  output_dir <- withr::local_tempdir()
+  study %>% export_to_vdi(output_directory = output_dir)
+
+  expect_equal(read_vdi_cache(output_dir, 'study.cache') %>% pull(2), 'DANICA-1')
+  expect_equal(
+    read_vdi_cache(output_dir, 'entitytypegraph.cache') %>% pull(2),
+    rep('DANICA-1', 3)
+  )
+})
+
+test_that("a study without stable_id still gets a STUDY_ id from its name", {
+  study <- make_study(name = 'my study') %>% quiet()
+  expect_true(is.na(study@stable_id))
+  expect_match(get_study_id(study), '^STUDY_')
+  expect_equal(
+    get_study_id(study),
+    prefixed_alphanumeric_id(seed_string = 'my study', prefix = 'STUDY_', length = 10)
+  )
+})
+
+test_that("get_study_abbreviation() ignores stable_id", {
+  with_id <- make_study(name = 'my study', stable_id = 'DANICA-1')
+  without_id <- make_study(name = 'my study')
+  expect_equal(get_study_abbreviation(with_id), get_study_abbreviation(without_id))
+})
+
+test_that("a study's stable_id round-trips through STF", {
+  stf_directory <- withr::local_tempdir()
+  study1 <- make_study(name = 'my study', stable_id = 'DANICA-1', quiet_entities = FALSE)
+  study1 %>% export_to_stf(stf_directory)
+
+  expect_equal(yaml::read_yaml(file.path(stf_directory, 'study.yaml'))$stable_id, 'DANICA-1')
+  study2 <- study_from_stf(stf_directory)
+  expect_equal(study2@stable_id, 'DANICA-1')
+  expect_equal(study2, study1)
+})
+
+test_that("an unset stable_id is not written to study.yaml", {
+  stf_directory <- withr::local_tempdir()
+  make_study(name = 'my study') %>% export_to_stf(stf_directory)
+  expect_false('stable_id' %in% names(yaml::read_yaml(file.path(stf_directory, 'study.yaml'))))
+})
+
 test_that("set_entity_stable_ids() respects quiet mode", {
   study <- make_study(name = 'test study') %>% quiet()
   entity_names <- get_entity_names(study)
