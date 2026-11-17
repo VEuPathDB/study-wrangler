@@ -1117,10 +1117,6 @@ setMethod("get_hydrated_variable_and_category_metadata", "Entity", function(enti
     '__PLACEHOLDER_ENTITY_ID__'
   }
   
-  if (entity %>% get_variable_metadata() %>% nrow() == 0) {
-    return(empty_variable_metadata)
-  }
-  
   safe_fivenum <- function(x, is_date = FALSE) {
     if (is_date) {
       # Handle date input by converting to numeric and back to Date

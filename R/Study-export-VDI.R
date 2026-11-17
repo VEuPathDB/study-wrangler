@@ -566,8 +566,8 @@ export_attributes_to_vdi <- function(entities, output_directory, install_json, s
     as.character() %>%
     nchar() %>%
     replace(is.na(.), 1) %>%
-    max()
-  
+    max(default = 1, na.rm = TRUE)
+
   attributevalues_table_def <- list(
     name = tablename,
     type = 'table',
