@@ -194,6 +194,7 @@ entity_from_stf <- function(tsv_path, yaml_path = NULL) {
       ),
       process_metadata_list(
         metadata$variables %>%
+          map(trim_stf_level_lists) %>%
           map(
             ~ list_modify(
               .x,
@@ -337,4 +338,31 @@ entity_from_stf <- function(tsv_path, yaml_path = NULL) {
     verbose()
   
   return(entity)
+}
+
+#' Trim `vocabulary_order` and `ordinal_levels` entries of one YAML variable
+#'
+#' read_tsv() trims whitespace from every data cell, so untrimmed entries could
+#' never match the data. Entries left empty or duplicated by the trim are dropped
+#' with a warning, keeping the first occurrence.
+#' @keywords internal
+trim_stf_level_lists <- function(variable) {
+  for (field in c("vocabulary_order", "ordinal_levels")) {
+    entries <- variable[[field]]
+    if (length(entries) == 0) next
+
+    trimmed <- map(entries, ~ if (is.character(.x)) trimws(.x) else .x)
+    as_text <- map_chr(trimmed, ~ as.character(.x))
+    keep <- as_text != "" & !duplicated(as_text)
+    if (!all(keep)) {
+      warning(
+        "STF YAML variable '", variable$variable, "': ", field,
+        " has empty or duplicate entries after trimming whitespace; kept the first of each: ",
+        paste0("'", as_text[!keep], "'", collapse = ", "),
+        call. = FALSE
+      )
+    }
+    variable[[field]] <- trimmed[keep]
+  }
+  variable
 }
