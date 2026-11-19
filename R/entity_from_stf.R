@@ -28,6 +28,9 @@ entity_from_stf <- function(tsv_path, yaml_path = NULL) {
   
   # Read in the file as all-character with no headers
   data <- read_tsv(tsv_path, col_names = FALSE, col_types = cols(.default = "c"), progress = FALSE)
+  # trim_ws skips quoted cells, so a quoted value ending in a line break would
+  # never match its trim_stf_level_lists() entry.
+  data <- data %>% mutate(across(everything(), trimws))
 
   # Determine if it's wide or tall format based on the first row.
   # Only the standard marker `X \\ Descriptors` counts: a transposed root entity
