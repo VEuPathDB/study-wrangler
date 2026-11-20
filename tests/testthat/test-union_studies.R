@@ -296,3 +296,83 @@ test_that("a union survives an export_to_stf() / study_from_stf() round trip", {
                rep(c("A", "B"), each = 4))
   expect_true(back %>% validate(profiles = c("baseline", "eda")))
 })
+
+make_attractant_source <- function(name, sites, attractant, delimiter = NA_character_) {
+  study <- make_union_source(name, sites %>% mutate(attractant = attractant), collections_a %>%
+    mutate(site = rep_len(sites$site, 4), collection = paste0(name, collection)))
+  if (!is.na(delimiter)) {
+    study@root_entity <- study@root_entity %>%
+      quiet() %>%
+      set_variable_metadata("attractant", is_multi_valued = TRUE, multi_value_delimiter = delimiter)
+  }
+  study
+}
+
+delimiter_warning <- "union_studies: set multi_value_delimiter from sources without one for: site.attractant (';')"
+
+test_that("a delimiter only some sources have is set when the others' values don't contain it", {
+  a <- make_attractant_source("A", sites_a, c("light;CO2", "light", "hay;CO2"), delimiter = ";")
+  b <- make_attractant_source("B", sites_b, c("light", "CO2", "hay"))
+  expect_true(is.na(variable_meta(b, "site", "attractant")$multi_value_delimiter))
+
+  result <- union_with_warnings(list(a, b), name = "AB", stable_id = "AB")
+
+  expect_equal(result$warnings, delimiter_warning)
+  meta <- variable_meta(result$study, "site", "attractant")
+  expect_equal(meta$multi_value_delimiter, ";")
+  expect_true(meta$is_multi_valued)
+  expect_equal(get_entity(result$study, "site") %>% get_data() %>% pull(attractant),
+               c("light;CO2", "light", "hay;CO2", "light", "CO2", "hay"))
+  expect_true(result$study %>% quiet() %>% validate(profiles = c("baseline", "eda")))
+})
+
+test_that("the delimiter and is_multi_valued are set when a source without one comes first", {
+  a <- make_attractant_source("A", sites_a, c("light;CO2", "light", "hay;CO2"), delimiter = ";")
+  b <- make_attractant_source("B", sites_b, c("light", "CO2", "hay"))
+
+  result <- union_with_warnings(list(b, a), name = "BA", stable_id = "BA")
+
+  expect_equal(result$warnings, delimiter_warning)
+  meta <- variable_meta(result$study, "site", "attractant")
+  expect_equal(meta$multi_value_delimiter, ";")
+  expect_true(meta$is_multi_valued)
+})
+
+test_that("a source without the delimiter whose values contain it is an error", {
+  a <- make_attractant_source("A", sites_a, c("light;CO2", "light", "hay"), delimiter = ";")
+  b <- make_attractant_source("B", sites_b, c("light", "CO2;hay", "hay"))
+
+  expect_error(
+    union_studies(list(a, b), name = "AB", stable_id = "AB"),
+    "variable 'attractant' in entity 'site' has no multi_value_delimiter in 'B' but its values contain ';', e.g. CO2;hay",
+    fixed = TRUE
+  )
+})
+
+test_that("two different delimiters are still an error", {
+  a <- make_attractant_source("A", sites_a, c("light;CO2", "light", "hay"), delimiter = ";")
+  b <- make_attractant_source("B", sites_b, c("light|CO2", "light", "hay"), delimiter = "|")
+
+  expect_error(
+    union_studies(list(a, b), name = "AB", stable_id = "AB"),
+    "variable 'attractant' in entity 'site' has conflicting multi_value_delimiter: A = ;, B = |",
+    fixed = TRUE
+  )
+})
+
+test_that("a delimiter set from one source survives an export_to_stf() / study_from_stf() round trip", {
+  a <- make_attractant_source("A", sites_a, c("light;CO2", "light", "hay;CO2"), delimiter = ";")
+  b <- make_attractant_source("B", sites_b, c("light", "CO2", "hay"))
+  u <- union_with_warnings(list(a, b), name = "AB", stable_id = "AB")$study
+
+  dir <- withr::local_tempdir()
+  u %>% quiet() %>% export_to_stf(dir)
+  back <- study_from_stf(dir) %>% quiet()
+
+  meta <- variable_meta(back, "site", "attractant")
+  expect_equal(meta$multi_value_delimiter, ";")
+  expect_true(meta$is_multi_valued)
+  expect_equal(get_entity(back, "site") %>% get_data() %>% pull(attractant),
+               c("light;CO2", "light", "hay;CO2", "light", "CO2", "hay"))
+  expect_true(back %>% validate(profiles = c("baseline", "eda")))
+})

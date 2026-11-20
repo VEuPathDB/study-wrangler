@@ -18,7 +18,10 @@
 #'   on rows from `string` sources), and a categorical string `<variable>_as_string`
 #'   holds every row's value (dates as `YYYY-MM-DD`). A source that already has
 #'   `<variable>_as_string` is an error. Any other type or shape disagreement is an error, as is a
-#'   differing variable `stable_id` or `multi_value_delimiter`. `vocabulary_order` is
+#'   differing variable `stable_id`. A `multi_value_delimiter` that only some sources
+#'   have is kept (with their `is_multi_valued`) when no value in the other sources
+#'   contains it, and is an error otherwise; two different delimiters are an error.
+#'   `vocabulary_order` is
 #'   the ordered union of the sources' entries (first study's first), and the
 #'   vocabulary itself is derived from the combined data. All other metadata (display names, definitions,
 #'   categories, collections, entity names and descriptions) comes from the first
@@ -77,7 +80,7 @@ union_studies <- function(studies, name, stable_id, source_variable = TRUE, pref
   for (field in sort(ls(diffs))) {
     affected <- toString(get(field, envir = diffs))
     warning(
-      if (startsWith(field, union_widened_prefix) || field == union_split_label) {
+      if (startsWith(field, union_widened_prefix) || field %in% c(union_split_label, union_delimiter_label)) {
         glue("union_studies: {field} for: {affected}")
       } else {
         glue("union_studies: {field} differs between source studies; kept the first study's value for: {affected}")
@@ -194,7 +197,40 @@ union_widenings <- list(
 )
 
 # Metadata columns that may not differ between sources (they define the data).
-union_strict_fields <- c("stable_id", "multi_value_delimiter")
+union_strict_fields <- c("stable_id")
+union_delimiter_fields <- c("multi_value_delimiter", "is_multi_valued")
+union_delimiter_label <- "set multi_value_delimiter from sources without one"
+
+#' The one delimiter some sources declare, if the others have none and their values
+#' don't contain it; `NULL` when the sources agree. Stops otherwise.
+#' @keywords internal
+union_resolve_delimiter <- function(rows, entity_key, sources, diffs) {
+  variable <- rows$variable[1]
+  delimiters <- rows$multi_value_delimiter
+  if (n_distinct(delimiters) <= 1) return(NULL)
+
+  declared <- unique(delimiters[!is.na(delimiters)])
+  if (length(declared) > 1) {
+    stop(glue(
+      "union_studies: variable '{variable}' in entity '{entity_key}' has conflicting multi_value_delimiter: ",
+      "{paste0(rows$.study, ' = ', delimiters, collapse = ', ')}"
+    ))
+  }
+
+  for (study_name in rows$.study[is.na(delimiters)]) {
+    values <- as.character(sources[[study_name]]@data[[variable]])
+    containing <- unique(values[!is.na(values) & grepl(declared, values, fixed = TRUE)])
+    if (length(containing) > 0) {
+      stop(glue(
+        "union_studies: variable '{variable}' in entity '{entity_key}' has no multi_value_delimiter in ",
+        "'{study_name}' but its values contain '{declared}', e.g. {toString(head(containing, 5))}"
+      ))
+    }
+  }
+
+  union_record_diff(diffs, union_delimiter_label, glue("{entity_key}.{variable} ('{declared}')"))
+  rows[match(declared, delimiters), union_delimiter_fields]
+}
 union_structural_fields <- c("variable", "entity_name", "entity_level", "data_type", "data_shape")
 
 union_record_diff <- function(diffs, field, label) {
@@ -204,7 +240,7 @@ union_record_diff <- function(diffs, field, label) {
 
 #' Merges one variable's metadata rows (one per source study, first study first).
 #' @keywords internal
-union_variable_row <- function(rows, entity_key, diffs) {
+union_variable_row <- function(rows, entity_key, diffs, sources) {
   variable <- rows$variable[1]
   first <- rows[1, ]
   widened_shape <- FALSE
@@ -235,11 +271,15 @@ union_variable_row <- function(rows, entity_key, diffs) {
     }
   }
 
+  resolved_delimiter <- union_resolve_delimiter(rows, entity_key, sources, diffs)
+  if (!is.null(resolved_delimiter)) first[union_delimiter_fields] <- resolved_delimiter
+
   # Every source's pinned values, first study's first; nothing is dropped.
   vocabulary_order <- unique(unlist(rows$vocabulary_order))
   first$vocabulary_order <- list(if (is.null(vocabulary_order)) list() else as.list(vocabulary_order))
 
-  compared <- setdiff(colnames(rows), c(union_structural_fields, union_strict_fields, "vocabulary_order", ".study"))
+  compared <- setdiff(colnames(rows), c(union_structural_fields, union_strict_fields, "vocabulary_order", ".study",
+                                        if (!is.null(resolved_delimiter)) union_delimiter_fields))
   for (field in compared) {
     for (i in seq_len(nrow(rows))[-1]) {
       if (!identical(rows[[field]][i], rows[[field]][1])) {
@@ -287,8 +327,8 @@ union_entity <- function(sources, key, diffs, add_source_metadata) {
   variable_order <- unique(all_variables$variable)
   variables <- map(variable_order, function(v) {
     rows <- all_variables %>% filter(variable == v)
-    if (!v %in% split_variables) return(union_variable_row(rows, key, diffs))
-    date_row <- union_variable_row(rows %>% filter(data_type == "date"), key, diffs)
+    if (!v %in% split_variables) return(union_variable_row(rows, key, diffs, sources))
+    date_row <- union_variable_row(rows %>% filter(data_type == "date"), key, diffs, sources)
     bind_rows(date_row, union_string_copy_metadata(date_row))
   }) %>% bind_rows() %>% select(-.study)
 
