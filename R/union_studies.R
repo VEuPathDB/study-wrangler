@@ -13,8 +13,15 @@
 #'   instance id and every ancestor id column is prefixed with `<study name>:`.
 #' * **Variable metadata.** `data_type` and `data_shape` must agree, except that
 #'   `integer`/`number` widens to `number` and `binary`/`categorical` widens to
-#'   `categorical`. Any other type or shape disagreement is an error, as is a
-#'   differing variable `stable_id` or `multi_value_delimiter`. `vocabulary_order` is
+#'   `categorical`. A variable that is `date` in some sources and `string` in the
+#'   others is split: it stays a `date` (metadata from the first `date` source, `NA`
+#'   on rows from `string` sources), and a categorical string `<variable>_as_string`
+#'   holds every row's value (dates as `YYYY-MM-DD`). A source that already has
+#'   `<variable>_as_string` is an error. Any other type or shape disagreement is an error, as is a
+#'   differing variable `stable_id`. A `multi_value_delimiter` that only some sources
+#'   have is kept (with their `is_multi_valued`) when no value in the other sources
+#'   contains it, and is an error otherwise; two different delimiters are an error.
+#'   `vocabulary_order` is
 #'   the ordered union of the sources' entries (first study's first), and the
 #'   vocabulary itself is derived from the combined data. All other metadata (display names, definitions,
 #'   categories, collections, entity names and descriptions) comes from the first
@@ -73,7 +80,7 @@ union_studies <- function(studies, name, stable_id, source_variable = TRUE, pref
   for (field in sort(ls(diffs))) {
     affected <- toString(get(field, envir = diffs))
     warning(
-      if (startsWith(field, union_widened_prefix)) {
+      if (startsWith(field, union_widened_prefix) || field %in% c(union_split_label, union_delimiter_label)) {
         glue("union_studies: {field} for: {affected}")
       } else {
         glue("union_studies: {field} differs between source studies; kept the first study's value for: {affected}")
@@ -190,7 +197,40 @@ union_widenings <- list(
 )
 
 # Metadata columns that may not differ between sources (they define the data).
-union_strict_fields <- c("stable_id", "multi_value_delimiter")
+union_strict_fields <- c("stable_id")
+union_delimiter_fields <- c("multi_value_delimiter", "is_multi_valued")
+union_delimiter_label <- "set multi_value_delimiter from sources without one"
+
+#' The one delimiter some sources declare, if the others have none and their values
+#' don't contain it; `NULL` when the sources agree. Stops otherwise.
+#' @keywords internal
+union_resolve_delimiter <- function(rows, entity_key, sources, diffs) {
+  variable <- rows$variable[1]
+  delimiters <- rows$multi_value_delimiter
+  if (n_distinct(delimiters) <= 1) return(NULL)
+
+  declared <- unique(delimiters[!is.na(delimiters)])
+  if (length(declared) > 1) {
+    stop(glue(
+      "union_studies: variable '{variable}' in entity '{entity_key}' has conflicting multi_value_delimiter: ",
+      "{paste0(rows$.study, ' = ', delimiters, collapse = ', ')}"
+    ))
+  }
+
+  for (study_name in rows$.study[is.na(delimiters)]) {
+    values <- as.character(sources[[study_name]]@data[[variable]])
+    containing <- unique(values[!is.na(values) & grepl(declared, values, fixed = TRUE)])
+    if (length(containing) > 0) {
+      stop(glue(
+        "union_studies: variable '{variable}' in entity '{entity_key}' has no multi_value_delimiter in ",
+        "'{study_name}' but its values contain '{declared}', e.g. {toString(head(containing, 5))}"
+      ))
+    }
+  }
+
+  union_record_diff(diffs, union_delimiter_label, glue("{entity_key}.{variable} ('{declared}')"))
+  rows[match(declared, delimiters), union_delimiter_fields]
+}
 union_structural_fields <- c("variable", "entity_name", "entity_level", "data_type", "data_shape")
 
 union_record_diff <- function(diffs, field, label) {
@@ -200,7 +240,7 @@ union_record_diff <- function(diffs, field, label) {
 
 #' Merges one variable's metadata rows (one per source study, first study first).
 #' @keywords internal
-union_variable_row <- function(rows, entity_key, diffs) {
+union_variable_row <- function(rows, entity_key, diffs, sources) {
   variable <- rows$variable[1]
   first <- rows[1, ]
   widened_shape <- FALSE
@@ -231,11 +271,15 @@ union_variable_row <- function(rows, entity_key, diffs) {
     }
   }
 
+  resolved_delimiter <- union_resolve_delimiter(rows, entity_key, sources, diffs)
+  if (!is.null(resolved_delimiter)) first[union_delimiter_fields] <- resolved_delimiter
+
   # Every source's pinned values, first study's first; nothing is dropped.
   vocabulary_order <- unique(unlist(rows$vocabulary_order))
   first$vocabulary_order <- list(if (is.null(vocabulary_order)) list() else as.list(vocabulary_order))
 
-  compared <- setdiff(colnames(rows), c(union_structural_fields, union_strict_fields, "vocabulary_order", ".study"))
+  compared <- setdiff(colnames(rows), c(union_structural_fields, union_strict_fields, "vocabulary_order", ".study",
+                                        if (!is.null(resolved_delimiter)) union_delimiter_fields))
   for (field in compared) {
     for (i in seq_len(nrow(rows))[-1]) {
       if (!identical(rows[[field]][i], rows[[field]][1])) {
@@ -279,14 +323,19 @@ union_entity <- function(sources, key, diffs, add_source_metadata) {
   }
 
   all_variables <- bind_rows(map(sources, ~ .x@variables), .id = ".study")
+  split_variables <- union_date_string_splits(all_variables, sources, key, diffs)
   variable_order <- unique(all_variables$variable)
   variables <- map(variable_order, function(v) {
-    union_variable_row(all_variables %>% filter(variable == v), key, diffs)
+    rows <- all_variables %>% filter(variable == v)
+    if (!v %in% split_variables) return(union_variable_row(rows, key, diffs, sources))
+    date_row <- union_variable_row(rows %>% filter(data_type == "date"), key, diffs, sources)
+    bind_rows(date_row, union_string_copy_metadata(date_row))
   }) %>% bind_rows() %>% select(-.study)
 
   numeric_columns <- variables %>% filter(data_type == "number") %>% pull(variable)
   data <- map(sources, ~ .x@data %>%
-    mutate(across(any_of(numeric_columns) & where(is.integer), as.numeric))) %>%
+    mutate(across(any_of(numeric_columns) & where(is.integer), as.numeric)) %>%
+    union_split_date_string_data(split_variables)) %>%
     bind_rows()
 
   if (add_source_metadata) {
@@ -301,6 +350,61 @@ union_entity <- function(sources, key, diffs, add_source_metadata) {
     collections = collections,
     children = list()
   )
+}
+
+union_split_label <- "split date/string variable into date + '<variable>_as_string'"
+
+union_string_copy_name <- function(variable) paste0(variable, "_as_string")
+
+#' Variables that are exactly `date` and `string` across the sources; stops on a name clash.
+#' @keywords internal
+union_date_string_splits <- function(all_variables, sources, key, diffs) {
+  splits <- all_variables %>%
+    group_by(variable) %>%
+    filter(setequal(as.character(data_type), c("date", "string"))) %>%
+    pull(variable) %>%
+    unique()
+
+  for (v in splits) {
+    copy <- union_string_copy_name(v)
+    clashing <- names(sources)[map_lgl(sources, ~ copy %in% c(colnames(.x@data), .x@variables$variable))]
+    if (length(clashing) > 0) {
+      stop(glue(
+        "union_studies: cannot split date/string variable '{v}' in entity '{key}': ",
+        "'{copy}' already exists in {toString(clashing)}."
+      ))
+    }
+    union_record_diff(diffs, union_split_label, glue("{key}.{v}"))
+  }
+  splits
+}
+
+union_string_copy_metadata <- function(date_row) {
+  tibble(variable = union_string_copy_name(date_row$variable)) %>%
+    expand_grid(variable_metadata_defaults) %>%
+    mutate(
+      entity_name = date_row$entity_name,
+      provider_label = list(list(variable)),
+      display_name = paste0(date_row$display_name, " (as string)"),
+      definition = date_row$definition,
+      parent_variable = date_row$parent_variable,
+      display_order = date_row$display_order,
+      hidden = date_row$hidden,
+      is_temporal = FALSE,
+      data_type = factor("string", levels = levels(variable_metadata_defaults$data_type)),
+      data_shape = factor("categorical", levels = levels(variable_metadata_defaults$data_shape))
+    ) %>%
+    generate_variable_stable_ids()
+}
+
+union_split_date_string_data <- function(data, split_variables) {
+  for (v in intersect(split_variables, colnames(data))) {
+    values <- data[[v]]
+    data[[union_string_copy_name(v)]] <- if (is.Date(values)) format(values, "%Y-%m-%d") else as.character(values)
+    if (!is.Date(values)) data[[v]] <- as.Date(NA)
+    data <- data %>% relocate(all_of(union_string_copy_name(v)), .after = all_of(v))
+  }
+  data
 }
 
 union_source_variable_metadata <- function(entity_name) {

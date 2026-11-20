@@ -144,15 +144,108 @@ test_that("differing vocabulary_order lists are merged in study order without a 
   expect_equal(variable_meta(u, "site", "region")$vocabulary_order[[1]], list("south", "north"))
 })
 
-test_that("a date/string difference is an error naming the variable and values", {
+test_that("a date/number difference is an error naming the variable and values", {
   a <- make_union_source("A", sites_a, collections_a %>% mutate(when = as.Date("2020-01-01") + 0:3))
-  b <- make_union_source("B", sites_b, collections_b %>% mutate(when = c("spring", "summer", "spring", "autumn")))
+  b <- make_union_source("B", sites_b, collections_b %>% mutate(when = c(1.5, 2.5, 3.5, 4.5)))
 
   expect_error(
     union_studies(list(a, b), name = "AB", stable_id = "AB"),
-    "variable 'when' in entity 'collection' has conflicting data_type: A = date, B = string",
+    "variable 'when' in entity 'collection' has conflicting data_type: A = date, B = number",
     fixed = TRUE
   )
+})
+
+when_dates <- as.Date("2020-01-01") + c(0, 7, 14, 21)
+when_ranges <- c("2021-05-01 to 2021-05-07", "2021-05-08 to 2021-05-14", "2021-06-01 to 2021-06-07", "late June")
+
+union_with_warnings <- function(...) {
+  warnings <- character()
+  u <- withCallingHandlers(
+    union_studies(...),
+    warning = function(w) {
+      warnings <<- c(warnings, conditionMessage(w))
+      invokeRestart("muffleWarning")
+    }
+  )
+  list(study = u, warnings = warnings)
+}
+
+test_that("a date/string variable splits into the date and a string copy", {
+  a <- make_union_source("A", sites_a, collections_a %>% mutate(when = when_dates))
+  b <- make_union_source("B", sites_b, collections_b %>% mutate(when = when_ranges))
+  expect_equal(as.character(variable_meta(b, "collection", "when")$data_type), "string")
+
+  result <- union_with_warnings(list(a, b), name = "AB", stable_id = "AB")
+  u <- result$study
+
+  expect_equal(
+    result$warnings,
+    "union_studies: split date/string variable into date + '<variable>_as_string' for: collection.when"
+  )
+
+  date_meta <- variable_meta(u, "collection", "when")
+  source_meta <- variable_meta(a, "collection", "when")
+  expect_equal(as.character(date_meta$data_type), "date")
+  expect_equal(date_meta$stable_id, source_meta$stable_id)
+  expect_equal(date_meta$display_name, source_meta$display_name)
+
+  copy_meta <- variable_meta(u, "collection", "when_as_string")
+  expect_equal(as.character(copy_meta$data_type), "string")
+  expect_equal(as.character(copy_meta$data_shape), "categorical")
+  expect_equal(copy_meta$display_name, paste0(source_meta$display_name, " (as string)"))
+  expect_false(copy_meta$is_temporal)
+  expect_match(copy_meta$stable_id, "^VAR_")
+
+  data <- get_entity(u, "collection") %>% get_data()
+  expect_equal(data$when, c(when_dates, rep(as.Date(NA), 4)))
+  expect_equal(data$when_as_string, c(format(when_dates, "%Y-%m-%d"), when_ranges))
+
+  again <- union_with_warnings(list(a, b), name = "AB", stable_id = "AB")$study
+  expect_equal(variable_meta(again, "collection", "when_as_string")$stable_id, copy_meta$stable_id)
+
+  expect_true(u %>% quiet() %>% validate(profiles = c("baseline", "eda")))
+})
+
+test_that("the date variable takes its metadata from the first date source", {
+  a <- make_union_source("A", sites_a, collections_a %>% mutate(when = when_dates))
+  b <- make_union_source("B", sites_b, collections_b %>% mutate(when = when_ranges))
+  string_first <- union_with_warnings(list(b, a), name = "BA", stable_id = "BA")$study
+
+  meta <- variable_meta(string_first, "collection", "when")
+  expect_equal(as.character(meta$data_type), "date")
+  expect_equal(as.character(meta$data_shape), as.character(variable_meta(a, "collection", "when")$data_shape))
+  data <- get_entity(string_first, "collection") %>% get_data()
+  expect_equal(data$when, c(rep(as.Date(NA), 4), when_dates))
+  expect_equal(data$when_as_string, c(when_ranges, format(when_dates, "%Y-%m-%d")))
+})
+
+test_that("a source already having <variable>_as_string is an error naming it", {
+  a <- make_union_source("A", sites_a, collections_a %>% mutate(when = when_dates))
+  b <- make_union_source("B", sites_b, collections_b %>% mutate(when = when_ranges, when_as_string = "x"))
+
+  expect_error(
+    union_studies(list(a, b), name = "AB", stable_id = "AB"),
+    "'when_as_string'",
+    fixed = TRUE
+  )
+})
+
+test_that("a date/string split survives an export_to_stf() / study_from_stf() round trip", {
+  a <- make_union_source("A", sites_a, collections_a %>% mutate(when = when_dates))
+  b <- make_union_source("B", sites_b, collections_b %>% mutate(when = when_ranges))
+  u <- union_with_warnings(list(a, b), name = "AB", stable_id = "AB")$study
+  copy_stable_id <- variable_meta(u, "collection", "when_as_string")$stable_id
+
+  dir <- withr::local_tempdir()
+  u %>% quiet() %>% export_to_stf(dir)
+  back <- study_from_stf(dir) %>% quiet()
+
+  expect_equal(as.character(variable_meta(back, "collection", "when")$data_type), "date")
+  expect_equal(variable_meta(back, "collection", "when_as_string")$stable_id, copy_stable_id)
+  data <- get_entity(back, "collection") %>% get_data()
+  expect_equal(data$when, c(when_dates, rep(as.Date(NA), 4)))
+  expect_equal(data$when_as_string, c(format(when_dates, "%Y-%m-%d"), when_ranges))
+  expect_true(back %>% validate(profiles = c("baseline", "eda")))
 })
 
 test_that("an entity with different parents is an error", {
@@ -201,5 +294,85 @@ test_that("a union survives an export_to_stf() / study_from_stf() round trip", {
   expect_equal(variable_meta(back, "collection", "source_dataset")$stable_id, source_stable_id)
   expect_equal(get_entity(back, "collection") %>% get_data() %>% pull(source_dataset),
                rep(c("A", "B"), each = 4))
+  expect_true(back %>% validate(profiles = c("baseline", "eda")))
+})
+
+make_attractant_source <- function(name, sites, attractant, delimiter = NA_character_) {
+  study <- make_union_source(name, sites %>% mutate(attractant = attractant), collections_a %>%
+    mutate(site = rep_len(sites$site, 4), collection = paste0(name, collection)))
+  if (!is.na(delimiter)) {
+    study@root_entity <- study@root_entity %>%
+      quiet() %>%
+      set_variable_metadata("attractant", is_multi_valued = TRUE, multi_value_delimiter = delimiter)
+  }
+  study
+}
+
+delimiter_warning <- "union_studies: set multi_value_delimiter from sources without one for: site.attractant (';')"
+
+test_that("a delimiter only some sources have is set when the others' values don't contain it", {
+  a <- make_attractant_source("A", sites_a, c("light;CO2", "light", "hay;CO2"), delimiter = ";")
+  b <- make_attractant_source("B", sites_b, c("light", "CO2", "hay"))
+  expect_true(is.na(variable_meta(b, "site", "attractant")$multi_value_delimiter))
+
+  result <- union_with_warnings(list(a, b), name = "AB", stable_id = "AB")
+
+  expect_equal(result$warnings, delimiter_warning)
+  meta <- variable_meta(result$study, "site", "attractant")
+  expect_equal(meta$multi_value_delimiter, ";")
+  expect_true(meta$is_multi_valued)
+  expect_equal(get_entity(result$study, "site") %>% get_data() %>% pull(attractant),
+               c("light;CO2", "light", "hay;CO2", "light", "CO2", "hay"))
+  expect_true(result$study %>% quiet() %>% validate(profiles = c("baseline", "eda")))
+})
+
+test_that("the delimiter and is_multi_valued are set when a source without one comes first", {
+  a <- make_attractant_source("A", sites_a, c("light;CO2", "light", "hay;CO2"), delimiter = ";")
+  b <- make_attractant_source("B", sites_b, c("light", "CO2", "hay"))
+
+  result <- union_with_warnings(list(b, a), name = "BA", stable_id = "BA")
+
+  expect_equal(result$warnings, delimiter_warning)
+  meta <- variable_meta(result$study, "site", "attractant")
+  expect_equal(meta$multi_value_delimiter, ";")
+  expect_true(meta$is_multi_valued)
+})
+
+test_that("a source without the delimiter whose values contain it is an error", {
+  a <- make_attractant_source("A", sites_a, c("light;CO2", "light", "hay"), delimiter = ";")
+  b <- make_attractant_source("B", sites_b, c("light", "CO2;hay", "hay"))
+
+  expect_error(
+    union_studies(list(a, b), name = "AB", stable_id = "AB"),
+    "variable 'attractant' in entity 'site' has no multi_value_delimiter in 'B' but its values contain ';', e.g. CO2;hay",
+    fixed = TRUE
+  )
+})
+
+test_that("two different delimiters are still an error", {
+  a <- make_attractant_source("A", sites_a, c("light;CO2", "light", "hay"), delimiter = ";")
+  b <- make_attractant_source("B", sites_b, c("light|CO2", "light", "hay"), delimiter = "|")
+
+  expect_error(
+    union_studies(list(a, b), name = "AB", stable_id = "AB"),
+    "variable 'attractant' in entity 'site' has conflicting multi_value_delimiter: A = ;, B = |",
+    fixed = TRUE
+  )
+})
+
+test_that("a delimiter set from one source survives an export_to_stf() / study_from_stf() round trip", {
+  a <- make_attractant_source("A", sites_a, c("light;CO2", "light", "hay;CO2"), delimiter = ";")
+  b <- make_attractant_source("B", sites_b, c("light", "CO2", "hay"))
+  u <- union_with_warnings(list(a, b), name = "AB", stable_id = "AB")$study
+
+  dir <- withr::local_tempdir()
+  u %>% quiet() %>% export_to_stf(dir)
+  back <- study_from_stf(dir) %>% quiet()
+
+  meta <- variable_meta(back, "site", "attractant")
+  expect_equal(meta$multi_value_delimiter, ";")
+  expect_true(meta$is_multi_valued)
+  expect_equal(get_entity(back, "site") %>% get_data() %>% pull(attractant),
+               c("light;CO2", "light", "hay;CO2", "light", "CO2", "hay"))
   expect_true(back %>% validate(profiles = c("baseline", "eda")))
 })
