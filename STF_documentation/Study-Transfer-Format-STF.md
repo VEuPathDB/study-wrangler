@@ -1,5 +1,11 @@
 # Study Transfer Format (STF) Documentation
 
+The Study Transfer Format (STF) is designed for structured storage and
+exchange of study data, supporting hierarchical entity
+relationships. STF includes two formats: STF (full) and STF-Lite. The
+STF format includes detailed metadata, while STF-Lite is a minimal
+version without metadata.
+
 > [!TIP]
 > ## 🤖 Let an AI agent do the wrangling for you
 >
@@ -14,12 +20,6 @@
 >
 > You can still write STF by hand: the rest of this document describes the
 > format in detail.
-
-The Study Transfer Format (STF) is designed for structured storage and
-exchange of study data, supporting hierarchical entity
-relationships. STF includes two formats: STF (full) and STF-Lite. The
-STF format includes detailed metadata, while STF-Lite is a minimal
-version without metadata.
 
 ## Studies, Entities, IDs, and Variables
 
