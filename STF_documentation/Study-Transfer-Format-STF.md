@@ -1,5 +1,20 @@
 # Study Transfer Format (STF) Documentation
 
+> [!TIP]
+> ## 🤖 Let an AI agent do the wrangling for you
+>
+> Getting data into STF by hand is fiddly. The **`tabular-to-stf`** agent
+> skill converts multi-entity relational tabular data (CSV/TSV) into
+> correctly formatted STF, and can help you validate and fix the result.
+>
+> 👉 **[Get the `tabular-to-stf` skill](https://github.com/VEuPathDB/veupathdb-skills#tabular-to-stf)**
+>
+> It works with Claude Code-like agent harnesses and, where supported,
+> web-based chat. See the skill's README for setup instructions.
+>
+> You can still write STF by hand: the rest of this document describes the
+> format in detail.
+
 The Study Transfer Format (STF) is designed for structured storage and
 exchange of study data, supporting hierarchical entity
 relationships. STF includes two formats: STF (full) and STF-Lite. The
